@@ -1,0 +1,29 @@
+---
+
+- name: Pull redis image
+  shell: docker pull {{redis_image}}
+
+- name: Check redis data container existed
+  shell: docker ps -a --filter="name={{redis_container}}_data$" | grep {{redis_container}}_data
+  register: containers
+
+- name: Create redis data container
+  shell: docker create --name {{redis_container}}_data {{redis_image}}
+  when: containers.stdout.find('{{redis_container}}_data') == -1
+
+- name: Check redis container existed
+  shell: "docker ps -a --filter='name={{redis_container}}$'"
+  register: containers
+
+- name: Remove existed redis container
+  shell: docker rm -f {{redis_container}}
+  when: containers.stdout.find('{{redis_container}}') != -1
+
+- name: Create redis container
+  shell: docker create --name {{redis_container}} --volumes-from {{redis_container}}_data -p 6379:6379 {{redis_image}}
+
+- name: Assemble supervisor config
+  template: src=supervisor.conf dest=/etc/supervisor/conf.d/{{redis_container}}.conf
+
+- name: Enable redis supervisor process
+  supervisorctl: name={{redis_container}} state=restarted

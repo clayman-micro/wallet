@@ -1,0 +1,3 @@
+---
+redis_image: clayman/redis
+redis_container: redis

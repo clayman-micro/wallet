@@ -1,0 +1,62 @@
+*.py[cod]
+
+# C extensions
+*.so
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# JS packages
+bower_components
+node_modules
+libs
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+cover
+tests/coverage
+htmlcov
+coverage.xml
+nosetests.xml
+
+# Translations
+*.mo
+*.pot
+
+# Mr Developer
+.project
+.pydevproject
+.idea
+.config
+.vagrant
+.env
+*.sublime-project
+*.sublime-workspace
+run
+env
+venv
+log
+logs
+media
+merge*
+*.cfg
+
+playbooks/inventory
+playbooks/host_vars
+playbooks/group_vars

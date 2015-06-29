@@ -1,0 +1,25 @@
+---
+
+- name: Make project db user
+  postgresql_user:
+    name: "{{project_db_user}}"
+    password: "{{project_db_password}}"
+    role_attr_flags: CREATEDB,NOSUPERUSER
+    login_host: 0.0.0.0
+    login_user: docker
+    login_password: docker
+
+- name: Make project db
+  postgresql_db:
+    name: "{{ project_db_name }}"
+    encoding: 'UTF-8'
+    template: 'template1'
+    owner: "{{ project_db_user }}"
+    login_host: 0.0.0.0
+    login_user: docker
+    login_password: docker
+
+- name: Template nginx config
+  template: src="nginx.conf.tmpl" dest="/etc/nginx/conf.d/ferrum.conf"
+  notify: restart nginx
+

@@ -1,0 +1,9 @@
+include MANIFEST.in
+include README.md
+include Makefile
+recursive-exclude * *.py[co]
+#recursive-include conf *.tmpl *.cfg
+#recursive-include wallet/assets/build *
+#recursive-exclude wallet/assets/build/libs *
+#recursive-include wallet/migrations *
+#recursive-include wallet/templates *.html

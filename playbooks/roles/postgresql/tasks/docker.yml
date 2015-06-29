@@ -1,0 +1,29 @@
+---
+
+- name: Pull postgresql image
+  shell: docker pull {{postgres_image}}
+
+- name: Check postgresql data container existed
+  shell: docker ps -a --filter="name={{postgres_container}}_data$"
+  register: containers
+
+- name: Create postgresql data container
+  shell: docker create --name {{postgres_container}}_data {{postgres_image}}
+  when: containers.stdout.find('{{postgres_container}}_data') == -1
+
+- name: Check postgresql container existed
+  shell: docker ps -a --filter="name={{postgres_container}}$"
+  register: containers
+
+- name: Remove existed postgresql container
+  shell: docker rm -f {{postgres_container}}
+  when: containers.stdout.find('{{postgres_container}}') != -1
+
+- name: Create postgresql container
+  shell: docker create --name {{postgres_container}} --volumes-from {{postgres_container}}_data -p 5432:5432 {{postgres_image}}
+
+- name: Assemble supervisor config
+  template: src=supervisor.conf dest=/etc/supervisor/conf.d/{{postgres_container}}.conf
+
+- name: Enable postgresql supervisor process
+  supervisorctl: name={{postgres_container}} state=restarted

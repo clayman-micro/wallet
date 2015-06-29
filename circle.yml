@@ -1,0 +1,20 @@
+machine:
+  timezone:
+    Asia/Yekaterinburg
+
+  python:
+    version: 3.4.2
+
+  environment:
+    ENVIRONMENT: testing
+    DB_NAME: circle_test
+    DB_HOST: localhost
+    DB_USER: ubuntu
+
+test:
+  override:
+    - python setup.py test -a "-vv --cov wallet --cov-report html --cov-report xml tests"
+
+general:
+  artifacts:
+    - "dist/"

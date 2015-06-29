@@ -1,0 +1,9 @@
+[run]
+data_file = tests/.coverage
+source = wallet
+
+[html]
+directory = tests/coverage/cover
+
+[xml]
+output = tests/coverage/coverage.xml

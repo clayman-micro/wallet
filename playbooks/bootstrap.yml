@@ -1,0 +1,13 @@
+---
+
+- name: Apply common configuration
+  hosts: all
+  remote_user: root
+  sudo: true
+  roles:
+    - role: common
+    - role: docker
+    - role: nginx
+    - role: redis
+    - role: postgresql
+    - role: app
