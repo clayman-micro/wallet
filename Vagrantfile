@@ -1,6 +1,8 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+ANSIBLE_TAGS=ENV['ANSIBLE_TAGS']
+
 Vagrant.configure("2") do |config|
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", "512"]
@@ -20,7 +22,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "playbooks/bootstrap.yml"
-    ansible.tags = ['common','app']
+    ansible.tags = ANSIBLE_TAGS
     ansible.extra_vars = {
         ansible_ssh_user: 'vagrant',
 

@@ -1,5 +1,11 @@
 ---
 
+- name: Create virtualenv
+  command: virtualenv /var/projects/{{project_name}} -p python3.4 creates="/var/projects/{{project_name}}"
+
+- name: Install required packages
+  shell: /var/projects/{{project_name}}/bin/pip install -e . chdir="/vagrant"
+
 - name: Make project db user
   postgresql_user:
     name: "{{project_db_user}}"

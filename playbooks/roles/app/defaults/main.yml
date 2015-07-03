@@ -8,4 +8,4 @@ project_socket: 127.0.0.1:9090
 
 project_db_user: wallet
 project_db_name: wallet
-project_db_password: "top secret"
+project_db_password: "wallet"
