@@ -1,6 +1,6 @@
 import sqlalchemy
 
-metadata = sqlalchemy.Metadata()
+metadata = sqlalchemy.MetaData()
 
 
 def create_table(name, columns):

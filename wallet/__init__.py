@@ -7,7 +7,7 @@ from aiohttp import web
 from aiopg.sa import create_engine
 import itsdangerous
 
-from .handlers import core
+from .handlers import core, auth, categories
 
 
 @contextmanager
@@ -41,7 +41,7 @@ class Application(web.Application):
             'DB_PORT': os.environ.get('DB_PORT', 5432),
             'DB_NAME': os.environ.get('DB_NAME', 'wallet'),
             'DB_USER': os.environ.get('DB_USER', 'wallet'),
-            'DB_PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'DB_PASSWORD': os.environ.get('DB_PASSWORD', 'wallet'),
 
             'APP_ROOT': os.path.realpath(os.path.dirname(
                 os.path.abspath(__file__))),
@@ -74,11 +74,25 @@ class Application(web.Application):
     @asyncio.coroutine
     def configure(self):
         self.engine = yield from create_engine(
-            self.config.get('SQLALCHEMY_DSN'), loop=self.loop
-        )
+            self.config.get('SQLALCHEMY_DSN'), loop=self.loop)
 
         with add_route_ctx(self, core, name_prefix='core') as add_route:
             add_route('GET', '/', 'index')
+
+        with add_route_ctx(self, auth, '/auth', 'auth') as add_route:
+            add_route('POST', '/login', 'login')
+            add_route('POST', '/register', 'registration')
+
+        with add_route_ctx(self, categories, '/api', 'api') as add_route:
+            add_route('GET', '/categories', 'get_categories')
+            add_route('POST', '/categories', 'create_category')
+
+            add_route('GET', '/categories/{instance_id}', 'get_category')
+            add_route('PUT', '/categories/{instance_id}', 'update_category')
+            add_route('DELETE', '/categories/{instance_id}', 'remove_category')
+
+        print([key for key in self.router.keys()])
+
 
     @asyncio.coroutine
     def close(self):

@@ -1,17 +1,18 @@
-from aiohttp import request
 import pytest
 
-from tests.conftest import create_server, async_test
+from tests.conftest import async_test
 
 
 class TestCoreHandler(object):
 
     @pytest.mark.handlers
-    @async_test
-    def test_index(self, application):
-        srv, url = yield from create_server(application)
-        resp = yield from request('GET', url, loop=application.loop)
-        assert resp.status == 200
+    @pytest.mark.core
+    @async_test(attach_server=True)
+    def test_index(self, application, **kwargs):
+        server = kwargs.get('server')
 
-        result = yield from resp.text()
-        assert 'wallet' in result
+        with (yield from server.response_ctx('GET')) as response:
+            assert response.status == 200
+
+            result = yield from response.text()
+            assert 'wallet' in result

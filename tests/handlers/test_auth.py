@@ -1,62 +1,48 @@
 import asyncio
 from datetime import datetime
-import json
 
-from aiohttp import request
 import pytest
 
 from wallet.models.auth import users_table, encrypt_password
 
-from tests.conftest import create_server, async_test
+from tests.conftest import async_test
 
 
 class TestRegistrationHandler(object):
+    endpoint = 'auth.registration'
 
     @pytest.mark.handlers
-    @async_test
-    def test_success_with_json(self, application, db):
-        srv, domain = yield from create_server(application)
+    @pytest.mark.parametrize('params', [
+        {'json': False},
+        {'json': True}
+    ])
+    @async_test(attach_server=True)
+    def test_success(self, application, db, params, **kwargs):
+        server = kwargs.get('server')
 
-        payload = json.dumps({'login': 'John', 'password': 'top-secret'})
-        url = ''.join((domain, application.router['auth.registration'].url()))
-        headers = {'content-type': 'application/json'}
-
-        resp = yield from request('POST', url, headers=headers,
-                                  loop=application.loop, data=payload)
-        assert resp.status == 201
-        resp.close()
-
-    @pytest.mark.handlers
-    @async_test
-    def test_success_with_plain(self, application, db):
-        srv, domain = yield from create_server(application)
-
-        payload = {'login': 'John', 'password': 'top-secret'}
-        url = ''.join((domain, application.router['auth.registration'].url()))
-
-        resp = yield from request('POST', url, data=payload,
-                                  loop=application.loop)
-
-        assert resp.status == 201
-        resp.close()
+        params.update(endpoint=self.endpoint,
+                      data={'login': 'John', 'password': 'top-secret'})
+        with (yield from server.response_ctx('POST', **params)) as response:
+            print((yield from response.text()))
+            assert response.status == 201
 
     @pytest.mark.handlers
-    @async_test
-    def test_registration_without_password(self, application, db):
-        srv, domain = yield from create_server(application)
+    @async_test(attach_server=True)
+    def test_fail_without_password(self, application, db, **kwargs):
+        server = kwargs.get('server')
 
-        payload = json.dumps({'login': 'John'})
-        url = ''.join((domain, application.router['auth.registration'].url()))
-        headers = {'content-type': 'application/json'}
-
-        resp = yield from request('POST', url, headers=headers,
-                                  loop=application.loop, data=payload)
-        assert resp.status == 400
-        resp.close()
+        params = {
+            'endpoint': self.endpoint,
+            'data': {'login': 'John'},
+            'json': True
+        }
+        with (yield from server.response_ctx('POST', **params)) as response:
+            assert response.status == 400
 
     @pytest.mark.handlers
-    @async_test
-    def test_registration_with_already_existed(self, application, db):
+    @async_test(attach_server=True)
+    def test_fail_with_already_existed(self, application, db, **kwargs):
+        server = kwargs.get('server')
         with (yield from application.engine) as conn:
             uid = yield from conn.scalar(users_table.insert().values(
                 login='John', password='top-secret',
@@ -64,19 +50,17 @@ class TestRegistrationHandler(object):
 
             assert uid == 1
 
-        srv, domain = yield from create_server(application)
-
-        payload = json.dumps({'login': 'John', 'password': 'top-secret'})
-        url = ''.join((domain, application.router['auth.registration'].url()))
-        headers = {'content-type': 'application/json'}
-
-        resp = yield from request('POST', url, headers=headers,
-                                  loop=application.loop, data=payload)
-        assert resp.status == 400
-        resp.close()
+        params = {
+            'endpoint': self.endpoint,
+            'data': {'login': 'John', 'password': 'top-secret'},
+            'json': True
+        }
+        with (yield from server.response_ctx('POST', **params)) as response:
+            assert response.status == 400
 
 
 class TestLoginHandler(object):
+    endpoint = 'auth.login'
 
     @asyncio.coroutine
     def prepare_user(self, application, user):
@@ -91,101 +75,50 @@ class TestLoginHandler(object):
         return uid
 
     @pytest.mark.handlers
-    @async_test
-    def test_success_with_json(self, application, db):
+    @pytest.mark.parametrize('params', [
+        {'json': False},
+        {'json': True}
+    ])
+    @async_test(attach_server=True)
+    def test_success(self, application, db, params, **kwargs):
+        server = kwargs.get('server')
         user = {'login': 'John', 'password': 'top-secret'}
 
         uid = yield from self.prepare_user(application, user)
         assert uid == 1
 
-        srv, domain = yield from create_server(application)
-
-        payload = json.dumps(user)
-        url = ''.join((domain, application.router['auth.login'].url()))
-        headers = {'content-type': 'application/json'}
-
-        resp = yield from request('POST', url, headers=headers,
-                                  loop=application.loop, data=payload)
-
-        assert resp.status == 200
-        assert 'X-ACCESS-TOKEN' in resp.headers
-        resp.close()
+        params.update(endpoint=self.endpoint, data=user)
+        with (yield from server.response_ctx('POST', **params)) as response:
+            assert response.status == 200
+            assert 'X-ACCESS-TOKEN' in response.headers
 
     @pytest.mark.handlers
-    @async_test
-    def test_success_with_plane(self, application, db):
+    @pytest.mark.parametrize('params', [
+        {'data': {'login': 'John', 'password': 'wrong-password'}},
+        {'data': {'login': 'John'}}
+    ])
+    @async_test(attach_server=True)
+    def test_fail(self, application, db, params, **kwargs):
+        server = kwargs.get('server')
         user = {'login': 'John', 'password': 'top-secret'}
 
         uid = yield from self.prepare_user(application, user)
         assert uid == 1
 
-        srv, domain = yield from create_server(application)
-
-        url = ''.join((domain, application.router['auth.login'].url()))
-
-        resp = yield from request('POST', url, data=user,
-                                  loop=application.loop)
-
-        assert resp.status == 200
-        assert 'X-ACCESS-TOKEN' in resp.headers
-        resp.close()
+        params.update(endpoint=self.endpoint, json=True)
+        with (yield from server.response_ctx('POST', **params)) as response:
+            assert response.status == 400
 
     @pytest.mark.handlers
-    @async_test
-    def test_wrong_credentials(self, application, db):
+    @async_test(attach_server=True)
+    def test_missing_user(self, application, db, **kwargs):
+        server = kwargs.get('server')
         user = {'login': 'John', 'password': 'top-secret'}
 
         uid = yield from self.prepare_user(application, user)
         assert uid == 1
-
-        srv, domain = yield from create_server(application)
-
-        user['password'] = 'wrong-password'
-        payload = json.dumps(user)
-        url = ''.join((domain, application.router['auth.login'].url()))
-        headers = {'content-type': 'application/json'}
-
-        resp = yield from request('POST', url, headers=headers,
-                                  loop=application.loop, data=payload)
-
-        assert resp.status == 400
-
-    @pytest.mark.handlers
-    @async_test
-    def test_without_password(self, application, db):
-        user = {'login': 'John', 'password': 'top-secret'}
-
-        uid = yield from self.prepare_user(application, user)
-        assert uid == 1
-
-        srv, domain = yield from create_server(application)
-
-        del user['password']
-        payload = json.dumps(user)
-        url = ''.join((domain, application.router['auth.login'].url()))
-        headers = {'content-type': 'application/json'}
-
-        resp = yield from request('POST', url, headers=headers,
-                                  loop=application.loop, data=payload)
-
-        assert resp.status == 400
-
-    @pytest.mark.handlers
-    @async_test
-    def test_missing_user(self, application, db):
-        user = {'login': 'John', 'password': 'top-secret'}
-
-        uid = yield from self.prepare_user(application, user)
-        assert uid == 1
-
-        srv, domain = yield from create_server(application)
 
         user['login'] = 'Patrick'
-        payload = json.dumps(user)
-        url = ''.join((domain, application.router['auth.login'].url()))
-        headers = {'content-type': 'application/json'}
-
-        resp = yield from request('POST', url, headers=headers,
-                                  loop=application.loop, data=payload)
-
-        assert resp.status == 404
+        params = {'endpoint': self.endpoint, 'data': user, 'json': True}
+        with (yield from server.response_ctx('POST', **params)) as response:
+            assert response.status == 404

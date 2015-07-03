@@ -3,6 +3,11 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 
+from wallet.models.base import metadata
+from wallet.models.auth import users_table
+from wallet.models.categories import categories_table
+
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -10,9 +15,6 @@ config = context.config
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
-
-from ferrum.models.base import metadata
-from ferrum.models.auth import users_table
 
 target_metadata = metadata
 
