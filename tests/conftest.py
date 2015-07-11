@@ -133,6 +133,7 @@ def async_test(attach_server=False):
                 kwargs['server'] = server
 
             application.loop.run_until_complete(func(*args, **kwargs))
+            application.engine.close()
 
         return wrapper
     return decorator

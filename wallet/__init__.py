@@ -1,19 +1,18 @@
 import asyncio
 from contextlib import contextmanager
-from datetime import datetime
 import os
 
 from aiohttp import web
 from aiopg.sa import create_engine
 import itsdangerous
 
-from .handlers import core, auth, categories
+from .handlers import core, accounts, auth, categories
 
 
 @contextmanager
 def add_route_ctx(app, handlers, url_prefix=None, name_prefix=None):
-    def add_route(method, path, name):
-        handler = getattr(handlers, name, None)
+    def add_route(method, path, handler_name):
+        handler = getattr(handlers, handler_name, None)
 
         if handler:
             url = path
@@ -21,9 +20,9 @@ def add_route_ctx(app, handlers, url_prefix=None, name_prefix=None):
                 url = '/'.join((url_prefix.rstrip('/'), url.lstrip('/')))
 
             if name_prefix:
-                name = '.'.join((name_prefix, name))
+                handler_name = '.'.join((name_prefix, handler_name))
 
-            return app.router.add_route(method, url, handler, name=name)
+            return app.router.add_route(method, url, handler, name=handler_name)
         else:
             return None
     yield add_route
@@ -84,14 +83,24 @@ class Application(web.Application):
             add_route('POST', '/register', 'registration')
 
         with add_route_ctx(self, categories, '/api', 'api') as add_route:
-            add_route('GET', '/categories', 'get_categories')
-            add_route('POST', '/categories', 'create_category')
+            collection_url = '/categories'
+            add_route('GET', collection_url, 'get_categories')
+            add_route('POST', collection_url, 'create_category')
 
-            add_route('GET', '/categories/{instance_id}', 'get_category')
-            add_route('PUT', '/categories/{instance_id}', 'update_category')
-            add_route('DELETE', '/categories/{instance_id}', 'remove_category')
+            resource_url = '%s/{instance_id}' % collection_url
+            add_route('GET', resource_url, 'get_category')
+            add_route('PUT', resource_url, 'update_category')
+            add_route('DELETE', resource_url, 'remove_category')
 
-        print([key for key in self.router.keys()])
+        with add_route_ctx(self, accounts, '/api', 'api') as add_route:
+            collection_url = '/accounts'
+            add_route('GET', collection_url, 'get_accounts')
+            add_route('POST', collection_url, 'create_account')
+
+            resource_url = '%s/{instance_id}' % collection_url
+            add_route('GET', resource_url, 'get_account')
+            add_route('PUT', resource_url, 'update_account')
+            add_route('DELETE', resource_url, 'remove_account')
 
 
     @asyncio.coroutine

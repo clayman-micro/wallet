@@ -4,6 +4,7 @@ from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 
 from wallet.models.base import metadata
+from wallet.models.accounts import accounts_table
 from wallet.models.auth import users_table
 from wallet.models.categories import categories_table
 
