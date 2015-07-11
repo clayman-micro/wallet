@@ -1,3 +1,4 @@
+from marshmallow import Schema, fields
 import sqlalchemy as alchemy
 
 from .base import create_table
@@ -37,3 +38,10 @@ categories_schema = {
         'nullable': True
     }
 }
+
+
+class CategorySerializer(Schema):
+    id = fields.Integer()
+    name = fields.String()
+    type = fields.String()
+    owner_id = fields.Integer()

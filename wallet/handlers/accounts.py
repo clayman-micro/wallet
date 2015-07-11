@@ -4,7 +4,8 @@ from datetime import datetime
 from cerberus import Validator
 from sqlalchemy import and_
 
-from ..models.accounts import accounts_table, accounts_schema, AccountSerializer
+from ..models.accounts import (accounts_table, accounts_schema,
+                               AccountSerializer)
 from . import base
 
 

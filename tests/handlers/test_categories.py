@@ -3,41 +3,56 @@ from datetime import datetime
 
 import pytest
 
-from wallet.models import categories
+from wallet.models import auth, categories
 
 from tests.conftest import async_test
+from . import BaseHandlerTest
 
 
-class BaseCategoriesTest(object):
+class BaseCategoriesTest(BaseHandlerTest):
 
     @asyncio.coroutine
-    def prepare_category(self, application, category):
+    def prepare_owner(self, app):
         now = datetime.now()
 
-        category.setdefault('type', categories.EXPENSE_CATEGORY)
-        with (yield from application.engine) as conn:
-            query = categories.categories_table.insert().values(
-                name=category.get('name'), type=category.get('type'))
-            uid = yield from conn.scalar(query)
+        owner = {'login': 'John', 'password': 'top_secret',
+                 'created_on': datetime.now()}
+        owner_id = yield from self.create_instance(app, auth.users_table, owner)
+        return owner_id
 
-        return uid
+    @asyncio.coroutine
+    def prepare_category(self, app, category):
+        owner_id = yield from self.prepare_owner(app)
+
+        raw = dict(**category)
+        raw.setdefault('owner_id', owner_id)
+
+        raw['id'] = yield from self.create_instance(
+            app, categories.categories_table, raw)
+
+        return raw
 
 
-class TestGetCategoriesCollection(BaseCategoriesTest):
-    endpoint = 'api.get_categories'
+class TestCategoriesCollection(BaseCategoriesTest):
+
+    @pytest.mark.handlers
+    @pytest.mark.parametrize('endpoint', (
+        'api.get_categories',
+        'api.create_category'
+    ))
+    def test_endpoints_exists(self, application, endpoint):
+        assert endpoint in application.router
 
     @pytest.mark.handlers
     @async_test(attach_server=True)
-    def test_success(self, application, db, **kwargs):
+    def test_get_success(self, application, db, **kwargs):
         server = kwargs.get('server')
-        category = {'name': 'Food'}
-        expected = {'id': 1, 'name': 'Food',
-                    'type': categories.EXPENSE_CATEGORY}
+        endpoint = 'api.get_categories'
 
-        uid = yield from self.prepare_category(application, category)
-        assert uid == 1
+        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY}
+        expected = yield from self.prepare_category(application, category)
 
-        with (yield from server.response_ctx('GET', self.endpoint)) as resp:
+        with (yield from server.response_ctx('GET', endpoint)) as resp:
             assert resp.status == 200
 
             response = yield from resp.json()
@@ -47,24 +62,53 @@ class TestGetCategoriesCollection(BaseCategoriesTest):
             assert 'meta' in response
             assert response['meta']['total'] == 1
 
+    @pytest.mark.handlers
+    @pytest.mark.parametrize('params', (
+        {'json': False},
+        {'json': True}
+    ))
+    def test_create_success(self, application, db, params, **kwargs):
+        server = kwargs.get('server')
+        endpoint = 'api.create_category'
 
-class TestGetCategoryResource(BaseCategoriesTest):
-    endpoint = 'api.get_category'
+        owner_id = yield from self.prepare_owner(application)
+        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY}
+        expected = {'id': 1, 'name': 'Food', 'owner_id': owner_id,
+                    'type': categories.EXPENSE_CATEGORY}
+
+        params.update(endpoint=endpoint, data=category)
+
+        with (yield from server.response_ctx('POST', **params)) as response:
+            assert response.status == 201
+
+            response = yield from response.json()
+            assert 'category' in response
+            assert expected == response['category']
+
+
+class TestCategoryResource(BaseCategoriesTest):
+    category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY}
+
+    @pytest.mark.handlers
+    @pytest.mark.parametrize('endpoint', (
+        'api.get_category',
+        'api.update_category',
+        'api.remove_category'
+    ))
+    def test_endpoints_exists(self, application, endpoint):
+        assert endpoint in application.router
 
     @pytest.mark.handlers
     @async_test(attach_server=True)
-    def test_success(self, application, db, **kwargs):
+    def test_get_success(self, application, db, **kwargs):
         server = kwargs.get('server')
-        category = {'name': 'Food'}
-        expected = {'id': 1, 'name': 'Food',
-                    'type': categories.EXPENSE_CATEGORY}
+        endpoint = 'api.get_category'
 
-        uid = yield from self.prepare_category(application, category)
-        assert uid == 1
+        expected = yield from self.prepare_category(application, self.category)
 
         params = {
-            'endpoint': self.endpoint,
-            'endpoint_params': {'instance_id': uid}
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': expected.get('id')}
         }
         with (yield from server.response_ctx('GET', **params)) as response:
             assert response.status == 200
@@ -73,82 +117,44 @@ class TestGetCategoryResource(BaseCategoriesTest):
             assert 'category' in data
             assert expected == data['category']
 
-
-class TestCreateCategoryResource(BaseCategoriesTest):
-    endpoint = 'api.create_category'
-
-    @pytest.mark.handlers
-    @pytest.mark.parametrize('params', [
-        {'json': False},
-        {'json': True}
-    ])
-    @async_test(attach_server=True)
-    def test_success(self, application, db, params, **kwargs):
-        server = kwargs.get('server')
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY}
-        expected = {'id': 1, 'name': 'Food',
-                    'type': categories.EXPENSE_CATEGORY}
-
-        params.update(endpoint=self.endpoint, data=category)
-        with (yield from server.response_ctx('POST', **params)) as resp:
-            assert resp.status == 201
-
-            response = yield from resp.json()
-            assert 'category' in response
-            assert expected == response['category']
-
-
-class TestUpdateCategoryResource(BaseCategoriesTest):
-    endpoint = 'api.update_category'
-
     @pytest.mark.handlers
     @async_test(attach_server=True)
-    def test_success_with_json(self, application, db, **kwargs):
+    def test_update_success(self, application, db, **kwargs):
         server = kwargs.get('server')
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY}
-        expected = {'id': 1, 'name': 'Gym',
-                    'type': categories.EXPENSE_CATEGORY}
+        endpoint = 'api.update_category'
 
-        uid = yield from self.prepare_category(application, category)
-        assert uid == 1
+        expected = yield from self.prepare_category(application, self.category)
+        expected['name'] = 'Others'
 
         params = {
-            'endpoint': self.endpoint,
-            'endpoint_params': {'instance_id': uid},
-            'data': {'name': 'Gym'},
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': expected.get('id')},
+            'data': {'name': 'Others'},
             'json': True
         }
         with (yield from server.response_ctx('PUT', **params)) as resp:
-            print(resp.text)
             assert resp.status == 200
 
             response = yield from resp.json()
             assert expected == response['category']
 
-        application.engine.close()
-
-
-class TestRemoveCategoryResource(BaseCategoriesTest):
-    endpoint = 'api.remove_category'
-
     @pytest.mark.handlers
     @async_test(attach_server=True)
-    def test_success(self, application, db, **kwargs):
+    def test_remove_success(self, application, db, **kwargs):
         server = kwargs.get('server')
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY}
+        endpoint = 'api.remove_category'
 
-        uid = yield from self.prepare_category(application, category)
-        assert uid == 1
+        expected = yield from self.prepare_category(application, self.category)
 
         params = {
-            'endpoint': self.endpoint,
-            'endpoint_params': {'instance_id': uid}
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': expected.get('id')}
         }
         with (yield from server.response_ctx('DELETE', **params)) as response:
             assert response.status == 200
 
         with (yield from application.engine) as conn:
             query = categories.categories_table.count().where(
-                categories.categories_table.c.id == uid)
+                categories.categories_table.c.id == expected.get('id'))
             count = yield from conn.scalar(query)
             assert count == 0

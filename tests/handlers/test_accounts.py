@@ -6,30 +6,15 @@ import pytest
 from wallet.models import accounts, auth
 
 from tests.conftest import async_test
+from . import BaseHandlerTest
 
 
-class BaseAccountTest(object):
-
-    @asyncio.coroutine
-    def create_instance(self, app, table, raw):
-        """
-        :param app: Application instance
-        :param table: Table instance
-        :param raw: Raw instance
-        :return: created instance id
-        """
-        now = datetime.now()
-        raw.setdefault('created_on', now)
-
-        with (yield from app.engine) as conn:
-            query = table.insert().values(**raw)
-            uid = yield from conn.scalar(query)
-
-        return uid
+class BaseAccountTest(BaseHandlerTest):
 
     @asyncio.coroutine
     def prepare_owner(self, app):
-        owner = {'login': 'John', 'password': 'top_secret'}
+        owner = {'login': 'John', 'password': 'top_secret',
+                 'created_on': datetime.now()}
         owner_id = yield from self.create_instance(app, auth.users_table, owner)
         return owner_id
 
@@ -39,6 +24,7 @@ class BaseAccountTest(object):
         raw = dict(**account)
         raw.setdefault('owner_id', owner_id)
 
+        raw.update(created_on=datetime.now())
         raw['id'] = yield from self.create_instance(
             app, accounts.accounts_table, raw)
 
