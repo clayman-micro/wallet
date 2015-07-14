@@ -135,5 +135,7 @@ def async_test(attach_server=False):
             application.loop.run_until_complete(func(*args, **kwargs))
             application.engine.close()
 
+            application.loop.run_until_complete(application.engine.wait_closed())
+
         return wrapper
     return decorator
