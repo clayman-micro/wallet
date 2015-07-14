@@ -7,6 +7,7 @@ from wallet.models.base import metadata
 from wallet.models.accounts import accounts_table
 from wallet.models.auth import users_table
 from wallet.models.categories import categories_table
+from wallet.models.transactions import transactions_table
 
 
 # this is the Alembic Config object, which provides

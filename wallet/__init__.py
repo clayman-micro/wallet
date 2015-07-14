@@ -6,7 +6,7 @@ from aiohttp import web
 from aiopg.sa import create_engine
 import itsdangerous
 
-from .handlers import core, accounts, auth, categories
+from .handlers import core, accounts, auth, categories, transactions
 
 
 @contextmanager
@@ -101,6 +101,16 @@ class Application(web.Application):
             add_route('GET', resource_url, 'get_account')
             add_route('PUT', resource_url, 'update_account')
             add_route('DELETE', resource_url, 'remove_account')
+
+        with add_route_ctx(self, transactions, '/api', 'api') as add_route:
+            collection_url = '/transactions'
+            add_route('GET', collection_url, 'get_transactions')
+            add_route('POST', collection_url, 'create_transaction')
+
+            resource_url = '%s/{instance_id}' % collection_url
+            add_route('GET', resource_url, 'get_transaction')
+            add_route('PUT', resource_url, 'update_transaction')
+            add_route('DELETE', resource_url, 'remove_transaction')
 
 
     @asyncio.coroutine
