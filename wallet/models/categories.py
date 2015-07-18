@@ -35,13 +35,14 @@ categories_schema = {
     },
     'owner_id': {
         'type': 'integer',
-        'nullable': True
+        'nullable': True,
+        'coerce': int
     }
 }
 
 
 class CategorySerializer(Schema):
-    id = fields.Integer()
+    id = fields.Integer(dump_only=True)
     name = fields.String()
     type = fields.String()
     owner_id = fields.Integer()

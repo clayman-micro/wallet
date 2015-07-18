@@ -67,12 +67,14 @@ class TestCategoriesCollection(BaseCategoriesTest):
         {'json': False},
         {'json': True}
     ))
+    @async_test(attach_server=True)
     def test_create_success(self, application, db, params, **kwargs):
         server = kwargs.get('server')
         endpoint = 'api.create_category'
 
         owner_id = yield from self.prepare_owner(application)
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY}
+        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
+                    'owner_id': owner_id}
         expected = {'id': 1, 'name': 'Food', 'owner_id': owner_id,
                     'type': categories.EXPENSE_CATEGORY}
 
