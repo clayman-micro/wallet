@@ -112,6 +112,14 @@ class Application(web.Application):
             add_route('PUT', resource_url, 'update_transaction')
             add_route('DELETE', resource_url, 'remove_transaction')
 
+            collection_url = '/transactions/{transaction_id}/details'
+            add_route('GET', collection_url, 'get_details')
+            add_route('POST', collection_url, 'create_detail')
+
+            resource_url = '%s/{instance_id}' % collection_url
+            add_route('GET', resource_url, 'get_detail')
+            add_route('PUT', resource_url, 'update_detail')
+            add_route('DELETE', resource_url, 'remove_detail')
 
     @asyncio.coroutine
     def close(self):

@@ -115,7 +115,7 @@ class TestTransactionCollection(BaseTransactionTest):
                         'owner_id': owner_id}
         category = yield from self.prepare_category(application, raw_category)
 
-        transaction = {'description': 'Meal', 'amount': 300.0, 'details': [],
+        transaction = {'description': 'Meal', 'amount': 300.0,
                        'account_id': account.get('id'),
                        'category_id': category.get('id')}
 
@@ -133,7 +133,7 @@ class TestTransactionCollection(BaseTransactionTest):
 
 
 class TestTransactionResource(BaseTransactionTest):
-    transaction = {'description': 'Meal', 'amount': 300.0, 'details': []}
+    transaction = {'description': 'Meal', 'amount': 300.0}
 
     @pytest.mark.handlers
     @pytest.mark.transactions
@@ -155,7 +155,6 @@ class TestTransactionResource(BaseTransactionTest):
         expected = yield from self.prepare_transaction(application,
                                                        self.transaction)
         del expected['created_on']
-        del expected['details']
 
         params = {
             'endpoint': endpoint,
@@ -179,7 +178,6 @@ class TestTransactionResource(BaseTransactionTest):
                                                        self.transaction)
         expected['amount'] = 310.0
         del expected['created_on']
-        del expected['details']
 
         params = {
             'endpoint': endpoint,

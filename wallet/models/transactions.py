@@ -12,54 +12,37 @@ transactions_table = create_table('transactions', (
                       sqlalchemy.ForeignKey('categories.id'), nullable=False),
     sqlalchemy.Column('description', sqlalchemy.String(255)),
     sqlalchemy.Column('amount', sqlalchemy.Numeric(), nullable=False),
-    sqlalchemy.Column('details', JSON),
     sqlalchemy.Column('created_on', sqlalchemy.DateTime(), nullable=False)
 ))
 
+transaction_details_table = create_table('transaction_details', (
+    sqlalchemy.Column('name', sqlalchemy.String(255), nullable=False),
+    sqlalchemy.Column('price_per_unit', sqlalchemy.Numeric()),
+    sqlalchemy.Column('count', sqlalchemy.Numeric()),
+    sqlalchemy.Column('total', sqlalchemy.Numeric()),
+    sqlalchemy.Column('transaction_id', sqlalchemy.Integer(),
+                      sqlalchemy.ForeignKey('transactions.id'), nullable=False)
+))
 
 transactions_schema = {
-    'id': {
-        'type': 'integer'
-    },
-    'account_id': {
-        'type': 'integer',
-        'coerce': int,
-        'required': True,
-        'empty': False
-    },
-    'category_id': {
-        'type': 'integer',
-        'coerce': int,
-        'required': True,
-        'empty': False
-    },
-    'description': {
-        'type': 'string',
-        'maxlength': 255,
-        'empty': True
-    },
-    'amount': {
-        'type': 'number',
-        'coerce': float,
-        'required': True,
-        'empty': False,
-    },
-    'details': {
-        'type': 'list',
-        'empty': True,
-        'schema': {
-            'type': 'dict',
-            'schema': {
-                'name': {'type': 'string', 'maxlength': 255},
-                'price_per_unit': {'type': 'number', 'coerce': float},
-                'count': {'type': 'number', 'coerce': float},
-                'total': {'type': 'number', 'coerce': float},
-            }
-        }
-    },
-    'created_on': {
-        'type': 'datetime'
-    }
+    'id': {'type': 'integer'},
+    'account_id': {'type': 'integer', 'coerce': int, 'required': True,
+                   'empty': False},
+    'category_id': {'type': 'integer', 'coerce': int, 'required': True,
+                    'empty': False},
+    'description': {'type': 'string', 'maxlength': 255, 'empty': True},
+    'amount': {'type': 'number', 'coerce': float, 'required': True,
+               'empty': False},
+    'created_on': {'type': 'datetime'}
+}
+
+
+transaction_details_schema = {
+    'id': {'type': 'integer'},
+    'name': {'type': 'string', 'maxlength': 255, 'required': True},
+    'price_per_unit': {'type': 'number', 'coerce': float, 'empty': True},
+    'count': {'type': 'number', 'coerce': float, 'empty': True},
+    'total': {'type': 'number', 'coerce': float, 'required': True}
 }
 
 
@@ -70,3 +53,10 @@ class TransactionSerializer(Schema):
     description = fields.String()
     amount = fields.Float()
     created_on = fields.DateTime(format='%d-%m-%Y %X')
+
+
+class TransactionDetailSerializer(Schema):
+    name = fields.String()
+    price_per_unit = fields.Float()
+    count = fields.Float()
+    total = fields.Float()

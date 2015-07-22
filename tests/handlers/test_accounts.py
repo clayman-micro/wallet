@@ -15,7 +15,8 @@ class BaseAccountTest(BaseHandlerTest):
     def prepare_owner(self, app):
         owner = {'login': 'John', 'password': 'top_secret',
                  'created_on': datetime.now()}
-        owner_id = yield from self.create_instance(app, auth.users_table, owner)
+        owner_id = yield from self.create_instance(app, auth.users_table,
+                                                   owner)
         return owner_id
 
     @asyncio.coroutine
@@ -48,7 +49,7 @@ class TestAccountCollection(BaseAccountTest):
         endpoint = 'api.get_accounts'
 
         account = {'name': 'Credit card', 'original_amount': 30000.0,
-                   'current_amount': None}
+                   'current_amount': 0.0}
         expected = yield from self.prepare_account(application, account)
         del expected['created_on']
 
