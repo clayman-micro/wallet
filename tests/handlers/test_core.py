@@ -6,7 +6,6 @@ from tests.conftest import async_test
 class TestCoreHandler(object):
 
     @pytest.mark.handlers
-    @pytest.mark.core
     @async_test(attach_server=True)
     def test_index(self, application, **kwargs):
         server = kwargs.get('server')

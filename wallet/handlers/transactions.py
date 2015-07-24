@@ -93,10 +93,11 @@ remove_detail = base.delete_resource(transaction_details_table, 'detail')
 @base.create_resource(transaction_details_table, details_serializer, 'detail')
 @asyncio.coroutine
 def create_detail(request, payload):
-    transaction_id = request.match_info('transaction_id')
+    transaction_id = request.match_info['transaction_id']
+
     with (yield from request.app.engine) as conn:
-        query = transaction_details_table.select().where(
-            transaction_details_table.c.id == transaction_id)
+        query = transactions_table.select().where(
+            transactions_table.c.id == transaction_id)
         transaction = yield from conn.scalar(query)
 
     if not transaction:
@@ -106,16 +107,19 @@ def create_detail(request, payload):
     if not validator.validate(payload):
         return None, validator.errors
 
-    return validator.document, None
+    document = validator.document
+    document.setdefault('transaction_id', transaction_id)
+
+    return document, None
 
 
 @base.update_resource(transaction_details_table, details_serializer, 'detail')
 @asyncio.coroutine
 def update_detail(request, payload, instance):
-    transaction_id = request.match_info('transaction_id')
+    transaction_id = request.match_info['transaction_id']
     with (yield from request.app.engine) as conn:
-        query = transaction_details_table.select().where(
-            transaction_details_table.c.id == transaction_id)
+        query = transactions_table.select().where(
+            transactions_table.c.id == transaction_id)
         transaction = yield from conn.scalar(query)
 
     if not transaction:

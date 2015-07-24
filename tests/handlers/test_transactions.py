@@ -67,7 +67,6 @@ class BaseTransactionTest(BaseHandlerTest):
 class TestTransactionCollection(BaseTransactionTest):
 
     @pytest.mark.handlers
-    @pytest.mark.transactions
     @pytest.mark.parametrize('endpoint', (
         'api.get_transactions',
         'api.create_transaction'
@@ -76,7 +75,6 @@ class TestTransactionCollection(BaseTransactionTest):
         assert endpoint in application.router
 
     @pytest.mark.handlers
-    @pytest.mark.transactions
     @async_test(attach_server=True)
     def test_get_success(self, application, db, **kwargs):
         server = kwargs.get('server')
@@ -95,7 +93,6 @@ class TestTransactionCollection(BaseTransactionTest):
             assert [expected, ] == response['transactions']
 
     @pytest.mark.handlers
-    @pytest.mark.transactions
     @pytest.mark.parametrize('params', (
         {'json': False},
         {'json': True}
@@ -136,7 +133,6 @@ class TestTransactionResource(BaseTransactionTest):
     transaction = {'description': 'Meal', 'amount': 300.0}
 
     @pytest.mark.handlers
-    @pytest.mark.transactions
     @pytest.mark.parametrize('endpoint', (
         'api.get_transaction',
         'api.update_transaction',
@@ -146,7 +142,6 @@ class TestTransactionResource(BaseTransactionTest):
         assert endpoint in application.router
 
     @pytest.mark.handlers
-    @pytest.mark.transactions
     @async_test(attach_server=True)
     def test_get_success(self, application, db, **kwargs):
         server = kwargs.get('server')
@@ -168,7 +163,6 @@ class TestTransactionResource(BaseTransactionTest):
             assert expected == data['transaction']
 
     @pytest.mark.handlers
-    @pytest.mark.transactions
     @async_test(attach_server=True)
     def test_update_success(self, application, db, **kwargs):
         server = kwargs.get('server')
@@ -193,7 +187,6 @@ class TestTransactionResource(BaseTransactionTest):
             assert expected == response['transaction']
 
     @pytest.mark.handlers
-    @pytest.mark.transactions
     @async_test(attach_server=True)
     def test_remove_success(self, application, db, **kwargs):
         server = kwargs.get('server')
@@ -211,5 +204,171 @@ class TestTransactionResource(BaseTransactionTest):
         with (yield from application.engine) as conn:
             query = transactions.transactions_table.count().where(
                 transactions.transactions_table.c.id == expected.get('id'))
+            count = yield from conn.scalar(query)
+            assert count == 0
+
+
+class TestTransactionDetailsCollection(BaseTransactionTest):
+
+    @pytest.mark.handlers
+    @pytest.mark.parametrize('endpoint', (
+        'api.get_details',
+        'api.create_detail'
+    ))
+    def test_endpoint_exists(self, application, db, endpoint):
+        assert endpoint in application.router
+
+    @pytest.mark.handlers
+    @async_test(attach_server=True)
+    def test_get_success(self, application, db, **kwargs):
+        server = kwargs.get('server')
+        endpoint = 'api.get_details'
+
+        raw_transaction = {'description': 'Meal', 'amount': 300.0,
+                           'created_on': datetime.now()}
+        transaction = yield from self.prepare_transaction(application,
+                                                          raw_transaction)
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0, 'transaction_id': transaction['id']}
+        detail['id'] = yield from self.create_instance(
+            application, transactions.transaction_details_table, detail)
+
+        params = {
+            'endpoint': endpoint,
+            'endpoint_params': {'transaction_id': transaction['id']}
+        }
+        with (yield from server.response_ctx('GET', **params)) as resp:
+            assert resp.status == 200
+
+            del detail['transaction_id']
+            response = yield from resp.json()
+            assert 'details' in response
+            assert [detail, ] == response['details']
+
+    @pytest.mark.handlers
+    @pytest.mark.parametrize('params', (
+        {'json': True},
+        {'json': False}
+    ))
+    @async_test(attach_server=True)
+    def test_create_success(self, application, db, params, **kwargs):
+        server = kwargs.get('server')
+        endpoint = 'api.create_detail'
+
+        raw_transaction = {'description': 'Meal', 'amount': 300.0,
+                           'created_on': datetime.now()}
+        transaction = yield from self.prepare_transaction(application,
+                                                          raw_transaction)
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0}
+        params.update(
+            endpoint=endpoint,
+            endpoint_params={'transaction_id': transaction['id']},
+            data=detail
+        )
+
+        with (yield from server.response_ctx('POST', **params)) as resp:
+            print((yield from resp.text()))
+            assert resp.status == 201
+
+            detail.update(id=1)
+            response = yield from resp.json()
+            assert 'detail' in response
+            assert detail == response['detail']
+
+
+class TestTransactionDetailsResource(BaseTransactionTest):
+
+    @asyncio.coroutine
+    def prepare_detail(self, app):
+        raw_transaction = {'description': 'Meal', 'amount': 300.0,
+                           'created_on': datetime.now()}
+
+        transaction = yield from self.prepare_transaction(app,
+                                                          raw_transaction)
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0, 'transaction_id': transaction['id']}
+        detail['id'] = yield from self.create_instance(
+            app, transactions.transaction_details_table, detail)
+
+        del detail['transaction_id']
+        return transaction, detail
+
+    @pytest.mark.handlers
+    @pytest.mark.parametrize('endpoint', (
+        'api.get_detail',
+        'api.update_detail',
+        'api.remove_detail'
+    ))
+    def test_endpoint_exists(self, application, endpoint):
+        assert endpoint in application.router
+
+    @pytest.mark.handlers
+    @async_test(attach_server=True)
+    def test_get_success(self, application, db, **kwargs):
+        server = kwargs.get('server')
+        endpoint = 'api.get_detail'
+
+        transaction, detail = yield from self.prepare_detail(application)
+
+        params = {
+            'endpoint': endpoint,
+            'endpoint_params': {
+                'transaction_id': transaction['id'],
+                'instance_id': detail['id']
+            }
+        }
+        with (yield from server.response_ctx('GET', **params)) as resp:
+            assert resp.status == 200
+
+            response = yield from resp.json()
+            assert 'detail' in response
+            assert detail == response['detail']
+
+    @pytest.mark.handlers
+    @async_test(attach_server=True)
+    def test_update_success(self, application, db, **kwargs):
+        server = kwargs.get('server')
+        endpoint = 'api.update_detail'
+
+        transaction, detail = yield from self.prepare_detail(application)
+
+        detail['price_per_unit'] = 270.0
+        params = {
+            'endpoint': endpoint,
+            'endpoint_params': {
+                'transaction_id': transaction['id'],
+                'instance_id': detail['id']
+            },
+            'data': {'price_per_unit': 270.0}
+        }
+        with (yield from server.response_ctx('PUT', **params)) as resp:
+            assert resp.status == 200
+
+            response = yield from resp.json()
+            assert 'detail' in response
+            assert detail == response['detail']
+
+    @pytest.mark.handlers
+    @async_test(attach_server=True)
+    def test_remove_success(self, application, db, **kwargs):
+        server = kwargs.get('server')
+        endpoint = 'api.remove_detail'
+
+        transaction, detail = yield from self.prepare_detail(application)
+
+        params = {
+            'endpoint': endpoint,
+            'endpoint_params': {
+                'transaction_id': transaction['id'],
+                'instance_id': detail['id']
+            }
+        }
+        with (yield from server.response_ctx('DELETE', **params)) as resp:
+            assert resp.status == 200
+
+        with (yield from application.engine) as conn:
+            query = transactions.transaction_details_table.count().where(
+                transactions.transaction_details_table.c.id == detail.get('id'))
             count = yield from conn.scalar(query)
             assert count == 0

@@ -1,6 +1,5 @@
 from marshmallow import Schema, fields
 import sqlalchemy
-from sqlalchemy.dialects.postgresql import JSON
 
 from .base import create_table
 
@@ -42,7 +41,8 @@ transaction_details_schema = {
     'name': {'type': 'string', 'maxlength': 255, 'required': True},
     'price_per_unit': {'type': 'number', 'coerce': float, 'empty': True},
     'count': {'type': 'number', 'coerce': float, 'empty': True},
-    'total': {'type': 'number', 'coerce': float, 'required': True}
+    'total': {'type': 'number', 'coerce': float, 'required': True},
+    'transaction_id': {'type': 'integer'},
 }
 
 
@@ -56,6 +56,7 @@ class TransactionSerializer(Schema):
 
 
 class TransactionDetailSerializer(Schema):
+    id = fields.Integer()
     name = fields.String()
     price_per_unit = fields.Float()
     count = fields.Float()

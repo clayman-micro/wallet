@@ -51,7 +51,7 @@ def get_collection(table, serializer, collection_name, limit=10):
             'meta': {
                 'total': total,
                 'limit': limit,
-                'collection_url': reverse_url(request, 'api.get_%s' % collection_name)
+                #'collection_url': reverse_url(request, 'api.get_%s' % collection_name)
             }
         }
 

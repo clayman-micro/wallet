@@ -1,10 +1,8 @@
 import asyncio
-from contextlib import contextmanager
-from functools import wraps, partial
+from functools import wraps
 import os
 import socket
 import ujson
-import time
 from aiohttp import request
 import pytest
 
@@ -65,6 +63,7 @@ class ResponseContextManager(object):
 
 
 class Server(object):
+
     def __init__(self, app):
         self._app = app
         self._domain = None
@@ -114,9 +113,10 @@ class Server(object):
         return (yield from request(method, **params))
 
     @asyncio.coroutine
-    def response_ctx(self, method, endpoint=None, endpoint_params=None, **extra):
+    def response_ctx(self, method, endpoint=None, endpoint_params=None,
+                     **extra):
         response = (yield from self.request(method, endpoint,
-                                                 endpoint_params, **extra))
+                                            endpoint_params, **extra))
         return ResponseContextManager(response)
 
 
@@ -135,7 +135,8 @@ def async_test(attach_server=False):
             application.loop.run_until_complete(func(*args, **kwargs))
             application.engine.close()
 
-            application.loop.run_until_complete(application.engine.wait_closed())
+            application.loop.run_until_complete(
+                application.engine.wait_closed())
 
         return wrapper
     return decorator
