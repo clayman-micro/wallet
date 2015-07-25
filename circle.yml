@@ -28,7 +28,7 @@ deployment:
 
       - touch inventory
       - echo "[wallet]" > inventory
-      - echo "essential ansible_ssh_host=wallet.clayman.pro ansible_ssh_user=clayman" >> inventory
+      - echo "essential ansible_ssh_host=clayman.pro ansible_ssh_user=clayman" >> inventory
       - echo "[wallet:vars]" >> inventory
       - echo "project_branch=master" >> inventory
       - echo "project_user=clayman" >> inventory
