@@ -7,8 +7,8 @@ machine:
 
   environment:
     ENVIRONMENT: testing
+    DB_PORT_5432_TCP_ADDR: localhost
     DB_NAME: circle_test
-    DB_HOST: localhost
     DB_USER: ubuntu
 
 test:
@@ -18,3 +18,19 @@ test:
 general:
   artifacts:
     - "dist/"
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - deactivate
+      - ~/.pyenv/versions/2.7/bin/pip install ansible
+
+      - touch inventory
+      - echo "[wallet]" > inventory
+      - echo "essential ansible_ssh_host=wallet.clayman.pro ansible_ssh_user=clayman" >> inventory
+      - echo "[wallet:vars]" >> inventory
+      - echo "project_branch=master" >> inventory
+      - echo "project_user=clayman" >> inventory
+
+      - ~/.pyenv/versions/2.7/bin/ansible-playbook -i inventory playbooks/deploy.yml

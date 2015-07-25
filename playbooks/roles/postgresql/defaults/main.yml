@@ -1,3 +1,3 @@
 ---
-postgres_image: clayman/postgresql:9.3
+postgres_image: clayman/postgresql:9.4
 postgres_container: postgres

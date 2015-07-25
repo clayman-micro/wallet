@@ -1,0 +1,7 @@
+---
+
+- name: Deploy project to server
+  remote_user: root
+  hosts: all
+  roles:
+    - { role: app, deploy: True, bootstrap: False}

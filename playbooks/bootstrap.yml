@@ -3,11 +3,15 @@
 - name: Apply common configuration
   hosts: all
   remote_user: root
-  sudo: true
+  sudo: True
   roles:
     - role: common
     - role: docker
     - role: nginx
-    - role: redis
+#    - role: redis
     - role: postgresql
-    - role: app
+
+- name: Bootstrap project
+  hosts: all
+  roles:
+    - { role: app, bootstrap: True, deploy: False}

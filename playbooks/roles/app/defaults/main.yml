@@ -5,6 +5,7 @@ project_domain: wallet.clayman.pro
 project_name: wallet
 project_repo: https://github.com/clayman74/wallet
 project_socket: 127.0.0.1:9090
+project_dist: ../dist
 
 project_db_user: wallet
 project_db_name: wallet

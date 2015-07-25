@@ -26,9 +26,10 @@ Vagrant.configure("2") do |config|
     ansible.extra_vars = {
         ansible_ssh_user: 'vagrant',
 
+        project_user: 'vagrant',
         project_name: 'wallet',
         project_domain: 'wallet.clayman.pro',
-        project_socket: '192.168.1.22:5000',
+        project_socket: '127.0.0.1:5000',
         project_venv: '/vagrant',
         project_assets: '/vagrant/wallet/assets/',
         project_media: '/vagrant/wallet',

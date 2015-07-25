@@ -8,12 +8,12 @@ server {
     server_name {{ project_domain }};
 
     set $project_root {{ project_venv }};
-    set $project_assets {{ project_assets }};
+{#    set $project_assets {{ project_assets }}; #}
 
-    location /assets/ {
-        alias $project_assets;
-        access_log off;
-    }
+{#    location /assets/ {#}
+{#        alias $project_assets;#}
+{#        access_log off;#}
+{#    } #}
 
     location / {
         proxy_pass http://{{ project_name }}_cluster;

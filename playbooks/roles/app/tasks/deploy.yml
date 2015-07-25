@@ -1,0 +1,62 @@
+---
+
+- name: Set project facs
+  set_fact:
+    project_venv: "/home/{{ project_user }}/projects/{{ project_name }}"
+
+- name: Set project dist folder
+  set_fact:
+    project_dist: "{{ lookup('env', 'HOME')}}/{{ project_name }}/dist"
+  when: "lookup('env', 'CIRCLECI')"
+
+- name: Prepare distribution
+  local_action: shell make clean && make dist chdir="../"
+
+- name: Get distribution version
+  local_action: shell python setup.py --version chdir="../"
+  register: project_version
+
+- name: Upload new distribution
+  copy: src="{{ project_dist }}/{{ project_name }}-{{ project_version.stdout }}.tar.gz" dest="/home/{{ project_user }}/projects/{{project_name}}/{{ project_name }}-{{ project_version.stdout }}.tar.gz" owner="{{ project_user }}" group="{{ project_user }}"
+  remote_user: "{{ project_user }}"
+
+- name: Upload docker file
+  copy: src="Dockerfile" dest="/home/{{ project_user }}/projects/{{project_name}}/Dockerfile" owner="{{ project_user }}" group="{{ project_user }}"
+  remote_user: "{{ project_user }}"
+
+- name: Build app image
+  shell: docker build -t {{ project_name }}:{{ project_version.stdout }} /home/{{ project_user }}/projects/{{project_name}}/
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Check app container exists
+  shell: docker ps -a --filter="name={{ project_name }}$"
+  register: containers
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Remove existed app container
+  shell: docker rm -f {{ project_name }}
+  when: containers.stdout.find('{{ project_name }}') != -1
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Create app container
+  shell: docker create --name {{ project_name }} --link postgres:db -e "DB_NAME={{ project_name }}" -e "DB_PASSWORD={{ project_db_password }}" -p 5000:5000 {{ project_name }}:{{ project_version.stdout }}
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Make app db migrations
+  shell: docker run --rm --link postgres:db -e "DB_NAME={{ project_name }}" -e "DB_PASSWORD={{ project_db_password }}" {{ project_name }}:{{ project_version.stdout }} wallet db upgrade head
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Assemble supervisor config
+  template: src="supervisor.conf" dest="/etc/supervisor/conf.d/{{ project_name }}.conf"
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Enable app supervisor proccess
+  supervisorctl: name={{ project_name }} state=restarted
+  remote_user: "{{ project_user }}"
+  sudo: True

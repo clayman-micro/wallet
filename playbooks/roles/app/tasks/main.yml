@@ -1,5 +1,11 @@
 ---
 
 - include: bootstrap.yml
+  when: bootstrap
   tags:
-    - app
+    - bootstrap
+
+- include: deploy.yml
+  when: deploy
+  tags:
+    - deploy

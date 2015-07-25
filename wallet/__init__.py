@@ -57,8 +57,8 @@ class Application(web.Application):
         self.config = {
             'PROJECT_NAME': 'wallet',
 
-            'DB_HOST': os.environ.get('DB_HOST', 'localhost'),
-            'DB_PORT': os.environ.get('DB_PORT', 5432),
+            'DB_HOST': os.environ.get('DB_PORT_5432_TCP_ADDR', 'localhost'),
+            'DB_PORT': os.environ.get('DB_PORT_5432_TCP_PORT', 5432),
             'DB_NAME': os.environ.get('DB_NAME', 'wallet'),
             'DB_USER': os.environ.get('DB_USER', 'wallet'),
             'DB_PASSWORD': os.environ.get('DB_PASSWORD', 'wallet'),
