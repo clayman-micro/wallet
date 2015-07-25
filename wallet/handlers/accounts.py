@@ -1,60 +1,49 @@
 import asyncio
 from datetime import datetime
 
-from cerberus import Validator
 from sqlalchemy import and_
 
-from ..models.accounts import (accounts_table, accounts_schema,
-                               AccountSerializer)
+from ..models import accounts
 from . import base
 
 
-serializer = AccountSerializer(exclude=('created_on', ))
+class AccountAPIHandler(base.BaseAPIHandler):
+    collection_name = 'accounts'
+    resource_name = 'account'
 
-get_accounts = base.get_collection(accounts_table, serializer, 'accounts')
-get_account = base.get_resource(accounts_table, serializer, 'account')
-remove_account = base.delete_resource(accounts_table, 'account')
+    table = accounts.accounts_table
+    schema = accounts.accounts_schema
+    serializer = accounts.AccountSerializer(exclude=('created_on', ))
 
+    endpoints = (
+        ('GET', '/accounts', 'get_accounts'),
+        ('POST', '/accounts', 'create_account'),
+        ('GET', '/accounts/{instance_id}', 'get_account'),
+        ('PUT', '/accounts/{instance_id}', 'update_account'),
+        ('DELETE', '/accounts/{instance_id}', 'remove_account')
+    )
 
-@base.create_resource(accounts_table, serializer, 'account')
-@asyncio.coroutine
-def create_account(request, payload):
-    validator = Validator(schema=accounts_schema)
-    if not validator.validate(payload):
-        return None, validator.errors
+    @asyncio.coroutine
+    def validate_payload(self, request, payload, instance=None):
+        future = super(AccountAPIHandler, self).validate_payload(
+            request, payload, instance)
+        document, errors = yield from future
 
-    document = validator.document
-    document.setdefault('created_on', datetime.now())
-    document.setdefault('current_amount', 0)
+        if errors:
+            return None, errors
 
-    with (yield from request.app.engine) as conn:
-        query = accounts_table.select().where(
-            accounts_table.c.name == document.get('name'))
-        result = yield from conn.scalar(query)
+        document.setdefault('created_on', datetime.now())
+        document.setdefault('current_amount', 0)
 
-    if result:
-        return None, {'name': 'Already exists.'}
-    else:
-        return document, None
+        params = self.table.c.name == document.get('name')
+        if instance:
+            params = and_(params, self.table.c.id != document.get('id'))
 
+        with (yield from request.app.engine) as conn:
+            query = self.table.select().where(params)
+            result = yield from conn.scalar(query)
 
-@base.update_resource(accounts_table, serializer, 'account')
-@asyncio.coroutine
-def update_account(request, payload, instance):
-    validator = Validator(schema=accounts_schema)
-    if not validator.validate(instance):
-        return None, validator.errors
-
-    document = validator.document
-
-    with (yield from request.app.engine) as conn:
-        query = accounts_table.select().where(and_(
-            accounts_table.c.name == document.get('name'),
-            accounts_table.c.id != document.get('id')
-        ))
-        result = yield from conn.scalar(query)
-
-    if result:
-        return None, {'name': 'Already exists.'}
-    else:
-        return document, None
+        if result:
+            return None, {'name': 'Already exists.'}
+        else:
+            return document, None

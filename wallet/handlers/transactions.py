@@ -2,131 +2,93 @@ import asyncio
 from datetime import datetime
 from aiohttp import web
 
-from cerberus import Validator
-
-from ..models.accounts import accounts_table
-from ..models.categories import categories_table
-from ..models.transactions import (transactions_table, transactions_schema,
-                                   TransactionSerializer,
-                                   transaction_details_table,
-                                   transaction_details_schema,
-                                   TransactionDetailSerializer)
+from ..models import accounts, categories, transactions
 from . import base
 
 
-serializer = TransactionSerializer(exclude=('created_on', ))
-details_serializer = TransactionDetailSerializer()
+class TransactionAPIHandler(base.BaseAPIHandler):
+    collection_name = 'transactions'
+    resource_name = 'transaction'
 
-get_transactions = base.get_collection(transactions_table, serializer,
-                                       'transactions')
-get_transaction = base.get_resource(transactions_table, serializer,
-                                    'transaction')
-remove_transaction = base.delete_resource(transactions_table, 'transaction')
+    table = transactions.transactions_table
+    schema = transactions.transactions_schema
+    serializer = transactions.TransactionSerializer(exclude=('created_on', ))
 
+    endpoints = (
+        ('GET', '/transactions', 'get_transactions'),
+        ('POST', '/transactions', 'create_transaction'),
+        ('GET', '/transactions/{instance_id}', 'get_transaction'),
+        ('PUT', '/transactions/{instance_id}', 'update_transaction'),
+        ('DELETE', '/transactions/{instance_id}', 'remove_transaction'),
+    )
 
-@base.create_resource(transactions_table, serializer, 'transaction')
-@asyncio.coroutine
-def create_transaction(request, payload):
-    validator = Validator(schema=transactions_schema)
-    if not validator.validate(payload):
-        return None, validator.errors
+    @asyncio.coroutine
+    def validate_payload(self, request, payload, instance=None):
+        future = super(TransactionAPIHandler, self).validate_payload(
+            request, payload, instance)
+        document, errors = yield from future
 
-    document = validator.document
-    document.setdefault('created_on', datetime.now())
+        if errors:
+            return None, errors
 
-    errors = {}
-    with (yield from request.app.engine) as conn:
-        query = accounts_table.select().where(
-            accounts_table.c.id == document.get('account_id'))
-        account = yield from conn.scalar(query)
+        document.setdefault('created_on', datetime.now())
 
-        if not account:
-            errors.update(account_id='Account does not exists.')
-
-        query = categories_table.select().where(
-            categories_table.c.id == document.get('category_id'))
-        category = yield from conn.scalar(query)
-
-        if not category:
-            errors.update(category_id='Category does not exists.')
-
-    return document, errors
-
-
-@base.update_resource(transactions_table, serializer, 'transaction')
-@asyncio.coroutine
-def update_transaction(request, payload, instance):
-    validator = Validator(schema=transactions_schema)
-    if not validator.validate(instance):
-        return None, validator.errors
-
-    errors = {}
-    if 'account_id' in payload.keys() or 'category_id' in payload.keys():
+        errors = {}
         with (yield from request.app.engine) as conn:
-            if 'account_id' in payload.keys():
-                query = accounts_table.select().where(
-                    accounts_table.c.id == payload.get('account_id'))
+            if instance or 'account_id' in payload.keys():
+                query = accounts.accounts_table.select().where(
+                    accounts.accounts_table.c.id == document.get('account_id'))
                 account = yield from conn.scalar(query)
 
                 if not account:
                     errors.update(account_id='Account does not exists.')
 
-            if 'category_id' in payload.keys():
-                query = categories_table.select().where(
-                    categories_table.c.id == payload.get('category_id'))
+            if instance or 'categories_id' in payload.keys():
+                table = categories.categories_table
+                query = table.select().where(
+                    table.c.id == document.get('category_id'))
                 category = yield from conn.scalar(query)
 
                 if not category:
                     errors.update(category_id='Category does not exists.')
 
-    return validator.document, errors
+        return document, errors
 
 
-get_details = base.get_collection(transaction_details_table,
-                                  details_serializer,
-                                  'details')
-get_detail = base.get_resource(transaction_details_table, details_serializer,
-                               'detail')
-remove_detail = base.delete_resource(transaction_details_table, 'detail')
+class TransactionDetailAPIHandler(base.BaseAPIHandler):
+    collection_name = 'details'
+    resource_name = 'detail'
 
+    table = transactions.transaction_details_table
+    schema = transactions.transaction_details_schema
+    serializer = transactions.TransactionDetailSerializer()
 
-@base.create_resource(transaction_details_table, details_serializer, 'detail')
-@asyncio.coroutine
-def create_detail(request, payload):
-    transaction_id = request.match_info['transaction_id']
+    endpoints = (
+        ('GET', '/transactions/{transaction_id}/details', 'get_details'),
+        ('POST', '/transactions/{transaction_id}/details', 'create_detail'),
+        ('GET', '/transactions/{transaction_id}/details/{instance_id}',
+         'get_detail'),
+        ('PUT', '/transactions/{transaction_id}/details/{instance_id}',
+         'update_detail'),
+        ('DELETE', '/transactions/{transaction_id}/details/{instance_id}',
+         'remove_detail'),
+    )
 
-    with (yield from request.app.engine) as conn:
-        query = transactions_table.select().where(
-            transactions_table.c.id == transaction_id)
-        transaction = yield from conn.scalar(query)
+    @asyncio.coroutine
+    def validate_payload(self, request, payload, instance=None):
+        transaction_id = request.match_info['transaction_id']
 
-    if not transaction:
-        return web.HTTPNotFound(text='Transaction not found')
+        with (yield from request.app.engine) as conn:
+            query = transactions.transactions_table.select().where(
+                transactions.transactions_table.c.id == transaction_id)
+            transaction = yield from conn.scalar(query)
 
-    validator = Validator(schema=transaction_details_schema)
-    if not validator.validate(payload):
-        return None, validator.errors
+        if not transaction:
+            return web.HTTPNotFound(text='Transaction not found')
 
-    document = validator.document
-    document.setdefault('transaction_id', transaction_id)
+        future = super(TransactionDetailAPIHandler, self).validate_payload(
+            request, payload, instance)
+        document, errors = yield from future
 
-    return document, None
-
-
-@base.update_resource(transaction_details_table, details_serializer, 'detail')
-@asyncio.coroutine
-def update_detail(request, payload, instance):
-    transaction_id = request.match_info['transaction_id']
-    with (yield from request.app.engine) as conn:
-        query = transactions_table.select().where(
-            transactions_table.c.id == transaction_id)
-        transaction = yield from conn.scalar(query)
-
-    if not transaction:
-        return web.HTTPNotFound(text='Transaction not found')
-
-    validator = Validator(schema=transaction_details_schema)
-    if not validator.validate(instance):
-        return None, validator.errors
-
-    return validator.document, None
+        document.setdefault('transaction_id', transaction_id)
+        return document, None

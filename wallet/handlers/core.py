@@ -1,10 +1,15 @@
 import asyncio
 
-from .base import json_response
+from . import base
 
 
-@asyncio.coroutine
-def index(request):
-    return json_response(data={
-        'project': request.app.config.get('PROJECT_NAME')
-    })
+class IndexHandler(base.BaseHandler):
+    endpoints = (
+        ('GET', '/', 'index'),
+    )
+
+    @asyncio.coroutine
+    def get(self, request):
+        return self.json_response({
+            'project': request.app.config.get('PROJECT_NAME')
+        })

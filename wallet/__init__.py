@@ -6,7 +6,7 @@ from aiohttp import web
 from aiopg.sa import create_engine
 import itsdangerous
 
-from .handlers import core, accounts, auth, categories, transactions
+from .handlers import base, core, accounts, auth, categories, transactions
 
 
 @contextmanager
@@ -26,6 +26,27 @@ def add_route_ctx(app, handlers, url_prefix=None, name_prefix=None):
         else:
             return None
     yield add_route
+
+
+@contextmanager
+def register_handler_ctx(app, url_prefix=None, name_prefix=None):
+    def register_handler(handler):
+        if not isinstance(handler, base.BaseHandler):
+            raise Exception('Handler improperly configured.')
+
+        for method, url, endpoint_name in handler.endpoints:
+            endpoint = getattr(handler, method.lower(), None)
+            if not endpoint:
+                continue
+
+            if url_prefix:
+                url = '/'.join((url_prefix.rstrip('/'), url.lstrip('/')))
+
+            if name_prefix:
+                endpoint_name = '.'.join((name_prefix, endpoint_name))
+
+            app.router.add_route(method, url, endpoint, name=endpoint_name)
+    yield register_handler
 
 
 class Application(web.Application):
@@ -75,51 +96,18 @@ class Application(web.Application):
         self.engine = yield from create_engine(
             self.config.get('SQLALCHEMY_DSN'), loop=self.loop)
 
-        with add_route_ctx(self, core, name_prefix='core') as add_route:
-            add_route('GET', '/', 'index')
+        with register_handler_ctx(self, name_prefix='core') as register_handler:
+            register_handler(core.IndexHandler())
 
-        with add_route_ctx(self, auth, '/auth', 'auth') as add_route:
-            add_route('POST', '/login', 'login')
-            add_route('POST', '/register', 'registration')
+        with register_handler_ctx(self, '/auth', 'auth') as register_handler:
+            register_handler(auth.RegistrationHandler())
+            register_handler(auth.LoginHandler())
 
-        with add_route_ctx(self, categories, '/api', 'api') as add_route:
-            collection_url = '/categories'
-            add_route('GET', collection_url, 'get_categories')
-            add_route('POST', collection_url, 'create_category')
-
-            resource_url = '%s/{instance_id}' % collection_url
-            add_route('GET', resource_url, 'get_category')
-            add_route('PUT', resource_url, 'update_category')
-            add_route('DELETE', resource_url, 'remove_category')
-
-        with add_route_ctx(self, accounts, '/api', 'api') as add_route:
-            collection_url = '/accounts'
-            add_route('GET', collection_url, 'get_accounts')
-            add_route('POST', collection_url, 'create_account')
-
-            resource_url = '%s/{instance_id}' % collection_url
-            add_route('GET', resource_url, 'get_account')
-            add_route('PUT', resource_url, 'update_account')
-            add_route('DELETE', resource_url, 'remove_account')
-
-        with add_route_ctx(self, transactions, '/api', 'api') as add_route:
-            collection_url = '/transactions'
-            add_route('GET', collection_url, 'get_transactions')
-            add_route('POST', collection_url, 'create_transaction')
-
-            resource_url = '%s/{instance_id}' % collection_url
-            add_route('GET', resource_url, 'get_transaction')
-            add_route('PUT', resource_url, 'update_transaction')
-            add_route('DELETE', resource_url, 'remove_transaction')
-
-            collection_url = '/transactions/{transaction_id}/details'
-            add_route('GET', collection_url, 'get_details')
-            add_route('POST', collection_url, 'create_detail')
-
-            resource_url = '%s/{instance_id}' % collection_url
-            add_route('GET', resource_url, 'get_detail')
-            add_route('PUT', resource_url, 'update_detail')
-            add_route('DELETE', resource_url, 'remove_detail')
+        with register_handler_ctx(self, '/api', 'api') as register_handler:
+            register_handler(accounts.AccountAPIHandler())
+            register_handler(categories.CategoryAPIHandler())
+            register_handler(transactions.TransactionAPIHandler())
+            register_handler(transactions.TransactionDetailAPIHandler())
 
     @asyncio.coroutine
     def close(self):

@@ -4,66 +4,76 @@ from datetime import datetime
 from aiohttp import web
 from cerberus import Validator
 
-from ..models.auth import (users_table, users_schema, encrypt_password,
-                           verify_password)
-from .base import json_response, get_payload
+from ..models import auth
+from . import base
 
 
-@asyncio.coroutine
-def registration(request):
-    payload = yield from get_payload(request)
+class RegistrationHandler(base.BaseHandler):
+    endpoints = (
+        ('POST', '/register', 'registration'),
+    )
 
-    validator = Validator(schema=users_schema)
-    if not validator.validate(payload):
-        return json_response(data=validator.errors, status=400)
+    @asyncio.coroutine
+    def post(self, request):
+        payload = yield from self.get_payload(request)
 
-    with (yield from request.app.engine) as conn:
-        query = users_table.select().where(
-            users_table.c.login == payload['login'])
-        res = yield from conn.scalar(query)
+        validator = Validator(schema=auth.users_schema)
+        if not validator.validate(payload):
+            return self.json_response(validator.errors, status=400)
 
-        if not res:
-            query = users_table.insert().values(
-                login=payload['login'],
-                password=encrypt_password(payload['password']),
-                created_on=datetime.now())
-            uid = yield from conn.scalar(query)
-            return json_response({'id': uid, 'login': payload['login']},
-                                 status=201)
-        else:
-            return json_response({'errors': {
-                'login': 'Login already exists'
-            }}, status=400)
+        with (yield from request.app.engine) as conn:
+            query = auth.users_table.select().where(
+                auth.users_table.c.login == payload['login'])
+            res = yield from conn.scalar(query)
+
+            if not res:
+                query = auth.users_table.insert().values(
+                    login=payload['login'],
+                    password=auth.encrypt_password(payload['password']),
+                    created_on=datetime.now())
+                uid = yield from conn.scalar(query)
+                return self.json_response(
+                    {'id': uid, 'login': payload['login']}, status=201)
+            else:
+                return self.json_response({'errors': {
+                    'login': 'Login already exists'
+                }}, status=400)
 
 
-@asyncio.coroutine
-def login(request):
-    payload = yield from get_payload(request)
+class LoginHandler(base.BaseHandler):
+    endpoints = (
+        ('POST', '/login', 'login'),
+    )
 
-    validator = Validator(schema=users_schema)
-    if not validator.validate(payload):
-        return json_response(data=validator.errors, status=400)
+    @asyncio.coroutine
+    def post(self, request):
+        payload = yield from self.get_payload(request)
 
-    with (yield from request.app.engine) as conn:
-        query = users_table.select().where(
-            users_table.c.login == payload['login'])
-        result = yield from conn.execute(query)
-        user = yield from result.fetchone()
+        validator = Validator(schema=auth.users_schema)
+        if not validator.validate(payload):
+            return self.json_response(validator.errors, status=400)
 
-        if not user:
-            raise web.HTTPNotFound(text='User not found.')
+        with (yield from request.app.engine) as conn:
+            query = auth.users_table.select().where(
+                auth.users_table.c.login == payload['login'])
+            result = yield from conn.execute(query)
+            user = yield from result.fetchone()
 
-        if not verify_password(payload['password'], user.password):
-            return json_response({'errors': {
-                'password': 'Wrong password'
-            }}, status=400)
+            if not user:
+                raise web.HTTPNotFound(text='User not found.')
 
-        token = request.app.signer.dumps({'id': user.id})
+            if not auth.verify_password(payload['password'], user.password):
+                return self.json_response({'errors': {
+                    'password': 'Wrong password'
+                }}, status=400)
 
-        query = users_table.update().where(users_table.c.id == user.id).values(
-            last_login=datetime.now())
-        yield from conn.execute(query)
+            token = request.app.signer.dumps({'id': user.id})
 
-        return json_response({'user': {'id': user.id}}, headers={
-            'X-ACCESS-TOKEN': token.decode('utf-8')
-        })
+            query = auth.users_table.update().where(
+                auth.users_table.c.id == user.id).values(
+                last_login=datetime.now())
+            yield from conn.execute(query)
+
+            return self.json_response({'user': {'id': user.id}}, headers={
+                'X-ACCESS-TOKEN': token.decode('utf-8')
+            })

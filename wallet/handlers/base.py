@@ -1,7 +1,7 @@
 import asyncio
+from cerberus import Validator
 from psycopg2 import ProgrammingError, IntegrityError
 from aiohttp import web
-from functools import wraps
 import ujson
 
 
@@ -29,176 +29,180 @@ def reverse_url(request, route, parts=None):
                                             host=request.host, path=path)
 
 
-def get_collection(table, serializer, collection_name, limit=10):
-    @asyncio.coroutine
-    def wrapper(*args, **kwargs):
-        request = args[0]
+class BaseHandler(object):
+    endpoints = tuple()
 
-        response_content = []
-        total = 0
+    @asyncio.coroutine
+    def get_payload(self, request):
+        if 'application/json' in request.headers.get('CONTENT-TYPE'):
+            payload = yield from request.json()
+        else:
+            payload = yield from request.post()
+        return dict(payload)
+
+    def response(self, content, **kwargs):
+        return web.Response(body=content.encode('utf-8'), **kwargs)
+
+    def json_response(self, content, **kwargs):
+        kwargs.setdefault('content_type', 'application/json')
+        return self.response(ujson.dumps(content), **kwargs)
+
+
+class BaseAPIHandler(BaseHandler):
+    limit = None
+
+    collection_name = ''
+    resource_name = ''
+
+    table = None
+    schema = None
+    serializer = None
+
+    @asyncio.coroutine
+    def get_collection(self, request):
+        instances = []
         with (yield from request.app.engine) as conn:
-            query = table.select().limit(limit)
+            query = self.table.select()
+            if self.limit:
+                query = query.limit(self.limit)
             result = yield from conn.execute(query)
 
             if result.returns_rows:
-                instances = yield from result.fetchall()
+                rows = yield from result.fetchall()
+                instances = [dict(zip(row.keys(), row.values()))
+                             for row in rows]
+        return instances
 
-                response_content, errors = serializer.dump(instances,
-                                                           many=True)
-                total = len(response_content)
-        response = {
-            collection_name: response_content,
-            'meta': {
-                'total': total,
-                'limit': limit,
-                #'collection_url': reverse_url(request, 'api.get_%s' % collection_name)
-            }
-        }
-
-        return json_response(response)
-    return wrapper
-
-
-def get_resource(table, serializer, resource_name):
     @asyncio.coroutine
-    def wrapper(*args, **kwargs):
-        request = args[0]
-        instance_id = request.match_info['instance_id']
-
+    def create_instance(self, request, document):
         with (yield from request.app.engine) as conn:
-            query = table.select().where(table.c.id == instance_id)
+            try:
+                query = self.table.insert().values(**document)
+                uid = yield from conn.scalar(query)
+            except IntegrityError as exc:
+                return None, {'IntegrityError': exc.args[0]}
+            except ProgrammingError as exc:
+                return None, {'ProgrammingError': exc.args[0]}
+            else:
+                document.update(id=uid)
+                return document, {}
+
+    @asyncio.coroutine
+    def get_instance(self, request, instance_id):
+        instance = None
+        with (yield from request.app.engine) as conn:
+            query = self.table.select().where(self.table.c.id == instance_id)
             result = yield from conn.execute(query)
 
-            instance = yield from result.fetchone()
+            row = yield from result.fetchone()
+
+            if row:
+                instance = dict(zip(row.keys(), row.values()))
+
+        return instance
+
+    @asyncio.coroutine
+    def update_instance(self, request, payload, document):
+        with (yield from request.app.engine) as conn:
+            try:
+                query = self.table.update().values(**payload)
+                result = yield from conn.execute(query)
+            except IntegrityError as exc:
+                return None, {'IntegrityError': exc.args[0]}
+            except ProgrammingError as exc:
+                return None, {'ProgrammingError': exc.args[0]}
+            else:
+                if result.rowcount:
+                    return document, {}
+                else:
+                    raise web.HTTPNotFound(
+                        text='%s not found' % self.resource_name)
+
+    @asyncio.coroutine
+    def remove_instance(self, request, instance):
+        with (yield from request.app.engine) as conn:
+            query = self.table.delete().where(self.table.c.id == instance['id'])
+            result = yield from conn.execute(query)
+        if not result.rowcount:
+            raise web.HTTPNotFound(text='%s not found' % self.resource_name)
+
+    @asyncio.coroutine
+    def validate_payload(self, request, payload, instance=None):
+        validator = Validator(schema=self.schema)
+        if not validator.validate(instance or payload):
+            return None, validator.errors
+
+        return validator.document, None
+
+    @asyncio.coroutine
+    def get(self, request):
+        if 'instance_id' in request.match_info:
+            instance_id = request.match_info['instance_id']
+            instance = yield from self.get_instance(request, instance_id)
 
             if instance:
-                response_content, errors = serializer.dump(instance, many=False)
-
-                return json_response({
-                    resource_name: response_content,
-                })
+                resource, errors = self.serializer.dump(instance, many=False)
+                response = {self.resource_name: resource}
             else:
-                raise web.HTTPNotFound(text='%s not found' % resource_name)
-    return wrapper
-
-
-def create_resource(table, serializer, resource_name):
-    def decorator(f):
-        @wraps(f)
-        @asyncio.coroutine
-        def wrapper(*args, **kwargs):
-            request = args[0]
-
-            payload = yield from get_payload(request)
-            kwargs.update(payload=payload)
-
-            document, errors = yield from f(*args, **kwargs)
-
-            if errors:
-                return json_response({
-                    'errors': errors
-                }, status=400)
-
-            with (yield from request.app.engine) as conn:
-                try:
-                    query = table.insert().values(**document)
-                    uid = yield from conn.scalar(query)
-                except IntegrityError as exc:
-                    return json_response({
-                        'errors': {
-                            'IntegrityError': exc.args[0]
-                        },
-                    }, status=400)
-                except ProgrammingError as exc:
-                    return json_response({
-                        'errors': {
-                            'ProgrammingError': exc.args[0]
-                        }
-                    })
-                else:
-                    document.update(id=uid)
-
-            response, errors = serializer.dump(document, many=False)
-            return json_response({
-                resource_name: response
-            }, status=201)
-        return wrapper
-    return decorator
-
-
-def update_resource(table, serializer, resource_name):
-    def decorator(f):
-        @wraps(f)
-        @asyncio.coroutine
-        def wrapper(*args, **kwargs):
-            request = args[0]
-
-            instance_id = request.match_info['instance_id']
-
-            with (yield from request.app.engine) as conn:
-                query = table.select().where(table.c.id == instance_id)
-                result = yield from conn.execute(query)
-
-                row = yield from result.fetchone()
-
-            if not row:
-                raise web.HTTPNotFound(text='%s not found' % resource_name)
-
-            instance = dict(zip(row.keys(), row.values()))
-
-            payload = yield from get_payload(request)
-            instance.update(**payload)
-            kwargs.update(payload=payload, instance=instance)
-
-            document, errors = yield from f(*args, **kwargs)
-
-            if errors:
-                return json_response({
-                    'errors': errors
-                }, status=400)
-
-            with (yield from request.app.engine) as conn:
-                try:
-                    query = table.update().where(
-                        table.c.id == instance_id).values(**payload)
-                    result = yield from conn.execute(query)
-                except IntegrityError as exc:
-                    return json_response({
-                        'errors': {
-                            'IntegrityError': exc.args[0]
-                        },
-                    }, status=400)
-                except ProgrammingError as exc:
-                    return json_response({
-                        'errors': {
-                            'ProgrammingError': exc.args[0]
-                        }
-                    })
-
-                if result.rowcount:
-                    response, errors = serializer.dump(document, many=False)
-                    return json_response({
-                        resource_name: response
-                    })
-                else:
-                    raise web.HTTPNotFound(text='%s not found' % resource_name)
-        return wrapper
-    return decorator
-
-
-def delete_resource(table, resource_name):
-    @asyncio.coroutine
-    def wrapper(*args, **kwargs):
-        request = args[0]
-
-        instance_id = request.match_info['instance_id']
-
-        with (yield from request.app.engine) as conn:
-            query = table.delete().where(table.c.id == instance_id)
-            result = yield from conn.execute(query)
-
-        if result.rowcount:
-            return web.Response(text='removed')
+                raise web.HTTPNotFound(text='%s not found' % self.resource_name)
         else:
-            raise web.HTTPNotFound(text='%s not found' % resource_name)
-    return wrapper
+            instances = yield from self.get_collection(request)
+            collection, errors = self.serializer.dump(instances, many=True)
+
+            response = {
+                self.collection_name: collection,
+                'meta': {'total': len(collection)}
+            }
+
+            if self.limit:
+                response['meta']['limit'] = self.limit
+
+        return self.json_response(response)
+
+    @asyncio.coroutine
+    def post(self, request):
+        payload = yield from self.get_payload(request)
+
+        document, errors = yield from self.validate_payload(request, payload)
+        if errors:
+            return self.json_response({'errors': errors}, status=400)
+
+        instance, errors = yield from self.create_instance(request, document)
+        if errors:
+            return self.json_response({'errors': errors}, status=400)
+
+        response, errors = self.serializer.dump(instance, many=False)
+        return self.json_response({self.resource_name: response}, status=201)
+
+    @asyncio.coroutine
+    def put(self, request):
+        instance_id = request.match_info['instance_id']
+        instance = yield from self.get_instance(request, instance_id)
+        if not instance:
+            raise web.HTTPNotFound(text='%s not found' % self.resource_name)
+
+        payload = yield from self.get_payload(request)
+        instance.update(**payload)
+
+        document, errors = yield from self.validate_payload(request, payload,
+                                                            instance)
+        if errors:
+            return self.json_response({'errors': errors}, status=400)
+
+        instance, errors = yield from self.update_instance(request, payload,
+                                                           document)
+        if errors:
+            return self.json_response({'errors': errors}, status=400)
+
+        response, errors = self.serializer.dump(instance, many=False)
+        return self.json_response({self.resource_name: response})
+
+    @asyncio.coroutine
+    def delete(self, request):
+        instance_id = request.match_info['instance_id']
+        instance = yield from self.get_instance(request, instance_id)
+        if not instance:
+            raise web.HTTPNotFound(text='%s not found' % self.resource_name)
+
+        yield from self.remove_instance(request, instance)
+        return web.Response(text='removed')
