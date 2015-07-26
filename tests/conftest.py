@@ -18,7 +18,7 @@ def application(request):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(None)
 
-    app = Application(loop=loop)
+    app = Application(config='testing.yml', loop=loop)
     loop.run_until_complete(app.configure())
 
     yield app

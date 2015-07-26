@@ -8,21 +8,21 @@ from wallet.management.db import db
 
 class Context(object):
 
-    def __init__(self):
+    def __init__(self, config):
         self.loop = asyncio.get_event_loop()
-        self.instance = Application(loop=self.loop)
+        self.instance = Application(config=config, loop=self.loop)
         self.loop.run_until_complete(self.instance.configure())
 
 
 @click.group()
+@click.option('-c', '--config', default='config.yml')
 @click.pass_context
-def cli(context):
+def cli(context, config):
     """ Experimental application
 
     :param context: Click context object
     """
-
-    context.obj = Context()
+    context.obj = Context(config)
 
 
 @cli.command()

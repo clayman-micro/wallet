@@ -1,8 +1,8 @@
 ---
 
-- name: Set project facs
+- name: Set project facts
   set_fact:
-    project_venv: "/home/{{ project_user }}/projects/{{ project_name }}"
+    project_root: "/home/{{ project_user }}/projects/{{ project_name }}"
 
 - name: Set project dist folder
   set_fact:
@@ -17,15 +17,17 @@
   register: project_version
 
 - name: Upload new distribution
-  copy: src="{{ project_dist }}/{{ project_name }}-{{ project_version.stdout }}.tar.gz" dest="/home/{{ project_user }}/projects/{{project_name}}/{{ project_name }}-{{ project_version.stdout }}.tar.gz" owner="{{ project_user }}" group="{{ project_user }}"
+  copy: src="{{ project_dist }}/{{ project_name }}-{{ project_version.stdout }}.tar.gz" dest="{{ project_root }}/{{ project_name }}-{{ project_version.stdout }}.tar.gz" owner="{{ project_user }}" group="{{ project_user }}"
   remote_user: "{{ project_user }}"
+  sudo: True
 
 - name: Upload docker file
-  copy: src="Dockerfile" dest="/home/{{ project_user }}/projects/{{project_name}}/Dockerfile" owner="{{ project_user }}" group="{{ project_user }}"
+  copy: src="Dockerfile" dest="{{ project_root }}/Dockerfile" owner="{{ project_user }}" group="{{ project_user }}"
   remote_user: "{{ project_user }}"
+  sudo: True
 
 - name: Build app image
-  shell: docker build -t {{ project_name }}:{{ project_version.stdout }} /home/{{ project_user }}/projects/{{project_name}}/
+  shell: "docker build -t {{ project_name }}:{{ project_version.stdout }} {{ project_root }}"
   remote_user: "{{ project_user }}"
   sudo: True
 
@@ -42,12 +44,7 @@
   sudo: True
 
 - name: Create app container
-  shell: docker create --name {{ project_name }} --link postgres:db -e "DB_NAME={{ project_name }}" -e "DB_PASSWORD={{ project_db_password }}" -p 5000:5000 {{ project_name }}:{{ project_version.stdout }}
-  remote_user: "{{ project_user }}"
-  sudo: True
-
-- name: Make app db migrations
-  shell: docker run --rm --link postgres:db -e "DB_NAME={{ project_name }}" -e "DB_PASSWORD={{ project_db_password }}" {{ project_name }}:{{ project_version.stdout }} wallet db upgrade head
+  shell: docker create --name {{ project_name }} --link consul:consul -e SERVICE_NAME={{ project_name }} -p 5000:5000 {{ project_name }}:{{ project_version.stdout }}
   remote_user: "{{ project_user }}"
   sudo: True
 
@@ -58,5 +55,10 @@
 
 - name: Enable app supervisor proccess
   supervisorctl: name={{ project_name }} state=restarted
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Make app db migrations
+  shell: docker exec {{ project_name }} {{ project_name }} --config=/root/config.yml db upgrade head
   remote_user: "{{ project_user }}"
   sudo: True

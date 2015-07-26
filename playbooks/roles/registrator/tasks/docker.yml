@@ -1,0 +1,18 @@
+---
+
+- name: Pull registrator image
+  shell: docker pull {{registrator_image}}
+
+- name: Check registrator container exists
+  shell: docker ps -a --filter="name={{registrator_container}}$"
+  register: containers
+
+- name: Create registrator container
+  shell: docker create --name {{registrator_container}} --link consul:consul -v /var/run/docker.sock:/tmp/docker.sock {{registrator_image}} consul://consul:8500
+  when: containers.stdout.find('{{registrator_container}}') == -1
+
+- name: Assemble supervisor config
+  template: src=supervisor.conf dest=/etc/supervisor/conf.d/{{registrator_container}}.conf
+
+- name: Enable registrator supervisor process
+  supervisorctl: name={{registrator_container}} state=restarted

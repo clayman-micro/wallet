@@ -7,6 +7,7 @@ from aiopg.sa import create_engine
 import itsdangerous
 
 from .handlers import base, core, accounts, auth, categories, transactions
+from .config import Config
 
 
 @contextmanager
@@ -51,38 +52,23 @@ def register_handler_ctx(app, url_prefix=None, name_prefix=None):
 
 class Application(web.Application):
 
-    def __init__(self, **kwargs):
+    def __init__(self, config=None, **kwargs):
         self.engine = None
 
-        self.config = {
-            'PROJECT_NAME': 'wallet',
+        app_root = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
 
-            'DB_HOST': os.environ.get('DB_PORT_5432_TCP_ADDR', 'localhost'),
-            'DB_PORT': os.environ.get('DB_PORT_5432_TCP_PORT', 5432),
-            'DB_NAME': os.environ.get('DB_NAME', 'wallet'),
-            'DB_USER': os.environ.get('DB_USER', 'wallet'),
-            'DB_PASSWORD': os.environ.get('DB_PASSWORD', 'wallet'),
+        self.config = Config(None, {
+            'project_name': 'wallet',
 
-            'APP_ROOT': os.path.realpath(os.path.dirname(
-                os.path.abspath(__file__))),
+            'secret_key': 'top-secret',
+            'token_expires': 300,
 
-            'SECRET_KEY': 'top-secret',
-            'TOKEN_EXPIRES': 300
-        }
+            'app_root': app_root,
+            'migrations_root': os.path.join(app_root, 'models', 'migrations'),
+            'templates_root': os.path.join(app_root, 'templates')
+        })
 
-        # Configure folders
-        self.config['MIGRATIONS_ROOT'] = os.path.join(
-            self.config['APP_ROOT'], 'models', 'migrations')
-
-        self.config['TEMPLATES_ROOT'] = os.path.join(self.config['APP_ROOT'],
-                                                     'templates')
-
-        # Make database dsn
-        uri = 'postgres://{0}:{1}@{2}:{3}/{4}'.format(
-            self.config.get('DB_USER'), self.config.get('DB_PASSWORD'),
-            self.config.get('DB_HOST'), self.config.get('DB_PORT'),
-            self.config.get('DB_NAME'))
-        self.config['SQLALCHEMY_DSN'] = uri
+        self.config.from_yaml(config)
 
         super(Application, self).__init__(**kwargs)
 

@@ -5,14 +5,13 @@ machine:
   python:
     version: 3.4.2
 
-  environment:
-    ENVIRONMENT: testing
-    DB_PORT_5432_TCP_ADDR: localhost
-    DB_NAME: circle_test
-    DB_USER: ubuntu
-
 test:
   override:
+    - touch testing.yml
+    - echo "secret_key: 'top-secret'" > testing.yml
+    - echo "token_expires: 300" >> testing.yml
+    - echo "sqlalchemy_dsn: 'postgres://ubuntu@localhost:5432/circle_test'" >> testing.yml
+
     - python setup.py test -a "-vv --cov wallet --cov-report html --cov-report xml tests"
 
 general:

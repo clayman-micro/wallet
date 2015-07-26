@@ -15,6 +15,7 @@ Vagrant.configure("2") do |config|
     wallet.vm.network "forwarded_port", guest: 80, host: 8080
     wallet.vm.network "forwarded_port", guest: 6379, host: 6379
     wallet.vm.network "forwarded_port", guest: 5432, host: 5432
+    wallet.vm.network "forwarded_port", guest: 8500, host: 8500
     wallet.vm.network "private_network", type: "dhcp"
 
     wallet.vm.synced_folder ".", "/vagrant", type: "nfs"
@@ -26,7 +27,11 @@ Vagrant.configure("2") do |config|
     ansible.extra_vars = {
         ansible_ssh_user: 'vagrant',
 
-        project_user: 'vagrant',
+        cluster_environment: 'vagrant',
+        common_user: 'clayman',
+        common_user_password: '$6$rounds=100000$.8T6PFb3OsCTxhhx$lEW5mbxgI5wTBA5NU27iB51YeI./ljG9tlkygQ6NOwIRAMuS8qnp3UAqEQNO5hTI5OaDxFL6XLJQSh67qAEkO0',
+
+        project_user: 'clayman',
         project_name: 'wallet',
         project_domain: 'wallet.clayman.pro',
         project_socket: '127.0.0.1:5000',
