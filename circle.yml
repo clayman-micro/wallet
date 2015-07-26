@@ -7,10 +7,10 @@ machine:
 
 test:
   override:
-    - touch testing.yml
-    - echo "secret_key: top-secret" > testing.yml
-    - echo "token_expires: 300" >> testing.yml
-    - echo "sqlalchemy_dsn: postgres://ubuntu@localhost:5432/circle_test" >> testing.yml
+    - echo '---' > testing.yml
+    - echo 'secret_key: top-secret' >> testing.yml
+    - echo 'token_expires: 300' >> testing.yml
+    - echo 'sqlalchemy_dsn: postgres://ubuntu@localhost:5432/circle_test' >> testing.yml
 
     - python setup.py test -a "-vv --cov wallet --cov-report html --cov-report xml tests"
 
