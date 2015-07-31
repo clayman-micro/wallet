@@ -28,24 +28,6 @@ def application(request):
     loop.close()
 
 
-@pytest.fixture('function')
-def db(application, request):
-    directory = application.config.get('MIGRATIONS_ROOT')
-    db_uri = application.config.get('SQLALCHEMY_DSN')
-
-    config = AlembicConfig(os.path.join(directory, 'alembic.ini'))
-    config.set_main_option('script_location', directory)
-    config.set_main_option('sqlalchemy.url', db_uri)
-
-    command.upgrade(config, revision='head')
-
-    def teardown():
-        command.downgrade(config, revision='base')
-
-    request.addfinalizer(teardown)
-    return None
-
-
 class ResponseContextManager(object):
     __slots__ = ('_response', )
 
@@ -68,6 +50,10 @@ class Server(object):
         self._app = app
         self._domain = None
 
+    @property
+    def domain(self):
+        return self._domain
+
     @staticmethod
     def _find_unused_port():
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -84,59 +70,78 @@ class Server(object):
         self._domain = 'http://127.0.0.1:{port}'.format(port=port)
         return srv
 
-    def reverse_url(self, endpoint=None, parts=None):
-        assert self._domain
-
-        if not endpoint:
-            return self._domain
-
-        url = [self._domain, ]
-        if parts:
-            url.append(self._app.router[endpoint].url(parts=parts))
-        else:
-            url.append(self._app.router[endpoint].url())
-        return ''.join(url)
-
     @asyncio.coroutine
-    def request(self, method, endpoint=None, endpoint_params=None, **extra):
-        params = {
-            'url': self.reverse_url(endpoint, endpoint_params),
-            'loop': self._app.loop
-        }
-        if extra:
-            if extra.pop('json', None):
-                headers = extra.pop('headers', {})
+    def request(self, method, **kwargs):
+        if kwargs:
+            if kwargs.pop('json', None):
+                headers = kwargs.pop('headers', {})
                 headers['content-type'] = 'application/json'
-                params['headers'] = headers
-                params['data'] = ujson.dumps(extra.pop('data'), '')
-            params.update(**extra)
-        return (yield from request(method, **params))
+                kwargs['headers'] = headers
+                kwargs['data'] = ujson.dumps(kwargs.pop('data', ''))
+        kwargs.setdefault('loop', self._app.loop)
+        return (yield from request(method, **kwargs))
+
+    def reverse_url(self, route, parts=None):
+        return ''.join((self._domain, self._app.reverse_url(route, parts)))
 
     @asyncio.coroutine
-    def response_ctx(self, method, endpoint=None, endpoint_params=None,
-                     **extra):
-        response = (yield from self.request(method, endpoint,
-                                            endpoint_params, **extra))
+    def get_auth_token(self, credentials):
+        params = {
+            'json': True,
+            'data': credentials,
+            'url': ''.join((self._domain,
+                            self._app.router['auth.login'].url()))
+        }
+        with (yield from self.response_ctx('POST', **params)) as response:
+            assert response.status == 200
+            token = response.headers.get('X-ACCESS-TOKEN', None)
+            assert token
+        return token
+
+    @asyncio.coroutine
+    def response_ctx(self, method, **kwargs):
+        response = yield from self.request(method, **kwargs)
         return ResponseContextManager(response)
 
 
-def async_test(attach_server=False):
+@pytest.yield_fixture('function')
+def server(application, request):
+    server = Server(application)
+    srv = application.loop.run_until_complete(server.create())
+
+    yield server
+
+    srv.close()
+
+
+def async_test(create_database=False):
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
             application = kwargs.get('application')
             func = asyncio.coroutine(f)
 
-            if attach_server:
-                server = Server(application)
-                srv = application.loop.run_until_complete(server.create())
-                kwargs['server'] = server
+            config = None
+            if create_database:
+                directory = application.config.get('MIGRATIONS_ROOT')
+                db_uri = application.config.get('SQLALCHEMY_DSN')
 
-            application.loop.run_until_complete(func(*args, **kwargs))
-            application.engine.close()
+                config = AlembicConfig(os.path.join(directory, 'alembic.ini'))
+                config.set_main_option('script_location', directory)
+                config.set_main_option('sqlalchemy.url', db_uri)
 
-            application.loop.run_until_complete(
-                application.engine.wait_closed())
+                command.upgrade(config, revision='head')
+
+            try:
+                application.loop.run_until_complete(func(*args, **kwargs))
+            finally:
+                application.engine.close()
+
+                application.loop.run_until_complete(
+                    application.engine.wait_closed())
+
+                if create_database:
+                    command.downgrade(config, revision='base')
 
         return wrapper
     return decorator

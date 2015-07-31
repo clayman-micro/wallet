@@ -1,9 +1,11 @@
 import asyncio
 from datetime import datetime
+from functools import wraps
 from aiohttp import web
 
 from ..models import accounts, categories, transactions
-from . import base
+from . import base, auth
+import sqlalchemy
 
 
 class TransactionAPIHandler(base.BaseAPIHandler):
@@ -13,6 +15,8 @@ class TransactionAPIHandler(base.BaseAPIHandler):
     table = transactions.transactions_table
     schema = transactions.transactions_schema
     serializer = transactions.TransactionSerializer(exclude=('created_on', ))
+
+    decorators = (auth.owner_required, )
 
     endpoints = (
         ('GET', '/transactions', 'get_transactions'),
@@ -54,6 +58,64 @@ class TransactionAPIHandler(base.BaseAPIHandler):
 
         return document, errors
 
+    def get_collection_query(self, request):
+        accounts_alias = accounts.accounts_table.alias()
+        join = sqlalchemy.join(self.table, accounts_alias,
+                               accounts_alias.c.id == self.table.c.account_id)
+        return self.table.select().select_from(join).where(
+            accounts_alias.c.owner_id == request.owner.get('id'))
+
+    def get_instance_query(self, request, instance_id):
+        accounts_alias = accounts.accounts_table.alias()
+        join = sqlalchemy.join(self.table, accounts_alias,
+                               accounts_alias.c.id == self.table.c.account_id)
+        return self.table.select().select_from(join).where(
+            sqlalchemy.and_(
+                accounts_alias.c.owner_id == request.owner.get('id'),
+                self.table.c.id == instance_id
+            )
+        )
+
+
+def transaction_required(f):
+    @asyncio.coroutine
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        """ Check that transaction exists and it's owner match request.owner
+
+        method is a coroutine
+        """
+        if asyncio.iscoroutinefunction(f):
+            coro = f
+        else:
+            coro = asyncio.coroutine(f)
+        request = args[-1]
+
+        transaction_id = request.match_info['transaction_id']
+
+        with (yield from request.app.engine) as conn:
+            query = sqlalchemy.select([
+                transactions.transactions_table.c.id,
+                accounts.accounts_table.c.owner_id
+            ], from_obj=sqlalchemy.join(
+                transactions.transactions_table,
+                accounts.accounts_table)
+            ).where(
+                transactions.transactions_table.c.id == transaction_id
+            )
+            result = yield from conn.execute(query)
+            row = yield from result.fetchone()
+
+            if not row:
+                return web.HTTPNotFound(text='Transaction not found')
+
+            if row.owner_id != request.owner.get('id'):
+                return web.HTTPForbidden(text='You don\'t own this transaction')
+
+        result = yield from coro(*args, **kwargs)
+        return result
+    return wrapper
+
 
 class TransactionDetailAPIHandler(base.BaseAPIHandler):
     collection_name = 'details'
@@ -62,6 +124,8 @@ class TransactionDetailAPIHandler(base.BaseAPIHandler):
     table = transactions.transaction_details_table
     schema = transactions.transaction_details_schema
     serializer = transactions.TransactionDetailSerializer()
+
+    decorators = (transaction_required, auth.owner_required)
 
     endpoints = (
         ('GET', '/transactions/{transaction_id}/details', 'get_details'),
@@ -74,21 +138,32 @@ class TransactionDetailAPIHandler(base.BaseAPIHandler):
          'remove_detail'),
     )
 
-    @asyncio.coroutine
-    def validate_payload(self, request, payload, instance=None):
+    def get_collection_query(self, request):
         transaction_id = request.match_info['transaction_id']
 
-        with (yield from request.app.engine) as conn:
-            query = transactions.transactions_table.select().where(
-                transactions.transactions_table.c.id == transaction_id)
-            transaction = yield from conn.scalar(query)
+        join = sqlalchemy.join(self.table, transactions.transactions_table)
+        return self.table.select(from_obj=join).where(
+            transactions.transactions_table.c.id == transaction_id)
 
-        if not transaction:
-            return web.HTTPNotFound(text='Transaction not found')
+    def get_instance_query(self, request, instance_id):
+        transaction_id = request.match_info['transaction_id']
+
+        join = sqlalchemy.join(self.table, transactions.transactions_table)
+        return self.table.select(from_obj=join).where(
+            sqlalchemy.and_(
+                transactions.transactions_table.c.id == transaction_id,
+                self.table.c.id == instance_id
+            )
+        )
+
+    @asyncio.coroutine
+    def validate_payload(self, request, payload, instance=None):
+        if not instance:
+            payload.setdefault('transaction_id',
+                               request.match_info['transaction_id'])
 
         future = super(TransactionDetailAPIHandler, self).validate_payload(
             request, payload, instance)
         document, errors = yield from future
 
-        document.setdefault('transaction_id', transaction_id)
-        return document, None
+        return document, errors

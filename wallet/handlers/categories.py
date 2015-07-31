@@ -3,7 +3,7 @@ import asyncio
 from sqlalchemy import and_
 
 from ..models import categories
-from . import base
+from . import base, auth
 
 
 class CategoryAPIHandler(base.BaseAPIHandler):
@@ -13,6 +13,8 @@ class CategoryAPIHandler(base.BaseAPIHandler):
     table = categories.categories_table
     schema = categories.categories_schema
     serializer = categories.CategorySerializer()
+
+    decorators = (auth.owner_required, )
 
     endpoints = (
         ('GET', '/categories', 'get_categories'),
@@ -24,9 +26,17 @@ class CategoryAPIHandler(base.BaseAPIHandler):
 
     @asyncio.coroutine
     def validate_payload(self, request, payload, instance=None):
+        if instance:
+            del instance['owner_id']
+
         future = super(CategoryAPIHandler, self).validate_payload(
             request, payload, instance)
         document, errors = yield from future
+
+        if errors:
+            return None, errors
+
+        document.setdefault('owner_id', request.owner.get('id'))
 
         params = self.table.c.name == document.get('name')
         if instance:
@@ -40,3 +50,14 @@ class CategoryAPIHandler(base.BaseAPIHandler):
             return None, {'name': 'Already exists.'}
         else:
             return document, None
+
+    def get_collection_query(self, request):
+        return self.table.select().where(
+            self.table.c.owner_id == request.owner.get('id')
+        )
+
+    def get_instance_query(self, request, instance_id):
+        return self.table.select().where(
+            and_(self.table.c.id == instance_id,
+                 self.table.c.owner_id == request.owner.get('id'))
+        )

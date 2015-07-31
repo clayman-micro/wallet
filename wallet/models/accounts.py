@@ -38,8 +38,7 @@ accounts_schema = {
     'owner_id': {
         'type': 'integer',
         'coerce': int,
-        'required': True,
-        'empty': False
+        'readonly': True
     }
 }
 

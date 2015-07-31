@@ -42,7 +42,7 @@ transaction_details_schema = {
     'price_per_unit': {'type': 'number', 'coerce': float, 'empty': True},
     'count': {'type': 'number', 'coerce': float, 'empty': True},
     'total': {'type': 'number', 'coerce': float, 'required': True},
-    'transaction_id': {'type': 'integer'},
+    'transaction_id': {'type': 'integer', 'coerce': int, 'required': True},
 }
 
 

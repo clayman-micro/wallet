@@ -12,117 +12,121 @@ from . import BaseHandlerTest
 class BaseTransactionTest(BaseHandlerTest):
 
     @asyncio.coroutine
-    def prepare_owner(self, app):
-        owner = {'login': 'John', 'password': 'top_secret',
-                 'created_on': datetime.now()}
-        return (yield from self.create_instance(app, auth.users_table, owner))
+    def prepare_data(self, app, transaction=None):
+        owner = {'login': 'John', 'password': 'top_secret'}
+        owner_id = yield from self.create_owner(app, owner)
 
-    @asyncio.coroutine
-    def prepare_account(self, app, account):
-        raw = dict(**account)
-        if not account.get('owner_id'):
-            owner_id = yield from self.prepare_owner(app)
-            raw.setdefault('owner_id', owner_id)
+        account = {'name': 'Credit card', 'original_amount': 30000.0,
+                   'current_amount': 0.0, 'owner_id': owner_id}
+        account_id = yield from self.create_account(app, account)
 
-        raw.update(created_on=datetime.now())
-        raw['id'] = yield from self.create_instance(
-            app, accounts.accounts_table, raw)
+        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
+                    'owner_id': owner_id}
+        category_id = yield from self.create_instance(
+            app, categories.categories_table, category)
 
-        return raw
+        if transaction:
+            transaction.setdefault('account_id', account_id)
+            transaction.setdefault('category_id', category_id)
+            transaction.setdefault('created_on', datetime.now())
 
-    @asyncio.coroutine
-    def prepare_category(self, app, category):
-        raw = dict(**category)
-        if not category.get('owner_id'):
-            owner_id = yield from self.prepare_owner(app)
-            raw.setdefault('owner_id', owner_id)
+            transaction_id = yield from self.create_instance(
+                app, transactions.transactions_table, transaction)
 
-        raw['id'] = yield from self.create_instance(
-            app, categories.categories_table, raw)
+            del transaction['created_on']
+            transaction['id'] = transaction_id
+            return owner, transaction
 
-        return raw
-
-    @asyncio.coroutine
-    def prepare_transaction(self, app, transaction):
-        raw = dict(**transaction)
-        owner_id = yield from self.prepare_owner(app)
-
-        raw_account = {'name': 'Debit card', 'original_amount': 3000.0,
-                       'current_amount': 0.0, 'owner_id': owner_id}
-        account = yield from self.prepare_account(app, account=raw_account)
-
-        raw_category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                        'owner_id': owner_id}
-        category = yield from self.prepare_category(app, category=raw_category)
-
-        raw.update(created_on=datetime.now(), account_id=account.get('id'),
-                   category_id=category.get('id'))
-        raw['id'] = yield from self.create_instance(
-            app, transactions.transactions_table, raw
-        )
-
-        return raw
+        return owner, account_id, category_id
 
 
 class TestTransactionCollection(BaseTransactionTest):
 
-    @pytest.mark.handlers
-    @pytest.mark.parametrize('endpoint', (
-        'api.get_transactions',
-        'api.create_transaction'
-    ))
-    def test_endpoints_exists(self, application, endpoint):
-        assert endpoint in application.router
+    @pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
+    @async_test(create_database=True)
+    def test_get_unauthorized(self, application, headers, server):
+        params = {
+            'headers': headers,
+            'url': server.reverse_url('api.get_transactions')
+        }
+        with (yield from server.response_ctx('GET', **params)) as response:
+            assert response.status == 401
 
-    @pytest.mark.handlers
-    @async_test(attach_server=True)
-    def test_get_success(self, application, db, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.get_transactions'
+    @async_test(create_database=True)
+    def test_get_success(self, application, server):
+        transaction = {'description': 'Meal', 'amount': 300.0}
+        owner, expected = yield from self.prepare_data(
+            application, transaction)
 
-        transaction = {'description': 'Meal', 'amount': 300.0,
-                       'created_on': datetime.now()}
-        expected = yield from self.prepare_transaction(application, transaction)
-        del expected['created_on']
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url('api.get_transactions')
+        }
 
-        with (yield from server.response_ctx('GET', endpoint)) as resp:
+        with (yield from server.response_ctx('GET', **params)) as resp:
             assert resp.status == 200
 
             response = yield from resp.json()
             assert 'transactions' in response
             assert [expected, ] == response['transactions']
 
-    @pytest.mark.handlers
-    @pytest.mark.parametrize('params', (
-        {'json': False},
-        {'json': True}
-    ))
-    @async_test(attach_server=True)
-    def test_create_success(self, application, db, params, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.create_transaction'
+    @async_test(create_database=True)
+    def test_get_success_only_for_owner(self, application, server):
+        transaction = {'description': 'Meal', 'amount': 300.0}
+        yield from self.prepare_data(application, transaction)
 
-        owner_id = yield from self.prepare_owner(application)
+        another_owner = {'login': 'Samuel', 'password': 'top_secret'}
+        yield from self.create_owner(application, another_owner)
 
-        raw_account = {'name': 'Debit card', 'original_amount': 3000.0,
-                       'current_amount': 0.0, 'owner_id': owner_id}
-        account = yield from self.prepare_account(application, raw_account)
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(
+                    another_owner))
+            },
+            'url': server.reverse_url('api.get_transactions')
+        }
 
-        raw_category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                        'owner_id': owner_id}
-        category = yield from self.prepare_category(application, raw_category)
+        with (yield from server.response_ctx('GET', **params)) as resp:
+            assert resp.status == 200
 
-        transaction = {'description': 'Meal', 'amount': 300.0,
-                       'account_id': account.get('id'),
-                       'category_id': category.get('id')}
+            response = yield from resp.json()
+            assert 'transactions' in response
+            assert response['transactions'] == []
 
-        expected = {'id': 1, 'description': 'Meal', 'amount': 300.0,
-                    'account_id': account.get('id'),
-                    'category_id': category.get('id')}
+    @pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
+    @async_test(create_database=True)
+    def test_create_unauthorized(self, application, server, headers):
+        owner, account_id, category_id = yield from self.prepare_data(
+            application)
 
-        params.update(endpoint=endpoint, data=transaction)
+        params = {
+            'data': {'description': 'Meal', 'amount': 300.0,
+                     'account_id': account_id, 'category_id': category_id},
+            'headers': headers,
+            'url': server.reverse_url('api.create_transaction')
+        }
+        with (yield from server.response_ctx('POST', **params)) as response:
+            assert response.status == 401
+
+    @pytest.mark.parametrize('params', ({'json': False}, {'json': True}))
+    @async_test(create_database=True)
+    def test_create_success(self, application, server, params):
+        owner, account_id, category_id = yield from self.prepare_data(
+            application)
+        token = yield from server.get_auth_token(owner)
+
+        params['data'] = {'description': 'Meal', 'amount': 300.0,
+                          'account_id': account_id, 'category_id': category_id}
+        params['headers'] = {'X-ACCESS-TOKEN': token}
+        params['url'] = server.reverse_url('api.create_transaction')
+
         with (yield from server.response_ctx('POST', **params)) as response:
             assert response.status == 201
+
+            expected = {'id': 1, 'description': 'Meal', 'amount': 300.0,
+                        'account_id': account_id, 'category_id': category_id}
 
             response = yield from response.json()
             assert 'transaction' in response
@@ -130,30 +134,86 @@ class TestTransactionCollection(BaseTransactionTest):
 
 
 class TestTransactionResource(BaseTransactionTest):
-    transaction = {'description': 'Meal', 'amount': 300.0}
 
-    @pytest.mark.handlers
-    @pytest.mark.parametrize('endpoint', (
-        'api.get_transaction',
-        'api.update_transaction',
-        'api.remove_transaction'
+    @pytest.mark.parametrize('method,endpoint,headers', (
+        ('GET', 'api.get_transaction', {}),
+        ('GET', 'api.get_transaction', {'X-ACCESS-TOKEN': 'fake-token'}),
+        ('PUT', 'api.update_transaction', {}),
+        ('PUT', 'api.update_transaction', {'X-ACCESS-TOKEN': 'fake-token'}),
+        ('DELETE', 'api.remove_transaction', {}),
+        ('DELETE', 'api.remove_transaction', {'X-ACCESS-TOKEN': 'fake-token'})
     ))
-    def test_endpoint_exists(self, application, endpoint):
-        assert endpoint in application.router
-
-    @pytest.mark.handlers
-    @async_test(attach_server=True)
-    def test_get_success(self, application, db, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.get_transaction'
-
-        expected = yield from self.prepare_transaction(application,
-                                                       self.transaction)
-        del expected['created_on']
+    @async_test(create_database=True)
+    def test_unauthorized(self, application, server, method, endpoint,
+                          headers):
+        transaction = {'description': 'Meal', 'amount': 300.0}
+        owner, expected = yield from self.prepare_data(
+            application, transaction)
 
         params = {
-            'endpoint': endpoint,
-            'endpoint_params': {'instance_id': expected.get('id')}
+            'headers': headers,
+            'url': server.reverse_url(endpoint,
+                                      {'instance_id': expected.get('id')})
+        }
+        with (yield from server.response_ctx(method, **params)) as response:
+            assert response.status == 401
+
+    @pytest.mark.parametrize('method,endpoint', (
+        ('GET', 'api.get_transaction'),
+        ('PUT', 'api.update_transaction'),
+        ('DELETE', 'api.remove_transaction')
+    ))
+    @async_test(create_database=True)
+    def test_does_not_belong(self, application, server, method, endpoint):
+        transaction = {'description': 'Meal', 'amount': 300.0}
+        owner, expected = yield from self.prepare_data(
+            application, transaction)
+
+        another_owner = {'login': 'Sam', 'password': 'top_secret'}
+        yield from self.create_owner(application, another_owner)
+
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (
+                    yield from server.get_auth_token(another_owner))
+            },
+            'url': server.reverse_url(endpoint,
+                                      {'instance_id': expected.get('id')})
+        }
+        with (yield from server.response_ctx(method, **params)) as response:
+            assert response.status == 404
+
+    @pytest.mark.parametrize('method,endpoint', (
+        ('GET', 'api.get_transaction'),
+        ('PUT', 'api.update_transaction'),
+        ('DELETE', 'api.remove_transaction'),
+    ))
+    @async_test(create_database=True)
+    def test_missing(self, application, server, method, endpoint):
+        owner = {'login': 'John', 'password': 'top_secret'}
+        yield from self.create_owner(application, owner)
+
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url(endpoint, {'instance_id': 1})
+        }
+        with (yield from server.response_ctx(method, **params)) as response:
+            assert response.status == 404
+
+    @async_test(create_database=True)
+    def test_get_success(self, application, server):
+        transaction = {'description': 'Meal', 'amount': 300.0}
+        owner, expected = yield from self.prepare_data(
+            application, transaction)
+
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url('api.get_transaction',
+                                      {'instance_id': expected.get('id')})
         }
         with (yield from server.response_ctx('GET', **params)) as response:
             assert response.status == 200
@@ -162,22 +222,21 @@ class TestTransactionResource(BaseTransactionTest):
             assert 'transaction' in data
             assert expected == data['transaction']
 
-    @pytest.mark.handlers
-    @async_test(attach_server=True)
-    def test_update_success(self, application, db, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.update_transaction'
+    @async_test(create_database=True)
+    def test_update_success(self, application, server):
+        transaction = {'description': 'Meal', 'amount': 300.0}
+        owner, expected = yield from self.prepare_data(
+            application, transaction)
 
-        expected = yield from self.prepare_transaction(application,
-                                                       self.transaction)
         expected['amount'] = 310.0
-        del expected['created_on']
-
         params = {
-            'endpoint': endpoint,
-            'endpoint_params': {'instance_id': expected.get('id')},
-            'data': {'amount': 310.0},
-            'json': True
+            'data': {'amount': '310'},
+            'json': True,
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url('api.update_transaction',
+                                      {'instance_id': expected.get('id')})
         }
         with (yield from server.response_ctx('PUT', **params)) as resp:
             assert resp.status == 200
@@ -186,17 +245,18 @@ class TestTransactionResource(BaseTransactionTest):
             assert 'transaction' in response
             assert expected == response['transaction']
 
-    @pytest.mark.handlers
-    @async_test(attach_server=True)
-    def test_remove_success(self, application, db, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.remove_transaction'
+    @async_test(create_database=True)
+    def test_remove_success(self, application, server):
+        transaction = {'description': 'Meal', 'amount': 300.0}
+        owner, expected = yield from self.prepare_data(
+            application, transaction)
 
-        expected = yield from self.prepare_transaction(application,
-                                                       self.transaction)
         params = {
-            'endpoint': endpoint,
-            'endpoint_params': {'instance_id': expected.get('id')}
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url('api.remove_transaction',
+                                      {'instance_id': expected.get('id')})
         }
         with (yield from server.response_ctx('DELETE', **params)) as response:
             assert response.status == 200
@@ -208,140 +268,305 @@ class TestTransactionResource(BaseTransactionTest):
             assert count == 0
 
 
-class TestTransactionDetailsCollection(BaseTransactionTest):
+class BaseTransactionDetailTest(BaseHandlerTest):
 
-    @pytest.mark.handlers
-    @pytest.mark.parametrize('endpoint', (
-        'api.get_details',
-        'api.create_detail'
-    ))
-    def test_endpoint_exists(self, application, db, endpoint):
-        assert endpoint in application.router
+    @asyncio.coroutine
+    def prepare_data(self, app):
+        owner = {'login': 'John', 'password': 'top_secret'}
+        owner_id = yield from self.create_owner(app, owner)
 
-    @pytest.mark.handlers
-    @async_test(attach_server=True)
-    def test_get_success(self, application, db, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.get_details'
+        account = {'name': 'Credit card', 'original_amount': 30000.0,
+                   'current_amount': 0.0, 'owner_id': owner_id}
+        account_id = yield from self.create_account(app, account)
 
-        raw_transaction = {'description': 'Meal', 'amount': 300.0,
-                           'created_on': datetime.now()}
-        transaction = yield from self.prepare_transaction(application,
-                                                          raw_transaction)
+        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
+                    'owner_id': owner_id}
+        category_id = yield from self.create_instance(
+            app, categories.categories_table, category)
+
+        transaction = {'description': 'Meal', 'amount': 300.0,
+                       'created_on': datetime.now(), 'account_id': account_id,
+                       'category_id': category_id}
+        transaction_id = yield from self.create_instance(
+            app, transactions.transactions_table, transaction)
+
+        return owner, transaction_id
+
+
+class TestTransactionDetailsCollection(BaseTransactionDetailTest):
+
+    @pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
+    @async_test(create_database=True)
+    def test_get_unauthorized(self, application, server, headers):
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        params = {
+            'headers': headers,
+            'url': server.reverse_url('api.get_details',
+                                      {'transaction_id': transaction_id})
+        }
+        with (yield from server.response_ctx('GET', **params)) as response:
+            assert response.status == 401
+
+    @async_test(create_database=True)
+    def test_get_success(self, application, server):
+        owner, transaction_id = yield from self.prepare_data(application)
+
         detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
-                  'total': 300.0, 'transaction_id': transaction['id']}
-        detail['id'] = yield from self.create_instance(
+                  'total': 300.0, 'transaction_id': transaction_id}
+        detail_id = yield from self.create_instance(
             application, transactions.transaction_details_table, detail)
 
         params = {
-            'endpoint': endpoint,
-            'endpoint_params': {'transaction_id': transaction['id']}
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url('api.get_details',
+                                      {'transaction_id': transaction_id})
         }
+
         with (yield from server.response_ctx('GET', **params)) as resp:
             assert resp.status == 200
 
-            del detail['transaction_id']
+            expected = {'id': detail_id, 'name': 'Soup',
+                        'price_per_unit': 300.0, 'count': 1.0,
+                        'total': 300.0}
+
             response = yield from resp.json()
             assert 'details' in response
-            assert [detail, ] == response['details']
+            assert [expected, ] == response['details']
 
-    @pytest.mark.handlers
-    @pytest.mark.parametrize('params', (
-        {'json': True},
-        {'json': False}
+    @pytest.mark.parametrize('method,endpoint', (
+        ('GET', 'api.get_details'),
+        ('POST', 'api.create_detail')
     ))
-    @async_test(attach_server=True)
-    def test_create_success(self, application, db, params, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.create_detail'
+    @async_test(create_database=True)
+    def test_for_not_owner_transaction(self, application, server, method,
+                                       endpoint):
 
-        raw_transaction = {'description': 'Meal', 'amount': 300.0,
-                           'created_on': datetime.now()}
-        transaction = yield from self.prepare_transaction(application,
-                                                          raw_transaction)
-        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
-                  'total': 300.0}
-        params.update(
-            endpoint=endpoint,
-            endpoint_params={'transaction_id': transaction['id']},
-            data=detail
-        )
+        owner, transaction_id = yield from self.prepare_data(application)
 
-        with (yield from server.response_ctx('POST', **params)) as resp:
-            print((yield from resp.text()))
-            assert resp.status == 201
-
-            detail.update(id=1)
-            response = yield from resp.json()
-            assert 'detail' in response
-            assert detail == response['detail']
-
-
-class TestTransactionDetailsResource(BaseTransactionTest):
-
-    @asyncio.coroutine
-    def prepare_detail(self, app):
-        raw_transaction = {'description': 'Meal', 'amount': 300.0,
-                           'created_on': datetime.now()}
-
-        transaction = yield from self.prepare_transaction(app,
-                                                          raw_transaction)
-        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
-                  'total': 300.0, 'transaction_id': transaction['id']}
-        detail['id'] = yield from self.create_instance(
-            app, transactions.transaction_details_table, detail)
-
-        del detail['transaction_id']
-        return transaction, detail
-
-    @pytest.mark.handlers
-    @pytest.mark.parametrize('endpoint', (
-        'api.get_detail',
-        'api.update_detail',
-        'api.remove_detail'
-    ))
-    def test_endpoint_exists(self, application, endpoint):
-        assert endpoint in application.router
-
-    @pytest.mark.handlers
-    @async_test(attach_server=True)
-    def test_get_success(self, application, db, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.get_detail'
-
-        transaction, detail = yield from self.prepare_detail(application)
+        another_owner = {'login': 'Samuel', 'password': 'top_secret'}
+        yield from self.create_owner(application, another_owner)
+        token = yield from server.get_auth_token(another_owner)
 
         params = {
-            'endpoint': endpoint,
-            'endpoint_params': {
-                'transaction_id': transaction['id'],
-                'instance_id': detail['id']
-            }
+            'headers': {'X-ACCESS-TOKEN': token},
+            'url': server.reverse_url(endpoint,
+                                      {'transaction_id': transaction_id})
+        }
+
+        with (yield from server.response_ctx(method, **params)) as resp:
+            assert resp.status == 403
+
+    @pytest.mark.parametrize('method,endpoint', (
+        ('GET', 'api.get_details'),
+        ('POST', 'api.create_detail')
+    ))
+    @async_test(create_database=True)
+    def test_for_missing_transaction(self, application, server, method,
+                                     endpoint):
+
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url(endpoint, {'transaction_id': 2})
+        }
+        with (yield from server.response_ctx(method, **params)) as resp:
+            assert resp.status == 404
+
+    @pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
+    @async_test(create_database=True)
+    def test_create_unauthorized(self, application, server, headers):
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        params = {
+            'data': {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                     'total': 300.0, 'transaction_id': transaction_id},
+            'headers': headers,
+            'url': server.reverse_url('api.create_detail',
+                                      {'transaction_id': transaction_id})
+        }
+        with (yield from server.response_ctx('POST', **params)) as response:
+            assert response.status == 401
+
+    @pytest.mark.parametrize('params', ({'json': True}, {'json': False}))
+    @async_test(create_database=True)
+    def test_create_success(self, application, server, params):
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0}
+
+        params['data'] = detail
+        params['headers'] = {
+            'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+        }
+        params['url'] = server.reverse_url('api.create_detail',
+                                           {'transaction_id': transaction_id})
+        with (yield from server.response_ctx('POST', **params)) as resp:
+            assert resp.status == 201
+
+            expected = {'id': 1, 'name': 'Soup',
+                        'price_per_unit': 300.0, 'count': 1.0, 'total': 300.0}
+
+            response = yield from resp.json()
+            assert 'detail' in response
+            assert expected == response['detail']
+
+    @pytest.mark.parametrize('params', ({'json': True}, {'json': False}))
+    @async_test(create_database=True)
+    def test_create_for_foreign(self, application, server, params):
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        another_owner = {'login': 'Sam', 'password': 'top_secret'}
+        yield from self.create_owner(application, another_owner)
+
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0}
+
+        params['data'] = detail
+        params['headers'] = {
+            'X-ACCESS-TOKEN': (yield from server.get_auth_token(another_owner))
+        }
+        params['url'] = server.reverse_url('api.create_detail',
+                                           {'transaction_id': transaction_id})
+        with (yield from server.response_ctx('POST', **params)) as resp:
+            assert resp.status == 403
+
+
+class TestTransactionDetailsResource(BaseTransactionDetailTest):
+
+    @pytest.mark.parametrize('method,endpoint,headers', (
+        ('GET', 'api.get_detail', {}),
+        ('GET', 'api.get_detail', {'X-ACCESS-TOKEN': 'fake-token'}),
+        ('PUT', 'api.update_detail', {}),
+        ('PUT', 'api.update_detail', {'X-ACCESS-TOKEN': 'fake-token'}),
+        ('DELETE', 'api.remove_detail', {}),
+        ('DELETE', 'api.remove_detail', {'X-ACCESS-TOKEN': 'fake-token'})
+    ))
+    @async_test(create_database=True)
+    def test_unauthorized(self, application, server, method, endpoint,
+                          headers):
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0, 'transaction_id': transaction_id}
+        detail_id = yield from self.create_instance(
+            application, transactions.transaction_details_table, detail)
+
+        params = {
+            'headers': headers,
+            'url': server.reverse_url(endpoint, {
+                'transaction_id': transaction_id, 'instance_id': detail_id
+            })
+        }
+        with (yield from server.response_ctx(method, **params)) as response:
+            assert response.status == 401
+
+    @pytest.mark.transactions
+    @pytest.mark.parametrize('method,endpoint', (
+        ('GET', 'api.get_detail'),
+        ('PUT', 'api.update_detail'),
+        ('DELETE', 'api.remove_detail')
+    ))
+    @async_test(create_database=True)
+    def test_does_not_belong(self, application, server, method, endpoint):
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0, 'transaction_id': transaction_id}
+        detail_id = yield from self.create_instance(
+            application, transactions.transaction_details_table, detail)
+
+        another_owner = {'login': 'Sam', 'password': 'top_secret'}
+        yield from self.create_owner(application, another_owner)
+
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (
+                    yield from server.get_auth_token(another_owner))
+            },
+            'url': server.reverse_url(endpoint, {
+                'instance_id': detail_id, 'transaction_id': transaction_id
+            })
+        }
+        with (yield from server.response_ctx(method, **params)) as response:
+            assert response.status == 403
+
+    @pytest.mark.parametrize('method,endpoint', (
+        ('GET', 'api.get_detail'),
+        ('PUT', 'api.update_detail'),
+        ('DELETE', 'api.remove_detail')
+    ))
+    @async_test(create_database=True)
+    def test_missing(self, application, server, method, endpoint):
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url(endpoint, {
+                'transaction_id': transaction_id, 'instance_id': 1
+            })
+        }
+        with (yield from server.response_ctx(method, **params)) as response:
+            assert response.status == 404
+
+    @async_test(create_database=True)
+    def test_get_success(self, application, server):
+        owner, transaction_id = yield from self.prepare_data(application)
+
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0, 'transaction_id': transaction_id}
+        detail_id = yield from self.create_instance(
+            application, transactions.transaction_details_table, detail)
+
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url('api.get_detail', {
+                'transaction_id': transaction_id, 'instance_id': detail_id
+            })
         }
         with (yield from server.response_ctx('GET', **params)) as resp:
             assert resp.status == 200
 
+            detail['id'] = detail_id
+            del detail['transaction_id']
+
             response = yield from resp.json()
             assert 'detail' in response
             assert detail == response['detail']
 
-    @pytest.mark.handlers
-    @async_test(attach_server=True)
-    def test_update_success(self, application, db, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.update_detail'
+    @async_test(create_database=True)
+    def test_update_success(self, application, server):
+        owner, transaction_id = yield from self.prepare_data(application)
 
-        transaction, detail = yield from self.prepare_detail(application)
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0, 'transaction_id': transaction_id}
+        detail_id = yield from self.create_instance(
+            application, transactions.transaction_details_table, detail)
 
-        detail['price_per_unit'] = 270.0
         params = {
-            'endpoint': endpoint,
-            'endpoint_params': {
-                'transaction_id': transaction['id'],
-                'instance_id': detail['id']
+            'data': {'price_per_unit': 270.0},
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
             },
-            'data': {'price_per_unit': 270.0}
+            'url': server.reverse_url('api.update_detail', {
+                'transaction_id': transaction_id, 'instance_id': detail_id
+            })
         }
+
+        detail['id'] = detail_id
+        detail['price_per_unit'] = 270.0
+        del detail['transaction_id']
+
         with (yield from server.response_ctx('PUT', **params)) as resp:
             assert resp.status == 200
 
@@ -349,20 +574,22 @@ class TestTransactionDetailsResource(BaseTransactionTest):
             assert 'detail' in response
             assert detail == response['detail']
 
-    @pytest.mark.handlers
-    @async_test(attach_server=True)
-    def test_remove_success(self, application, db, **kwargs):
-        server = kwargs.get('server')
-        endpoint = 'api.remove_detail'
+    @async_test(create_database=True)
+    def test_remove_success(self, application, server):
+        owner, transaction_id = yield from self.prepare_data(application)
 
-        transaction, detail = yield from self.prepare_detail(application)
+        detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
+                  'total': 300.0, 'transaction_id': transaction_id}
+        detail_id = yield from self.create_instance(
+            application, transactions.transaction_details_table, detail)
 
         params = {
-            'endpoint': endpoint,
-            'endpoint_params': {
-                'transaction_id': transaction['id'],
-                'instance_id': detail['id']
-            }
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url('api.remove_detail', {
+                'transaction_id': transaction_id, 'instance_id': detail_id
+            })
         }
         with (yield from server.response_ctx('DELETE', **params)) as resp:
             assert resp.status == 200

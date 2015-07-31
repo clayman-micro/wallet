@@ -30,6 +30,7 @@ def reverse_url(request, route, parts=None):
 
 
 class BaseHandler(object):
+    decorators = tuple()
     endpoints = tuple()
 
     @asyncio.coroutine
@@ -58,11 +59,17 @@ class BaseAPIHandler(BaseHandler):
     schema = None
     serializer = None
 
+    def get_collection_query(self, request):
+        return self.table.select()
+
+    def get_instance_query(self, request, instance_id):
+        return self.table.select().where(self.table.c.id == instance_id)
+
     @asyncio.coroutine
     def get_collection(self, request):
         instances = []
         with (yield from request.app.engine) as conn:
-            query = self.table.select()
+            query = self.get_collection_query(request)
             if self.limit:
                 query = query.limit(self.limit)
             result = yield from conn.execute(query)
@@ -91,7 +98,7 @@ class BaseAPIHandler(BaseHandler):
     def get_instance(self, request, instance_id):
         instance = None
         with (yield from request.app.engine) as conn:
-            query = self.table.select().where(self.table.c.id == instance_id)
+            query = self.get_instance_query(request, instance_id)
             result = yield from conn.execute(query)
 
             row = yield from result.fetchone()

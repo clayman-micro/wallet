@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import and_
 
 from ..models import accounts
-from . import base
+from . import base, auth
 
 
 class AccountAPIHandler(base.BaseAPIHandler):
@@ -14,6 +14,8 @@ class AccountAPIHandler(base.BaseAPIHandler):
     table = accounts.accounts_table
     schema = accounts.accounts_schema
     serializer = accounts.AccountSerializer(exclude=('created_on', ))
+
+    decorators = (auth.owner_required, )
 
     endpoints = (
         ('GET', '/accounts', 'get_accounts'),
@@ -25,6 +27,9 @@ class AccountAPIHandler(base.BaseAPIHandler):
 
     @asyncio.coroutine
     def validate_payload(self, request, payload, instance=None):
+        if instance:
+            del instance['owner_id']
+
         future = super(AccountAPIHandler, self).validate_payload(
             request, payload, instance)
         document, errors = yield from future
@@ -32,6 +37,7 @@ class AccountAPIHandler(base.BaseAPIHandler):
         if errors:
             return None, errors
 
+        document.setdefault('owner_id', request.owner.get('id'))
         document.setdefault('created_on', datetime.now())
         document.setdefault('current_amount', 0)
 
@@ -47,3 +53,13 @@ class AccountAPIHandler(base.BaseAPIHandler):
             return None, {'name': 'Already exists.'}
         else:
             return document, None
+
+    def get_collection_query(self, request):
+        return self.table.select().where(
+            self.table.c.owner_id == request.owner.get('id'))
+
+    def get_instance_query(self, request, instance_id):
+        return self.table.select().where(
+            and_(self.table.c.id == instance_id,
+                 self.table.c.owner_id == request.owner.get('id'))
+        )

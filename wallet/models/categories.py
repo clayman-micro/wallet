@@ -35,8 +35,8 @@ categories_schema = {
     },
     'owner_id': {
         'type': 'integer',
-        'nullable': True,
-        'coerce': int
+        'coerce': int,
+        'readonly': True
     }
 }
 

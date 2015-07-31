@@ -1,11 +1,49 @@
 import asyncio
 from datetime import datetime
+from functools import wraps
 
 from aiohttp import web
 from cerberus import Validator
+import itsdangerous
 
 from ..models import auth
 from . import base
+
+
+def owner_required(f):
+    @asyncio.coroutine
+    @wraps(f)
+    def wrapped(*args):
+        if asyncio.iscoroutinefunction(f):
+            coro = f
+        else:
+            coro = asyncio.coroutine(f)
+        request = args[-1]
+
+        token = request.headers.get('X-ACCESS-TOKEN', None)
+        if token:
+            try:
+                data = request.app.signer.loads(token)
+            except itsdangerous.SignatureExpired:
+                raise web.HTTPUnauthorized(text='Token signature expired')
+            except itsdangerous.BadSignature:
+                raise web.HTTPUnauthorized(text='Bad token signature')
+            else:
+                user_id = data.get('id')
+                with (yield from request.app.engine) as conn:
+                    query = auth.users_table.select().where(
+                        auth.users_table.c.id == user_id)
+                    result = yield from conn.execute(query)
+                    row = yield from result.fetchone()
+
+                if row:
+                    request.owner = dict(zip(row.keys(), row.values()))
+                    return (yield from coro(*args))
+                else:
+                    raise web.HTTPNotFound(text='owner not found')
+        else:
+            raise web.HTTPUnauthorized(text='Access token required')
+    return wrapped
 
 
 class RegistrationHandler(base.BaseHandler):

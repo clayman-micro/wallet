@@ -23,7 +23,8 @@ def add_route_ctx(app, handlers, url_prefix=None, name_prefix=None):
             if name_prefix:
                 handler_name = '.'.join((name_prefix, handler_name))
 
-            return app.router.add_route(method, url, handler, name=handler_name)
+            return app.router.add_route(method, url, handler,
+                                        name=handler_name)
         else:
             return None
     yield add_route
@@ -45,6 +46,9 @@ def register_handler_ctx(app, url_prefix=None, name_prefix=None):
 
             if name_prefix:
                 endpoint_name = '.'.join((name_prefix, endpoint_name))
+
+            for decorator in handler.decorators:
+                endpoint = decorator(endpoint)
 
             app.router.add_route(method, url, endpoint, name=endpoint_name)
     yield register_handler
@@ -76,6 +80,10 @@ class Application(web.Application):
             self.config.get('SECRET_KEY'),
             expires_in=self.config.get('TOKEN_EXPIRES')
         )
+
+    def reverse_url(self, name, parts=None):
+        return self.router[name].url(parts=parts) if parts \
+            else self.router[name].url()
 
     @asyncio.coroutine
     def configure(self):
