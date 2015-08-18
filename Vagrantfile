@@ -36,7 +36,7 @@ Vagrant.configure("2") do |config|
         project_domain: 'wallet.clayman.pro',
         project_socket: '127.0.0.1:5000',
         project_venv: '/vagrant',
-        project_assets: '/vagrant/wallet/assets/',
+        project_assets: '/vagrant/wallet',
         project_media: '/vagrant/wallet',
     }
   end

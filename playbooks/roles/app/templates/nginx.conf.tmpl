@@ -7,6 +7,8 @@ server {
     listen 80;
     server_name {{ project_domain }};
 
+    index index.html;
+
     set $project_root {{ project_root }};
 {#    set $project_assets {{ project_assets }}; #}
 
@@ -16,6 +18,16 @@ server {
 {#    } #}
 
     location / {
+        {% if project_assets %}
+            root {{ project_assets }}/assets/build;
+        {% else %}
+            root {{ project_root }}/{{ project_name }}/assets/build;
+        {% endif %}
+
+        error_page 404 = @fallback;
+    }
+
+    location @fallback {
         proxy_pass http://{{ project_name }}_cluster;
 
         proxy_set_header Host $host;
