@@ -21,6 +21,7 @@ class SessionStore extends BaseStore {
             this._user = null;
         }
 
+        this._status = null;
         this._errors = null;
     }
 
@@ -36,6 +37,8 @@ class SessionStore extends BaseStore {
 
             if (action.errors) {
                 this._errors = action.errors;
+            } else {
+                this._errors = null;
             }
         } else if (action.actionType === ActionTypes.LOGOUT) {
             this._accessToken = null;
@@ -66,6 +69,10 @@ class SessionStore extends BaseStore {
 
     get accessToken() {
         return this._accessToken;
+    }
+
+    get status() {
+        return this._status;
     }
 
     get errors() {

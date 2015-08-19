@@ -1,6 +1,7 @@
 import jQuery from 'jquery';
 
 import ServerActions from '../actions/ServerActions';
+import SessionActions from '../actions/SessionActions';
 
 
 class AuthService {
@@ -20,7 +21,22 @@ class AuthService {
                 user: data.user,
                 token: token
             }, null);
+        }).fail(function (response) {
+            console.log(response);
+
+            let errors = {};
+            if (typeof response.responseJSON !== 'undefined') {
+                errors = response.responseJSON.errors;
+            } else {
+                errors.common = response.statusText;
+            }
+
+            ServerActions.receiveLogin(null, errors);
         });
+    }
+
+    logout() {
+        SessionActions.logout();
     }
 }
 

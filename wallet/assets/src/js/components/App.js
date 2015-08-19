@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router';
+import { Link, Navigation } from 'react-router';
 
 import SessionStore from '../stores/SessionStore';
 import AuthService from '../services/AuthService';
@@ -11,32 +11,35 @@ let getLoginState = function () {
     };
 };
 
-export default class App extends React.Component {
-    constructor(props) {
-        super(props);
+export default React.createClass({
+    mixins: [ Navigation ],
 
-        this.state = getLoginState();
-        this.onChange = this.onChange.bind(this);
-    }
+    getInitialState: function () {
+        return getLoginState();
+    },
 
-    componentDidMount() {
+    componentDidMount: function () {
         SessionStore.addChangeListener(this.onChange);
-    }
+    },
 
-    componentWillUnmount() {
+    componentWillUnmount: function () {
         SessionStore.removeChangeListener(this.onChange);
-    }
+    },
 
-    logout(event) {
+    logout: function (event) {
         event.preventDefault();
         AuthService.logout();
-    }
+    },
 
-    onChange() {
-        this.setState(getLoginState());
-    }
+    onChange: function () {
+        if (!SessionStore.isLoggedIn()) {
+            this.transitionTo('login');
+        } else {
+            this.setState(getLoginState());
+        }
+    },
 
-    get headerItems() {
+    getHeaderItems: function () {
         let headerItems;
 
         if (!this.state.userLoggedIn) {
@@ -60,20 +63,20 @@ export default class App extends React.Component {
             );
         }
         return headerItems;
-    }
+    },
 
-    render() {
+    render: function () {
         return (
             <div className="container">
                 <nav className="navbar navbar-default">
                     <div className="navbar-header">
-                        <a className="navbar-brand" href="/">React Flux app </a>
+                        <a className="navbar-brand" href="/">{this.props.appName}</a>
                     </div>
-                    {this.headerItems}
+                    {this.getHeaderItems()}
                 </nav>
                 <h1>App root</h1>
                 {this.props.children}
             </div>
         );
     }
-}
+});

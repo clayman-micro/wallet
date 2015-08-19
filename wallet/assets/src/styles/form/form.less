@@ -1,0 +1,62 @@
+@import '../variables';
+
+.form {
+  position: relative;
+
+  &__section {
+    margin-bottom: 10px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__label {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 5px 10px;
+  }
+
+  &__input {
+    background-color: #fdfdfd;
+    border: 1px solid #edeeee;
+    border-radius: 3px;
+    box-sizing: border-box;
+    font-size: 14px;
+    width: 100%;
+    padding: 9px 10px 7px;
+    -webkit-appearance: none;
+    outline: none;
+    
+    &_error {
+      border-color: @form_error_color;
+    }
+  }
+
+  &__errors {
+    color: @form_error_color;
+    line-height: 23px;
+    margin: 0;
+    padding: 0 8px 20px 10px;
+    vertical-align: middle;
+  }
+
+  &__submit {
+    color: #fff;
+    border-radius: 3px;
+    border: 1px solid #66bd2b;
+    background-color: #66bd2b;
+    cursor: pointer;
+    line-height: 20px;
+    padding: 2px 9px;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -webkit-appearance: none;
+    width: 100%;
+  }
+}
