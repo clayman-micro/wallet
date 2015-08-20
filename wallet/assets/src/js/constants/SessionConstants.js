@@ -1,14 +1,12 @@
-import keyMirror from 'keymirror';
-
 export const APIEndpoints = {
     LOGIN: '/auth/login'
 };
 
-export const ActionTypes = keyMirror({
-    LOGIN_REQUEST: null,
-    LOGIN_RESPONSE: null,
+export const ActionTypes = {
+    LOGIN_REQUEST: 'LOGIN_REQUEST',
+    LOGIN_RESPONSE: 'LOGIN_RESPONSE',
 
-    UNAUTHORIZED: null,
+    UNAUTHORIZED: 'UNAUTHORIZED',
 
-    LOGOUT: null
-});
+    LOGOUT: 'LOGOUT'
+};
