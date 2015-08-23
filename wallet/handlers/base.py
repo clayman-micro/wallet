@@ -135,7 +135,16 @@ class BaseAPIHandler(BaseHandler):
 
     @asyncio.coroutine
     def validate_payload(self, request, payload, instance=None):
-        validator = Validator(schema=self.schema)
+        schema = self.schema
+        if instance:
+            schema = {}
+            for key in iter(payload.keys()):
+                schema[key] = self.schema[key]
+
+        validator = Validator(schema=schema)
+        if instance:
+            validator.allow_unknown = True
+
         if not validator.validate(instance or payload):
             return None, validator.errors
 

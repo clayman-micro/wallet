@@ -14,7 +14,7 @@ class TransactionAPIHandler(base.BaseAPIHandler):
 
     table = transactions.transactions_table
     schema = transactions.transactions_schema
-    serializer = transactions.TransactionSerializer(exclude=('created_on', ))
+    serializer = transactions.TransactionSerializer()
 
     decorators = (auth.owner_required, )
 

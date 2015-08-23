@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from marshmallow import Schema, fields
 import sqlalchemy
 
@@ -23,6 +25,11 @@ transaction_details_table = create_table('transaction_details', (
                       sqlalchemy.ForeignKey('transactions.id'), nullable=False)
 ))
 
+
+def to_datetime(value):
+    return datetime.strptime(value, '%d-%m-%Y')
+
+
 transactions_schema = {
     'id': {'type': 'integer'},
     'account_id': {'type': 'integer', 'coerce': int, 'required': True,
@@ -32,9 +39,8 @@ transactions_schema = {
     'description': {'type': 'string', 'maxlength': 255, 'empty': True},
     'amount': {'type': 'number', 'coerce': float, 'required': True,
                'empty': False},
-    'created_on': {'type': 'datetime'}
+    'created_on': {'type': 'datetime', 'coerce': to_datetime, 'empty': True}
 }
-
 
 transaction_details_schema = {
     'id': {'type': 'integer'},
