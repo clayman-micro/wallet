@@ -6,6 +6,12 @@ import sqlalchemy
 from .base import create_table
 
 
+INCOME_TRANSACTION = 'income'
+EXPENSE_TRANSACTION = 'expense'
+TRANSFER_TRANSACTION = 'transfer'
+TRANSACTION_TYPES = (INCOME_TRANSACTION, EXPENSE_TRANSACTION,
+                     TRANSFER_TRANSACTION)
+
 transactions_table = create_table('transactions', (
     sqlalchemy.Column('account_id', sqlalchemy.Integer,
                       sqlalchemy.ForeignKey('accounts.id'), nullable=False),
@@ -13,6 +19,8 @@ transactions_table = create_table('transactions', (
                       sqlalchemy.ForeignKey('categories.id'), nullable=False),
     sqlalchemy.Column('description', sqlalchemy.String(255)),
     sqlalchemy.Column('amount', sqlalchemy.Numeric(), nullable=False),
+    sqlalchemy.Column('type', sqlalchemy.String(20), nullable=False,
+                      index=True, default=EXPENSE_TRANSACTION),
     sqlalchemy.Column('created_on', sqlalchemy.DateTime(), nullable=False)
 ))
 
@@ -39,6 +47,8 @@ transactions_schema = {
     'description': {'type': 'string', 'maxlength': 255, 'empty': True},
     'amount': {'type': 'number', 'coerce': float, 'required': True,
                'empty': False},
+    'type': {'type': 'string', 'maxlength': 20, 'required': True,
+             'empty': False, 'allowed': TRANSACTION_TYPES},
     'created_on': {'type': 'datetime', 'coerce': to_datetime, 'empty': True}
 }
 
@@ -58,6 +68,7 @@ class TransactionSerializer(Schema):
     category_id = fields.Integer()
     description = fields.String()
     amount = fields.Float()
+    type = fields.String()
     created_on = fields.DateTime(format='%d-%m-%Y %X')
 
 
