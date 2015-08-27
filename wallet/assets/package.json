@@ -14,6 +14,8 @@
     "eslint": "^1.1.0",
     "eslint-plugin-react": "^3.2.3",
     "exports-loader": "^0.6.2",
+    "extract-text-webpack-plugin": "^0.8.2",
+    "file-loader": "^0.8.4",
     "imports-loader": "^0.6.4",
     "keymirror": "^0.1.1",
     "less": "^2.5.1",
@@ -22,6 +24,7 @@
     "react-hot-loader": "^1.2.8",
     "require-dir": "^0.3.0",
     "style-loader": "^0.12.3",
+    "url-loader": "^0.5.6",
     "webpack": "^1.10.5",
     "webpack-dev-server": "^1.10.1"
   },
@@ -30,6 +33,7 @@
     "history": "^1.4.0",
     "lodash": "^3.10.1",
     "react": "^0.13.3",
+    "react-fa": "^3.4.0",
     "react-mixin": "^1.7.0",
     "react-router": "1.0.0-beta3",
     "whatwg-fetch": "^0.9.0"

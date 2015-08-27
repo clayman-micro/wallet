@@ -3,6 +3,7 @@
 var path = require('path');
 var webpack = require('webpack');
 var objectAssign = require('object-assign');
+var ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 var NODE_ENV = process.env.NODE_ENV;
 
@@ -23,13 +24,14 @@ module.exports = {
         publicPath: '/static/'
     },
     plugins: [
+        new ExtractTextPlugin('bundle.css'),
         new webpack.HotModuleReplacementPlugin(),
         new webpack.NoErrorsPlugin(),
         new webpack.DefinePlugin({
             'process.env.NODE_ENV': JSON.stringify(NODE_ENV)
         }),
         new webpack.ProvidePlugin({
-            'fetch': 'imports?this=>global!exports?global.fetch!whatwg-fetch'
+            fetch: 'imports?this=>global!exports?global.fetch!whatwg-fetch'
         })
     ],
     resolve: {
@@ -39,6 +41,12 @@ module.exports = {
         loaders: [{
             test: /\.less$/,
             loader: 'style!css!autoprefixer?browsers=last 2 version!less'
+        }, {
+            test: /\.css$/,
+            loader: ExtractTextPlugin.extract('style-loader', 'css-loader')
+        }, {
+            test: /\.(otf|eot|png|svg|ttf|woff|woff2)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+            loader: 'url-loader?limit=8192'
         }]
     }
 };

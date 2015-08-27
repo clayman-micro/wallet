@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, Navigation } from 'react-router';
+import Icon from 'react-fa';
 
 import SessionStore from '../stores/SessionStore';
 import AuthService from '../services/AuthService';
@@ -71,36 +72,35 @@ export default React.createClass({
                 <aside className="layout__sidebar sidebar">
                     <div className="sidebar__header">Wallet</div>
                     <ul className="sidebar__menu menu">
-                        <li className="menu__item">
-                            <a href="#" className="menu__link">
-                                <span><i className="fa fa-money"></i>Accounts</span>
+                        <li className="menu__item menu__item_mod_sidebar">
+                            <a href="#" className="menu__link menu__link_mod_sidebar">
+                                <Icon name="money" />
+                                <span className="menu__link-content">Customers</span>
                             </a>
                             <ul className="menu menu_mod_sub">
                                 <li className="menu__item">
                                     <div>Deposit</div>
-                                    <div>123<span className="half-space"></span>345 ₽</div>
                                 </li>
                                 <li className="menu__item">
                                     <div>Cash</div>
-                                    <div>123<span className="half-space"></span>345 ₽</div>
                                 </li>
                                 <li className="menu__item">
                                     <div>Visa Classic</div>
-                                    <div>123<span className="half-space"></span>345 ₽</div>
                                 </li>
                             </ul>
                         </li>
-                        <li className="menu__item">
-                            <a href="#" className="menu__link">
-                                <span><i className="fa fa-calendar"></i>Scheduled</span>
+                        <li className="menu__item menu__item_mod_sidebar">
+                            <a href="#" className="menu__link menu__link_mod_sidebar">
+                                <Icon name="calendar" />
+                                <span className="menu__link-content"><i className="fa fa-calendar"></i>Scheduled</span>
                             </a>
                         </li>
-                        <li className="menu__item">
-                            <a href="#" className="menu__link">
+                        <li className="menu__item menu__item_mod_sidebar">
+                            <a href="#" className="menu__link menu__link_mod_sidebar ">
                                 <span><i className="fa fa-area-chart"></i>Reports</span>
                             </a>
                         </li>
-                        <li className="menu__item">
+                        <li className="menu__item menu__item_mod_sidebar">
                             <a href="#" className="menu__link">
                                 <span><i className="fa fa-cog"></i>Settings</span>
                             </a>
@@ -109,7 +109,7 @@ export default React.createClass({
                 </aside>
                 <section className="layout__content">
                     <header className="header">
-                        <div className="header__row">
+                        <div className="header__row header__row_mod_menu">
                             <ul className="breadcrumbs">
                                 <li className="breadcrumbs__item">
                                     <a href="#" className="breadcrumbs__link">Home</a>
@@ -121,19 +121,19 @@ export default React.createClass({
                                     Cash
                                 </li>
                             </ul>
-                            <ul className="menu menu_mod_inline push-right">
+                            <ul className="menu menu_mod_inline menu_mod_logout push-right">
                                 <li className="menu__item menu__item_mod_inline">
                                     <a href="#" className="menu__link">clayman74@gmail.com</a>
                                 </li>
                                 <li className="menu__item menu__item_mod_inline">
                                     <a href="#" className="menu__link">
-                                        Logout <i className="fa fa-sign-out"></i>
+                                        Log Out  <Icon name="long-arrow-right" />
                                     </a>
                                 </li>
                             </ul>
                         </div>
-                        <div className="header__row">
-
+                        <div className="header__row header__row_mod_central">
+                            <div>Accounts</div>
                         </div>
                     </header>
                     <div className="content">
