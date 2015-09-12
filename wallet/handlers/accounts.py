@@ -39,7 +39,7 @@ class AccountAPIHandler(base.BaseAPIHandler):
 
         document.setdefault('owner_id', request.owner.get('id'))
         document.setdefault('created_on', datetime.now())
-        document.setdefault('current_amount', 0)
+        document.setdefault('current_amount', document['original_amount'])
 
         params = self.table.c.name == document.get('name')
         if instance:

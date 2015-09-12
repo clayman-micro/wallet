@@ -95,6 +95,10 @@ class BaseAPIHandler(BaseHandler):
                 return document, {}
 
     @asyncio.coroutine
+    def after_create_instance(self, request, instance):
+        pass
+
+    @asyncio.coroutine
     def get_instance(self, request, instance_id):
         instance = None
         with (yield from request.app.engine) as conn:
@@ -126,12 +130,20 @@ class BaseAPIHandler(BaseHandler):
                         text='%s not found' % self.resource_name)
 
     @asyncio.coroutine
+    def after_update_instance(self, request, instance, before):
+        pass
+
+    @asyncio.coroutine
     def remove_instance(self, request, instance):
         with (yield from request.app.engine) as conn:
             query = self.table.delete().where(self.table.c.id == instance['id'])
             result = yield from conn.execute(query)
         if not result.rowcount:
             raise web.HTTPNotFound(text='%s not found' % self.resource_name)
+
+    @asyncio.coroutine
+    def after_remove_instance(self, request, instance):
+        pass
 
     @asyncio.coroutine
     def validate_payload(self, request, payload, instance=None):
@@ -187,17 +199,20 @@ class BaseAPIHandler(BaseHandler):
         if errors:
             return self.json_response({'errors': errors}, status=400)
 
+        yield from self.after_create_instance(request, instance)
+
         response, errors = self.serializer.dump(instance, many=False)
         return self.json_response({self.resource_name: response}, status=201)
 
     @asyncio.coroutine
     def put(self, request):
         instance_id = request.match_info['instance_id']
-        instance = yield from self.get_instance(request, instance_id)
-        if not instance:
+        original = yield from self.get_instance(request, instance_id)
+        if not original:
             raise web.HTTPNotFound(text='%s not found' % self.resource_name)
 
         payload = yield from self.get_payload(request)
+        instance = original.copy()
         instance.update(**payload)
 
         document, errors = yield from self.validate_payload(request, payload,
@@ -210,6 +225,8 @@ class BaseAPIHandler(BaseHandler):
         if errors:
             return self.json_response({'errors': errors}, status=400)
 
+        yield from self.after_update_instance(request, instance, original)
+
         response, errors = self.serializer.dump(instance, many=False)
         return self.json_response({self.resource_name: response})
 
@@ -221,4 +238,6 @@ class BaseAPIHandler(BaseHandler):
             raise web.HTTPNotFound(text='%s not found' % self.resource_name)
 
         yield from self.remove_instance(request, instance)
+        yield from self.after_remove_instance(request, instance)
+
         return web.Response(text='removed')

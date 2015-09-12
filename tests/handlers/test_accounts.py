@@ -103,7 +103,7 @@ class TestAccountCollection(BaseHandlerTest):
             assert response.status == 201
 
             expected = {'id': 1, 'name': 'Credit card',
-                        'original_amount': 30000.0, 'current_amount': 0.0,
+                        'original_amount': 30000.0, 'current_amount': 30000.0,
                         'owner_id': owner_id}
 
             response = yield from response.json()
