@@ -4,7 +4,6 @@ import os
 
 from aiohttp import web
 from aiopg.sa import create_engine
-import itsdangerous
 
 from .handlers import base, core, accounts, auth, categories, transactions
 from .config import Config
@@ -75,11 +74,6 @@ class Application(web.Application):
         self.config.from_yaml(config)
 
         super(Application, self).__init__(**kwargs)
-
-        self.signer = itsdangerous.TimedJSONWebSignatureSerializer(
-            self.config.get('SECRET_KEY'),
-            expires_in=self.config.get('TOKEN_EXPIRES')
-        )
 
     def reverse_url(self, name, parts=None):
         return self.router[name].url(parts=parts) if parts \
