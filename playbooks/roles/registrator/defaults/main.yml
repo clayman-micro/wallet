@@ -1,3 +1,3 @@
 ---
-registrator_image: progrium/registrator:latest
+registrator_image: gliderlabs/registrator:latest
 registrator_container: registrator
