@@ -20,10 +20,7 @@
   when: containers.stdout.find('{{postgres_container}}') != -1
 
 - name: Create postgresql container
-  shell: docker create --name {{postgres_container}} --volumes-from {{postgres_container}}_data -p 5432:5432 -e SERVICE_NAME=postgresql {{postgres_image}}
+  shell: docker create --name {{postgres_container}} --volumes-from {{postgres_container}}_data -p 5432:5432 --restart=always {{postgres_image}}
 
-- name: Assemble supervisor config
-  template: src=supervisor.conf dest=/etc/supervisor/conf.d/{{postgres_container}}.conf
-
-- name: Enable postgresql supervisor process
-  supervisorctl: name={{postgres_container}} state=restarted
+- name: Start postgresql container
+  shell: docker start {{postgres_container}}

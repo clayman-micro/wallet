@@ -7,13 +7,10 @@
   roles:
     - role: common
     - role: docker
-    - role: consul
-    - role: registrator
     - role: nginx
-#    - role: redis
     - role: postgresql
 
 - name: Bootstrap project
   hosts: all
   roles:
-    - { role: app, bootstrap: True, deploy: False}
+    - { role: app, bootstrap: True, deploy: False }
