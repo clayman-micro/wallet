@@ -64,7 +64,6 @@ setup(
         'marshmallow==2.0.0b4',
         'passlib == 1.6.2',
         'psycopg2==2.6',
-        'pyyaml==3.11',
         'pyjwt==1.4.0',
         'raven==5.3.1',
         'ujson==1.33'

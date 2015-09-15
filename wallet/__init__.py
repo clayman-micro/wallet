@@ -10,26 +10,6 @@ from .config import Config
 
 
 @contextmanager
-def add_route_ctx(app, handlers, url_prefix=None, name_prefix=None):
-    def add_route(method, path, handler_name):
-        handler = getattr(handlers, handler_name, None)
-
-        if handler:
-            url = path
-            if url_prefix:
-                url = '/'.join((url_prefix.rstrip('/'), url.lstrip('/')))
-
-            if name_prefix:
-                handler_name = '.'.join((name_prefix, handler_name))
-
-            return app.router.add_route(method, url, handler,
-                                        name=handler_name)
-        else:
-            return None
-    yield add_route
-
-
-@contextmanager
 def register_handler_ctx(app, url_prefix=None, name_prefix=None):
     def register_handler(handler):
         if not isinstance(handler, base.BaseHandler):
@@ -66,12 +46,25 @@ class Application(web.Application):
             'secret_key': 'top-secret',
             'token_expires': 300,
 
+            'db_user': 'wallet',
+            'db_password': '',
+            'db_name': 'wallet',
+            'db_host': 'localhost',
+            'db_port': 5432,
+
             'app_root': app_root,
             'migrations_root': os.path.join(app_root, 'models', 'migrations'),
             'templates_root': os.path.join(app_root, 'templates')
         })
 
-        self.config.from_yaml(config)
+        if config:
+            self.config.from_json(config, silent=True)
+
+        for param in ('secret_key', 'token_expires'):
+            self.config.from_envvar(param.upper(), silent=True)
+
+        for param in ('host', 'port', 'user', 'password', 'name'):
+            self.config.from_envvar('DB_%s' % param.upper(), silent=True)
 
         super(Application, self).__init__(**kwargs)
 
@@ -82,7 +75,7 @@ class Application(web.Application):
     @asyncio.coroutine
     def configure(self):
         self.engine = yield from create_engine(
-            self.config.get('SQLALCHEMY_DSN'), loop=self.loop)
+            self.config.get_sqlalchemy_dsn(), loop=self.loop)
 
         with register_handler_ctx(self, name_prefix='core') as register_handler:
             register_handler(core.IndexHandler())

@@ -58,9 +58,7 @@ media
 merge*
 *.cfg
 
-config.yml
-testing.yml
+develop.json
 
 playbooks/inventory
 playbooks/host_vars
-playbooks/group_vars
