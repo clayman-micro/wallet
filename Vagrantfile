@@ -13,8 +13,6 @@ Vagrant.configure("2") do |config|
     wallet.vm.hostname = "wallet"
 
     wallet.vm.network "forwarded_port", guest: 80, host: 9000
-    wallet.vm.network "forwarded_port", guest: 5432, host: 5432
-    wallet.vm.network "forwarded_port", guest: 8500, host: 8500
     wallet.vm.network "private_network", type: "dhcp"
 
     wallet.vm.synced_folder ".", "/vagrant", type: "nfs"
