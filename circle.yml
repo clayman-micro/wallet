@@ -7,17 +7,12 @@ machine:
 
 test:
   override:
-    - echo '---' > testing.yml
-    - echo 'secret_key! top-secret' >> testing.yml
-    - echo 'token_expires! 300' >> testing.yml
-    - echo 'sqlalchemy_dsn! postgres://ubuntu@localhost:5432/circle_test' >> testing.yml
-    - sed -i -e 's/\!/\:/g' testing.yml
-
-    - python setup.py test -a "-vv --cov wallet --cov-report html --cov-report xml tests"
+    - DB_USER=ubuntu DB_NAME=circle_test python setup.py test -a "-vv --cov wallet --cov-report html --cov-report xml tests"
 
 general:
   artifacts:
     - "dist/"
+    - "tests/coverage/"
 
 deployment:
   production:

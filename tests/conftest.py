@@ -18,7 +18,7 @@ def application(request):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(None)
 
-    app = Application(config='testing.yml', loop=loop)
+    app = Application(loop=loop)
     loop.run_until_complete(app.configure())
 
     yield app
@@ -124,7 +124,7 @@ def async_test(create_database=False):
             config = None
             if create_database:
                 directory = application.config.get('MIGRATIONS_ROOT')
-                db_uri = application.config.get('SQLALCHEMY_DSN')
+                db_uri = application.config.get_sqlalchemy_dsn()
 
                 config = AlembicConfig(os.path.join(directory, 'alembic.ini'))
                 config.set_main_option('script_location', directory)

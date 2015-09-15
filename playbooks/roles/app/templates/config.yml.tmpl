@@ -6,4 +6,4 @@ project_domain: {{ project_domain }}
 secret_key: 'top-secret'
 token_expires: 300
 
-sqlalchemy_dsn: 'postgres://{{ project_db_user }}:{{ project_db_password }}@{% raw %}{{range service "postgresql"}}{{.Address}}:{{.Port}}{{else}}127.0.0.1:6379{{end}}{% endraw %}/{{ project_db_name }}'
+sqlalchemy_dsn: 'postgres://{{ project_db_user }}:{{ project_db_password }}@postgres:5432/{{ project_db_name }}'

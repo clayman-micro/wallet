@@ -1,10 +1,10 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 
 from aiohttp import web
 from cerberus import Validator
-import itsdangerous
+import jwt
 
 from ..models import auth
 from . import base
@@ -23,10 +23,11 @@ def owner_required(f):
         token = request.headers.get('X-ACCESS-TOKEN', None)
         if token:
             try:
-                data = request.app.signer.loads(token)
-            except itsdangerous.SignatureExpired:
+                data = jwt.decode(token, request.app.config.get('SECRET_KEY'),
+                                  algorithm='HS256')
+            except jwt.ExpiredSignatureError:
                 raise web.HTTPUnauthorized(text='Token signature expired')
-            except itsdangerous.BadSignature:
+            except jwt.DecodeError:
                 raise web.HTTPUnauthorized(text='Bad token signature')
             else:
                 user_id = data.get('id')
@@ -105,7 +106,13 @@ class LoginHandler(base.BaseHandler):
                     'password': 'Wrong password'
                 }}, status=400)
 
-            token = request.app.signer.dumps({'id': user.id})
+            config = request.app.config
+            token = jwt.encode({
+                'id': user.id,
+                'exp': datetime.now() + timedelta(
+                    seconds=config.get('TOKEN_EXPIRES')
+                )
+            }, config.get('SECRET_KEY'), algorithm='HS256')
 
             query = auth.users_table.update().where(
                 auth.users_table.c.id == user.id).values(

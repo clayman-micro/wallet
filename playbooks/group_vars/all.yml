@@ -1,5 +1,14 @@
 ---
 
+# Postgresql
+postgres_image: clayman/postgresql:9.4
+postgres_container: postgres
+
+# Redis
+redis_image: clayman/redis
+redis_container: redis
+
+# App
 project_branch: master
 project_domain: wallet.clayman.pro
 project_name: wallet

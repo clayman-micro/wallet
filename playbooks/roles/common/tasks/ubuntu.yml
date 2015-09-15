@@ -6,31 +6,30 @@
     - binutils
     - curl
     - git
-    - htop
     - ntp
     - sudo
     - vim
-    - gcc
-    - mc
-    - libjpeg62-dev
-    - zlib1g-dev
-    - libxslt1-dev
-    - libxml2-dev
-    - libpq-dev
-    - iptables
-    - zsh
-    - supervisor
+    # - gcc
+    # - mc
+    # - libjpeg62-dev
+    # - zlib1g-dev
+    # - libxslt1-dev
+    # - libxml2-dev
+    # - libpq-dev
+    # - iptables
+    # - zsh
+    # - supervisor
     - apt-transport-https
     - language-pack-ru
 
-- name: Install python
-  apt: name={{ item }} state=installed
-  with_items:
-    - python-dev
-    - python3-dev
-    - python-pip
-    - python-virtualenv
-    - python-psycopg2
+# - name: Install python
+#   apt: name={{ item }} state=installed
+#   with_items:
+#     - python-dev
+#     - python3-dev
+#     - python-pip
+#     - python-virtualenv
+#     - python-psycopg2
 
 - name: Remove old timezone
   file: path="/etc/localtime" state=absent

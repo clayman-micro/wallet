@@ -56,16 +56,15 @@ setup(
 
     install_requires=[
         'Click==4.0',
-        'aiohttp==0.16.3',
+        'aiohttp==0.17.3',
         'aiopg==0.7.0',
-        'alembic==0.7.6',
+        'alembic==0.8.2',
         'aioredis==0.2.0',
         'cerberus==0.9.1',
-        'itsdangerous==0.24',
-        'marshmallow==2.0.0b4',
-        'passlib == 1.6.2',
+        'marshmallow==2.0.0rc1',
+        'passlib == 1.6.5',
         'psycopg2==2.6',
-        'pyyaml==3.11',
+        'pyjwt==1.4.0',
         'raven==5.3.1',
         'ujson==1.33'
     ],
@@ -73,7 +72,7 @@ setup(
     data_files=data_files,
 
     tests_require=[
-        'pytest==2.7.1',
+        'pytest==2.7.2',
         'pytest-cov==1.8.1'
     ],
 

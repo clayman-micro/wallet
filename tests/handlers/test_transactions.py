@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytest
 
-from wallet.models import accounts, auth, categories, transactions
+from wallet.models import categories, transactions
 
 from tests.conftest import async_test
 from . import BaseHandlerTest
@@ -20,8 +20,7 @@ class BaseTransactionTest(BaseHandlerTest):
                    'current_amount': 0.0, 'owner_id': owner_id}
         account_id = yield from self.create_account(app, account)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
             app, categories.categories_table, category)
 
@@ -54,9 +53,14 @@ class TestTransactionCollection(BaseTransactionTest):
 
     @async_test(create_database=True)
     def test_get_success(self, application, server):
-        transaction = {'description': 'Meal', 'amount': 300.0}
+        now = datetime.now()
+        transaction = {'description': 'Meal', 'amount': 300.0,
+                       'type': transactions.INCOME_TRANSACTION,
+                       'created_on': now}
         owner, expected = yield from self.prepare_data(
             application, transaction)
+
+        expected['created_on'] = now.strftime('%d-%m-%Y %X')
 
         params = {
             'headers': {
@@ -74,7 +78,8 @@ class TestTransactionCollection(BaseTransactionTest):
 
     @async_test(create_database=True)
     def test_get_success_only_for_owner(self, application, server):
-        transaction = {'description': 'Meal', 'amount': 300.0}
+        transaction = {'description': 'Meal', 'amount': 300.0,
+                       'type': transactions.INCOME_TRANSACTION}
         yield from self.prepare_data(application, transaction)
 
         another_owner = {'login': 'Samuel', 'password': 'top_secret'}
@@ -103,6 +108,7 @@ class TestTransactionCollection(BaseTransactionTest):
 
         params = {
             'data': {'description': 'Meal', 'amount': 300.0,
+                     'type': transactions.INCOME_TRANSACTION,
                      'account_id': account_id, 'category_id': category_id},
             'headers': headers,
             'url': server.reverse_url('api.create_transaction')
@@ -118,7 +124,9 @@ class TestTransactionCollection(BaseTransactionTest):
         token = yield from server.get_auth_token(owner)
 
         params['data'] = {'description': 'Meal', 'amount': 300.0,
-                          'account_id': account_id, 'category_id': category_id}
+                          'type': transactions.INCOME_TRANSACTION,
+                          'account_id': account_id, 'category_id': category_id,
+                          'created_on': '20-08-2015'}
         params['headers'] = {'X-ACCESS-TOKEN': token}
         params['url'] = server.reverse_url('api.create_transaction')
 
@@ -126,7 +134,9 @@ class TestTransactionCollection(BaseTransactionTest):
             assert response.status == 201
 
             expected = {'id': 1, 'description': 'Meal', 'amount': 300.0,
-                        'account_id': account_id, 'category_id': category_id}
+                        'type': transactions.INCOME_TRANSACTION,
+                        'account_id': account_id, 'category_id': category_id,
+                        'created_on': '20-08-2015 00:00:00'}
 
             response = yield from response.json()
             assert 'transaction' in response
@@ -146,7 +156,8 @@ class TestTransactionResource(BaseTransactionTest):
     @async_test(create_database=True)
     def test_unauthorized(self, application, server, method, endpoint,
                           headers):
-        transaction = {'description': 'Meal', 'amount': 300.0}
+        transaction = {'description': 'Meal', 'amount': 300.0,
+                       'type': transactions.EXPENSE_TRANSACTION}
         owner, expected = yield from self.prepare_data(
             application, transaction)
 
@@ -165,7 +176,8 @@ class TestTransactionResource(BaseTransactionTest):
     ))
     @async_test(create_database=True)
     def test_does_not_belong(self, application, server, method, endpoint):
-        transaction = {'description': 'Meal', 'amount': 300.0}
+        transaction = {'description': 'Meal', 'amount': 300.0,
+                       'type': transactions.INCOME_TRANSACTION}
         owner, expected = yield from self.prepare_data(
             application, transaction)
 
@@ -204,9 +216,14 @@ class TestTransactionResource(BaseTransactionTest):
 
     @async_test(create_database=True)
     def test_get_success(self, application, server):
-        transaction = {'description': 'Meal', 'amount': 300.0}
+        now = datetime.now()
+        transaction = {'description': 'Meal', 'amount': 300.0,
+                       'type': transactions.INCOME_TRANSACTION,
+                       'created_on': now}
         owner, expected = yield from self.prepare_data(
             application, transaction)
+
+        expected['created_on'] = now.strftime('%d-%m-%Y %X')
 
         params = {
             'headers': {
@@ -224,7 +241,10 @@ class TestTransactionResource(BaseTransactionTest):
 
     @async_test(create_database=True)
     def test_update_success(self, application, server):
-        transaction = {'description': 'Meal', 'amount': 300.0}
+        now = datetime.now()
+        transaction = {'description': 'Meal', 'amount': 300.0,
+                       'type': transactions.INCOME_TRANSACTION,
+                       'created_on': now}
         owner, expected = yield from self.prepare_data(
             application, transaction)
 
@@ -238,16 +258,19 @@ class TestTransactionResource(BaseTransactionTest):
             'url': server.reverse_url('api.update_transaction',
                                       {'instance_id': expected.get('id')})
         }
+
         with (yield from server.response_ctx('PUT', **params)) as resp:
             assert resp.status == 200
 
+            expected['created_on'] = now.strftime('%d-%m-%Y %X')
             response = yield from resp.json()
             assert 'transaction' in response
             assert expected == response['transaction']
 
     @async_test(create_database=True)
     def test_remove_success(self, application, server):
-        transaction = {'description': 'Meal', 'amount': 300.0}
+        transaction = {'description': 'Meal', 'amount': 300.0,
+                       'type': transactions.INCOME_TRANSACTION,}
         owner, expected = yield from self.prepare_data(
             application, transaction)
 
@@ -279,12 +302,12 @@ class BaseTransactionDetailTest(BaseHandlerTest):
                    'current_amount': 0.0, 'owner_id': owner_id}
         account_id = yield from self.create_account(app, account)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
             app, categories.categories_table, category)
 
         transaction = {'description': 'Meal', 'amount': 300.0,
+                       'type': transactions.INCOME_TRANSACTION,
                        'created_on': datetime.now(), 'account_id': account_id,
                        'category_id': category_id}
         transaction_id = yield from self.create_instance(

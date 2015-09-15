@@ -9,30 +9,35 @@
   remote_user: "{{ project_user }}"
   sudo: True
 
-- name: Make project db user
-  postgresql_user:
-    name: "{{project_db_user}}"
-    password: "{{project_db_password}}"
-    role_attr_flags: CREATEDB,NOSUPERUSER
-    login_host: 0.0.0.0
-    login_user: docker
-    login_password: docker
+- name: Check db user already exist
+  shell: docker run --rm -e PGPASSWORD='docker' --link {{ postgres_container }}:postgres {{ postgres_image }} psql -h postgres -d docker -U docker -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ project_db_user }}';"
+  register: output
+  remote_user: "{{ project_user }}"
+  sudo: True
 
-- name: Make project db
-  postgresql_db:
-    name: "{{ project_db_name }}"
-    encoding: 'UTF-8'
-    template: 'template1'
-    owner: "{{ project_db_user }}"
-    login_host: 0.0.0.0
-    login_user: docker
-    login_password: docker
+- name: Create project db user
+  shell: docker run --rm -e PGPASSWORD="docker" --link {{ postgres_container }}:postgres {{ postgres_image }} psql -h postgres -d docker -U docker -c "CREATE USER {{ project_db_user }} WITH CREATEDB NOSUPERUSER PASSWORD '{{ project_db_password }}';"
+  when: output.stdout.find('1') == -1
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Check db already exist
+  shell: docker run --rm -e PGPASSWORD="docker" --link {{ postgres_container }}:postgres {{ postgres_image }} psql -h postgres -d docker -U docker -tAc "SELECT 1 FROM pg_database WHERE datname='{{ project_db_name }}';"
+  register: output
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Create project db
+  shell: docker run --rm -e PGPASSWORD="docker" --link {{ postgres_container }}:postgres {{ postgres_image }} psql -h postgres -d docker -U docker -c "CREATE DATABASE {{ item }} WITH OWNER {{ project_db_user }};"
+  with_items:
+    - "{{ project_db_name }}"
+    - "{{ project_db_name }}_tests"
+  when: output.stdout.find('1') == -1
+  remote_user: "{{ project_user }}"
+  sudo: True
 
 - name: Assemble app config
-  template: src="{{ item }}.tmpl" dest="{{ project_root }}/{{ item }}" owner="{{ project_user }}" group="{{ project_user }}"
-  with_items:
-    - "config.yml"
-    - "supervisor.conf"
+  template: src="config.yml.tmpl" dest="{{ project_root }}/config.yml" owner="{{ project_user }}" group="{{ project_user }}"
   remote_user: "{{ project_user }}"
   sudo: True
 
@@ -43,4 +48,3 @@
   remote_user: "{{ project_user }}"
   sudo: True
   notify: restart nginx
-

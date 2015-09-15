@@ -1,11 +1,13 @@
 import asyncio
 from datetime import datetime
+from decimal import Decimal
 from functools import wraps
 from aiohttp import web
 
 from ..models import accounts, categories, transactions
 from . import base, auth
 import sqlalchemy
+from sqlalchemy import select
 
 
 class TransactionAPIHandler(base.BaseAPIHandler):
@@ -14,7 +16,7 @@ class TransactionAPIHandler(base.BaseAPIHandler):
 
     table = transactions.transactions_table
     schema = transactions.transactions_schema
-    serializer = transactions.TransactionSerializer(exclude=('created_on', ))
+    serializer = transactions.TransactionSerializer()
 
     decorators = (auth.owner_required, )
 
@@ -57,6 +59,69 @@ class TransactionAPIHandler(base.BaseAPIHandler):
                     errors.update(category_id='Category does not exists.')
 
         return document, errors
+
+    @asyncio.coroutine
+    def after_create_instance(self, request, instance):
+        table = accounts.accounts_table
+
+        with (yield from request.app.engine) as conn:
+            query = select([table.c.current_amount, ]).where(
+                table.c.id == instance['account_id']
+            )
+            current_amount = yield from conn.scalar(query)
+
+            if instance['type'] == transactions.INCOME_TRANSACTION:
+                current_amount = current_amount + Decimal(instance['amount'])
+            elif instance['type'] == transactions.EXPENSE_TRANSACTION:
+                current_amount = current_amount - Decimal(instance['amount'])
+
+            query = table.update().where(
+                table.c.id == instance['account_id']).values(
+                current_amount=current_amount.quantize(Decimal('.01')))
+            yield from conn.execute(query)
+
+    @asyncio.coroutine
+    def after_update_instance(self, request, instance, before):
+        table = accounts.accounts_table
+
+        with (yield from request.app.engine) as conn:
+            query = select([table.c.current_amount, ]).where(
+                table.c.id == instance['account_id'])
+            current_amount = yield from conn.scalar(query)
+
+            if before['type'] == transactions.INCOME_TRANSACTION:
+                current_amount = current_amount - before['amount']
+            elif before['type'] == transactions.EXPENSE_TRANSACTION:
+                current_amount = current_amount + before['amount']
+
+            if instance['type'] == transactions.INCOME_TRANSACTION:
+                current_amount = current_amount + Decimal(instance['amount'])
+            elif instance['type'] == transactions.EXPENSE_TRANSACTION:
+                current_amount = current_amount - Decimal(instance['amount'])
+
+            query = table.update().where(
+                table.c.id == instance['account_id']).values(
+                current_amount=current_amount.quantize(Decimal('.01')))
+            yield from conn.execute(query)
+
+    @asyncio.coroutine
+    def after_remove_instance(self, request, instance):
+        table = accounts.accounts_table
+
+        with (yield from request.app.engine) as conn:
+            query = select([table.c.current_amount, ]).where(
+                table.c.id == instance['account_id'])
+            current_amount = yield from conn.scalar(query)
+
+            if instance['type'] == transactions.INCOME_TRANSACTION:
+                current_amount = current_amount - Decimal(instance['amount'])
+            elif instance['type'] == transactions.EXPENSE_TRANSACTION:
+                current_amount = current_amount + Decimal(instance['amount'])
+
+            query = table.update().where(
+                table.c.id == instance['account_id']).values(
+                current_amount=current_amount.quantize(Decimal('.01')))
+            yield from conn.execute(query)
 
     def get_collection_query(self, request):
         accounts_alias = accounts.accounts_table.alias()

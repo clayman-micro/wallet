@@ -7,7 +7,6 @@ from .base import create_table
 categories_table = create_table('categories', (
     alchemy.Column('name', alchemy.String(255), unique=True,
                    nullable=False),
-    alchemy.Column('type', alchemy.String(20), nullable=False),
     alchemy.Column('owner_id', alchemy.Integer, alchemy.ForeignKey('users.id'))
 ))
 
@@ -25,13 +24,6 @@ categories_schema = {
         'maxlength': 255,
         'required': True,
         'empty': False
-    },
-    'type': {
-        'type': 'string',
-        'maxlength': 20,
-        'required': True,
-        'empty': False,
-        'allowed': CATEGORY_TYPES
     },
     'owner_id': {
         'type': 'integer',

@@ -24,8 +24,7 @@ class TestCategoriesCollection(BaseHandlerTest):
         owner_id = yield from self.create_owner(application, owner)
         token = yield from server.get_auth_token(owner)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
             application, categories.categories_table, category)
 
@@ -37,7 +36,6 @@ class TestCategoriesCollection(BaseHandlerTest):
             assert resp.status == 200
 
             expected = {'id': category_id, 'name': 'Food',
-                        'type': categories.EXPENSE_CATEGORY,
                         'owner_id': owner_id}
 
             response = yield from resp.json()
@@ -49,8 +47,7 @@ class TestCategoriesCollection(BaseHandlerTest):
         owner = {'login': 'John', 'password': 'top_secret'}
         owner_id = yield from self.create_owner(application, owner)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         yield from self.create_instance(
             application, categories.categories_table, category)
 
@@ -76,8 +73,7 @@ class TestCategoriesCollection(BaseHandlerTest):
         owner = {'login': 'Paul', 'password': 'top_secret'}
         owner_id = yield from self.create_owner(application, owner)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
 
         params = {
             'data': category,
@@ -95,14 +91,13 @@ class TestCategoriesCollection(BaseHandlerTest):
         token = yield from server.get_auth_token(owner)
 
         params['headers'] = {'X-ACCESS-TOKEN': token}
-        params['data'] = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY}
+        params['data'] = {'name': 'Food'}
         params['url'] = server.reverse_url('api.create_category')
 
         with (yield from server.response_ctx('POST', **params)) as response:
             assert response.status == 201
 
-            expected = {'id': 1, 'name': 'Food', 'owner_id': owner_id,
-                        'type': categories.EXPENSE_CATEGORY}
+            expected = {'id': 1, 'name': 'Food', 'owner_id': owner_id}
 
             response = yield from response.json()
             assert 'category' in response
@@ -124,8 +119,7 @@ class TestCategoryResource(BaseHandlerTest):
         owner = {'login': 'John', 'password': 'top_secret'}
         owner_id = yield from self.create_owner(application, owner)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
             application, categories.categories_table, category)
 
@@ -146,8 +140,7 @@ class TestCategoryResource(BaseHandlerTest):
         owner = {'login': 'John', 'password': 'top_secret'}
         owner_id = yield from self.create_owner(application, owner)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
             application, categories.categories_table, category)
 
@@ -189,8 +182,7 @@ class TestCategoryResource(BaseHandlerTest):
         owner = {'login': 'John', 'password': 'top_secret'}
         owner_id = yield from self.create_owner(application, owner)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
             application, categories.categories_table, category)
 
@@ -204,9 +196,7 @@ class TestCategoryResource(BaseHandlerTest):
         with (yield from server.response_ctx('GET', **params)) as response:
             assert response.status == 200
 
-            expected = {'id': 1, 'name': 'Food',
-                        'type': categories.EXPENSE_CATEGORY,
-                        'owner_id': owner_id}
+            expected = {'id': 1, 'name': 'Food', 'owner_id': owner_id}
 
             data = yield from response.json()
             assert 'category' in data
@@ -218,8 +208,7 @@ class TestCategoryResource(BaseHandlerTest):
         owner = {'login': 'John', 'password': 'top_secret'}
         owner_id = yield from self.create_owner(application, owner)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
             application, categories.categories_table, category)
 
@@ -236,9 +225,7 @@ class TestCategoryResource(BaseHandlerTest):
         with (yield from server.response_ctx('PUT', **params)) as resp:
             assert resp.status == 200
 
-            expected = {'id': 1, 'name': 'Car',
-                        'type': categories.EXPENSE_CATEGORY,
-                        'owner_id': owner_id}
+            expected = {'id': 1, 'name': 'Car', 'owner_id': owner_id}
 
             response = yield from resp.json()
             assert expected == response['category']
@@ -248,8 +235,7 @@ class TestCategoryResource(BaseHandlerTest):
         owner = {'login': 'John', 'password': 'top_secret'}
         owner_id = yield from self.create_owner(application, owner)
 
-        category = {'name': 'Food', 'type': categories.EXPENSE_CATEGORY,
-                    'owner_id': owner_id}
+        category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
             application, categories.categories_table, category)
 

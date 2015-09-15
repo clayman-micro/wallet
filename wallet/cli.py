@@ -15,7 +15,7 @@ class Context(object):
 
 
 @click.group()
-@click.option('-c', '--config', default='config.yml')
+@click.option('-c', '--config', default='config.json')
 @click.pass_context
 def cli(context, config):
     """ Experimental application
@@ -37,7 +37,7 @@ def run(context, host, port):
     f = context.loop.create_server(app.make_handler(), host, port)
     srv = context.loop.run_until_complete(f)
 
-    print('Application serving on {}'.format(srv.sockets[0].getsockname()))
+    print('Application serving on %s' % str(srv.sockets[0].getsockname()))
 
     try:
         context.loop.run_forever()

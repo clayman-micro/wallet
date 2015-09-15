@@ -1,7 +1,7 @@
 from collections import abc
 import os
 import errno
-import yaml
+import ujson
 
 
 class Config(abc.MutableMapping):
@@ -41,18 +41,24 @@ class Config(abc.MutableMapping):
                                    'Set this variable.' % variable_name)
         self[variable_name] = rv
 
-    def from_yaml(self, filename, silent=False):
+    def from_json(self, filename, silent=False):
         if self.root_path:
             filename = os.path.join(self.root_path, filename)
 
         try:
             with open(filename, 'rb') as fp:
                 data = fp.read()
-                config = yaml.load(data)
+                config = ujson.loads(data)
+        except ValueError as exc:
+            if silent:
+                return False
+            raise
         except IOError as exc:
             if silent and exc.errno in (errno.ENOENT, errno.EISDIR):
                 return False
-            exc.strerror = 'Unable to load configuration file (%s)' % exc.strerror
+            exc.strerror = 'Unable to load configuration file (%s)' % (
+                exc.strerror,
+            )
             raise
         self.__dict__.update(**self._keys_to_upper(config))
         return True
@@ -61,3 +67,15 @@ class Config(abc.MutableMapping):
         for key in dir(obj):
             if key.isupper():
                 self[key] = getattr(obj, key)
+
+    def get_sqlalchemy_dsn(self):
+        password = self.get('DB_PASSWORD')
+        if password:
+            credentials = '%s:%s' % (self.get('DB_USER'), password)
+        else:
+            credentials = '%s' % self.get('DB_USER')
+
+        return "postgres://%s@%s:%s/%s" % (
+            credentials, self.get('DB_HOST'), self.get('DB_PORT'),
+            self.get('DB_NAME')
+        )
