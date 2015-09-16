@@ -37,7 +37,7 @@
   sudo: True
 
 - name: Assemble app config
-  template: src="config.yml.tmpl" dest="{{ project_root }}/config.yml" owner="{{ project_user }}" group="{{ project_user }}"
+  template: src="config.json.tmpl" dest="{{ project_root }}/config.json" owner="{{ project_user }}" group="{{ project_user }}"
   remote_user: "{{ project_user }}"
   sudo: True
 

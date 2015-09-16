@@ -11,7 +11,7 @@ def db(app):
     """ Manage application database. """
 
     directory = app.instance.config.get('MIGRATIONS_ROOT')
-    db_uri = app.instance.config.get('SQLALCHEMY_DSN')
+    db_uri = app.instance.config.get_sqlalchemy_dsn()
 
     config = AlembicConfig(os.path.join(directory, 'alembic.ini'))
     config.set_main_option('script_location', directory)
