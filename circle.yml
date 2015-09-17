@@ -11,7 +11,7 @@ machine:
 test:
   override:
     - pip install coveralls
-    - DB_USER=ubuntu DB_NAME=circle_test coverage run --source=wallet setup.py test -a "tests --cov wallet --cov-report html --cov-report xml"
+    - DB_USER=ubuntu DB_NAME=circle_test coverage run --source=wallet setup.py test -a "tests -vv"
     - coveralls
     - cd assets && npm install && npm install -g webpack
 
