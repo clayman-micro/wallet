@@ -2,7 +2,7 @@
 
 - name: Set project facts
   set_fact:
-    project_root: "/home/{{ project_user }}/projects/{{ project_name }}"
+    project_root: "/home/{{ project_user }}/projects/{{ project_name }}/app"
 
 - name: Set project dist folder
   set_fact:
@@ -43,22 +43,22 @@
   remote_user: "{{ project_user }}"
   sudo: True
 
-- name: Check app data container exists
-  shell: docker ps -a --filter="name={{ project_name }}_data$"
-  register: output
-  remote_user: "{{ project_user }}"
-  sudo: True
+# - name: Check app data container exists
+#   shell: docker ps -a --filter="name={{ project_name }}_data$"
+#   register: output
+#   remote_user: "{{ project_user }}"
+#   sudo: True
 
-- name: Remove existed app data container
-  shell: docker rm -f {{ project_name }}_data
-  when: output.stdout.find('{{project_name }}_data') != -1
-  remote_user: "{{ project_user }}"
-  sudo: True
+# - name: Remove existed app data container
+#   shell: docker rm -f {{ project_name }}_data
+#   when: output.stdout.find('{{project_name }}_data') != -1
+#   remote_user: "{{ project_user }}"
+#   sudo: True
 
-- name: Create app data container
-  shell: docker create --name {{ project_name }}_data {{ project_name }}:{{ project_version.stdout }}
-  remote_user: "{{ project_user }}"
-  sudo: True
+# - name: Create app data container
+#   shell: docker create --name {{ project_name }}_data {{ project_name }}:{{ project_version.stdout }}
+#   remote_user: "{{ project_user }}"
+#   sudo: True
 
 - name: Create app container
   shell: docker create --name {{ project_name }} --link postgres:postgres -e DB_HOST=postgres -p 5000:5000 --restart=always {{ project_name }}:{{ project_version.stdout }}

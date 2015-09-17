@@ -1,0 +1,68 @@
+---
+
+- name: Set facts
+  set_fact:
+    project_root: "/home/{{ project_user }}/projects/{{ project_name }}/web/"
+
+- name: Set project dist folder
+  set_fact:
+    project_dist: "{{ lookup('env', 'HOME')}}/{{ project_name }}/dist"
+  when: "lookup('env', 'CIRCLECI')"
+
+- name: Prepare distribution
+  local_action: shell make clean-web && make dist-web chdir="../"
+
+- name: Create project web folder
+  file: path="{{ project_root }}" state=directory owner="{{ project_user }}" group="{{ project_user }}"
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Template project nginx config
+  template: src="nginx.conf.tmpl" dest="{{ project_root }}/{{ project_name }}.nginx.conf" owner="{{ project_user }}" group="{{ project_user }}"
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Upload files
+  copy: src="{{ item }}" dest="{{ project_root }}/{{ item }}" owner="{{ project_user }}" group="{{ project_user }}"
+  with_items:
+    - "nginx.conf"
+    - "web.dockerfile"
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Upload distribution files
+  copy: src="{{ project_dist }}/web.tar.gz" dest="{{ project_root }}/web.tar.gz" owner="{{ project_user }}" group="{{ project_user }}"
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Extract web assets
+  shell: tar -xzvf web.tar.gz chdir="{{ project_root }}"
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Build web image
+  shell: docker build -t {{ project_name }}_web -f web.dockerfile . chdir="{{ project_root }}"
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Check web container exists
+  shell: docker ps -a --filter="name={{ project_name }}_web"
+  register: output
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Remove existed web container
+  shell: docker rm -f {{ project_name }}_web
+  when: output.stdout.find('{{ project_name }}_web') != -1
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Create web container
+  shell: docker create --name {{ project_name }}_web --link {{ project_name }}:{{ project_name }} -p 80:80 -v {{ project_root }}/assets:/var/www/{{ project_name }}  --restart=always {{ project_name }}_web
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Start web container
+  shell: docker start {{ project_name }}_web
+  remote_user: "{{ project_user }}"
+  sudo: True

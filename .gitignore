@@ -57,6 +57,7 @@ logs
 media
 merge*
 *.cfg
+*.tar.gz
 
 develop.json
 

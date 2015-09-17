@@ -5,8 +5,6 @@ from setuptools.command.test import test as TestCommand
 
 
 project = 'wallet'
-index = '{project}/assets/index.html'.format(project=project)
-package_index = 'var/lib/{project}/assets'.format(project=project)
 assets = '{project}/assets/build'.format(project=project)
 package_assets = 'var/lib/{project}/assets/build'.format(project=project)
 package_conf = 'usr/share/{project}'.format(project=project)
@@ -20,7 +18,6 @@ def static_files(path, prefix):
         yield (root.replace(path, prefix), paths)
 
 data_files = [item for item in static_files(assets, package_assets)]
-data_files.append((package_index, [index, ]))
 data_files.extend([item for item in static_files('conf', package_conf)])
 
 

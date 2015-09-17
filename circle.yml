@@ -5,9 +5,13 @@ machine:
   python:
     version: 3.4.2
 
+  node:
+    version: 0.10.28
+
 test:
   override:
     - DB_USER=ubuntu DB_NAME=circle_test python setup.py test -a "-vv --cov wallet --cov-report html --cov-report xml tests"
+    - cd assets && npm install
 
 general:
   artifacts:

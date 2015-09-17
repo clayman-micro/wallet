@@ -14,3 +14,4 @@
   hosts: all
   roles:
     - { role: app, bootstrap: True, deploy: False }
+    - role: web

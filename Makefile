@@ -13,6 +13,14 @@ clean:
 dist:
 	python setup.py sdist
 
+clean-web:
+	rm -rf assets/build
+
+dist-web:
+	cd assets && NODE_ENV=production webpack -p
+	tar -czvf web.tar.gz assets/index.html assets/build/*
+	mv web.tar.gz dist
+
 run:
 	wallet run --host=$(host)
 

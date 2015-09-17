@@ -9,21 +9,21 @@ server {
 
     index index.html;
 
-    set $project_root {{ project_root }};
-{#    set $project_assets {{ project_assets }}; #}
+    set $project_root /var/www/{{ project_name }};
 
-{#    location /assets/ {#}
-{#        alias $project_assets;#}
-{#        access_log off;#}
-{#    } #}
+    location /assets/ {
+        alias $project_root/build/;
+        access_log off;
+    }
 
     location / {
-        {% if project_assets %}
+        root $project_root;
+{#         {% if project_assets %}
             root {{ project_assets }}/assets/build;
         {% else %}
             root {{ project_root }}/{{ project_name }}/assets/build;
         {% endif %}
-
+ #}
         error_page 404 = @fallback;
     }
 
