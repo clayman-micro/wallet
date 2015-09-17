@@ -2,7 +2,7 @@
 
 - name: Set facts
   set_fact:
-    project_root: "/home/{{ project_user }}/projects/{{ project_name }}/web/"
+    project_root: "/home/{{ project_user }}/projects/{{ project_name }}/web"
 
 - name: Set project dist folder
   set_fact:
@@ -13,7 +13,10 @@
   local_action: shell make clean-web && make dist-web chdir="../"
 
 - name: Create project web folder
-  file: path="{{ project_root }}" state=directory owner="{{ project_user }}" group="{{ project_user }}"
+  file: path="{{ item }}" state=directory owner="{{ project_user }}" group="{{ project_user }}"
+  with_items:
+    - "{{ project_root }}"
+    - "{{ project_root }}/certs"
   remote_user: "{{ project_user }}"
   sudo: True
 
@@ -32,6 +35,11 @@
 
 - name: Upload distribution files
   copy: src="{{ project_dist }}/web.tar.gz" dest="{{ project_root }}/web.tar.gz" owner="{{ project_user }}" group="{{ project_user }}"
+  remote_user: "{{ project_user }}"
+  sudo: True
+
+- name: Generate ssl certificate
+  shell: openssl req -newkey rsa:2048 -nodes -keyout {{ project_root }}/certs/cert.key -x509 -days 365 -out {{ project_root }}/certs/cert.crt -subj "/C=/ST=/L=/O=/CN={{ project_domain }}" creates={{ project_root }}/certs/cert.crt
   remote_user: "{{ project_user }}"
   sudo: True
 
@@ -58,7 +66,7 @@
   sudo: True
 
 - name: Create web container
-  shell: docker create --name {{ project_name }}_web --link {{ project_name }}:{{ project_name }} -p 80:80 -v {{ project_root }}/assets:/var/www/{{ project_name }}  --restart=always {{ project_name }}_web
+  shell: docker create --name {{ project_name }}_web --link {{ project_name }}:{{ project_name }} -p 80:80 -p 443:443 -v {{ project_root }}/assets:/var/www/{{ project_name }} -v {{ project_root }}/certs/:/etc/nginx/certs  --restart=always {{ project_name }}_web
   remote_user: "{{ project_user }}"
   sudo: True
 

@@ -20,6 +20,7 @@
     "keymirror": "^0.1.1",
     "less": "^2.5.1",
     "less-loader": "^2.2.0",
+    "object-assign": "^4.0.1",
     "path": "^0.11.14",
     "react-hot-loader": "^1.2.8",
     "require-dir": "^0.3.0",
