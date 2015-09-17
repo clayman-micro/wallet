@@ -62,7 +62,7 @@ setup(
         'aioredis==0.2.0',
         'cerberus==0.9.1',
         'marshmallow==2.0.0rc1',
-        'passlib == 1.6.5',
+        'passlib==1.6.5',
         'psycopg2==2.6',
         'pyjwt==1.4.0',
         'raven==5.3.1',
