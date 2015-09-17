@@ -21,13 +21,13 @@
   remote_user: "{{ project_user }}"
   sudo: True
 
-- name: Upload docker file
-  copy: src="Dockerfile" dest="{{ project_root }}/Dockerfile" owner="{{ project_user }}" group="{{ project_user }}"
+- name: Upload files
+  copy: src="app.dockerfile" dest="{{ project_root }}/app.dockerfile" owner="{{ project_user }}" group="{{ project_user }}"
   remote_user: "{{ project_user }}"
   sudo: True
 
 - name: Build app image
-  shell: docker build -t {{ project_name }}:{{ project_version.stdout }} {{ project_root }}
+  shell: docker build -t {{ project_name }}:{{ project_version.stdout }} -f app.dockerfile . chdir="{{ project_root }}"
   remote_user: "{{ project_user }}"
   sudo: True
 
