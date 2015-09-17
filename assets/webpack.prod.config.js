@@ -3,19 +3,16 @@
 var webpack = require('webpack');
 var config = require('./webpack.base.config.js');
 
-
-var SaveAssetsJSON = require('assets-webpack-plugin');
-
 config.bail = true;
 config.debug = false;
 config.profile = false;
 config.devtool = '#source-map';
 
 config.output = {
-    path: './dist',
+    path: './build',
     pathInfo: true,
-    publicPath: '/dist/',
-    filename: 'bundle.[hash].min.js'
+    publicPath: '/build/',
+    filename: 'bundle.min.js'
 };
 
 config.plugins = config.plugins.concat([
