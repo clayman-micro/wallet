@@ -11,7 +11,7 @@ machine:
 test:
   override:
     - DB_USER=ubuntu DB_NAME=circle_test python setup.py test -a "-vv --cov wallet --cov-report html --cov-report xml tests"
-    - cd assets && npm install
+    - cd assets && npm install && npm install -g webpack
 
 general:
   artifacts:
