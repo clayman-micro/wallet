@@ -18,11 +18,11 @@ clean-web:
 
 dist-web:
 	cd assets && NODE_ENV=production webpack -p
-	tar -czvf web.tar.gz assets/index.html assets/build/*
+	tar -czvf web.tar.gz assets/build/*
 	mv web.tar.gz dist
 
 run:
-	wallet run --host=$(host)
+	DB_PASSWORD=wallet DEBUG=True wallet run --host=$(host)
 
 tests:
 	py.test -vv --cov wallet --cov-report html --cov-report xml tests

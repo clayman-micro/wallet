@@ -2,7 +2,16 @@
 
 var webpack = require('webpack');
 var WebpackDevServer = require('webpack-dev-server');
-var config = require('./webpack.dev.config');
+var config = require('./webpack.config');
+
+config.entry.app = [
+    'webpack-dev-server/client?http://localhost:3000',
+    'webpack/hot/only-dev-server',
+    config.entry.app
+];
+
+config.output.publicPath = 'http://localhost:3000/';
+
 
 new WebpackDevServer(webpack(config), {
     publicPath: config.output.publicPath,

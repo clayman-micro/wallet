@@ -1,6 +1,92 @@
 /* eslint no-var: 0 */
 
-var isProduction = process.env.NODE_ENV === 'production';
-var config = isProduction ? require('./webpack.prod.config.js') : require('./webpack.base.config.js');
+var path = require('path');
+var webpack = require('webpack');
+var objectAssign = require('object-assign');
+var ExtractTextPlugin = require('extract-text-webpack-plugin');
+
+var NODE_ENV = process.env.NODE_ENV;
+
+var env = {
+    production: NODE_ENV === 'production',
+    development: NODE_ENV === 'development' || typeof NODE_ENV === 'undefined'
+};
+
+objectAssign(env, {
+    build: env.production
+});
+
+var config = {
+    entry: {
+        app: './src/js/app.js',
+        index: './src/htdocs/index.html'
+    },
+    output: {
+        path: path.join(__dirname, '..', 'build'),
+        filename: '[name].bundle.js',
+        publicPath: '/build/'
+    },
+    plugins: [
+        new ExtractTextPlugin('bundle.css', {allChunks: true}),
+        new webpack.HotModuleReplacementPlugin(),
+        new webpack.NoErrorsPlugin(),
+        new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify(NODE_ENV)
+        }),
+        new webpack.ProvidePlugin({
+            fetch: 'imports?this=>global!exports?global.fetch!whatwg-fetch'
+        })
+    ],
+    resolve: {
+        extension: ['', '.js', '.jsx', '.less']
+    },
+    module: {
+        loaders: [{
+            test: /\.less$/,
+            loader: ExtractTextPlugin.extract('style-loader', 'css-loader?sourceMap!autoprefixer?browsers=last 2 version!less-loader?sourceMap')
+        }, {
+            test: /\.css$/,
+            loader: ExtractTextPlugin.extract('style-loader', 'css-loader')
+        }, {
+            test: /\.(otf|eot|png|svg|ttf|woff|woff2)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+            loader: 'url-loader?limit=8192'
+        }, {
+            test: /\.html$/,
+            loader: "file?name=[name].[ext]",
+        }]
+    }
+}
+
+if (typeof process.env.NODE_ENV !== 'undefined' && process.env.NODE_ENV === 'production') {
+    // Production config
+    config.bail = true;
+    config.debug = false;
+    config.profile = false;
+    config.devtool = '#source-map';
+
+    config.output = {
+        path: './build',
+        pathInfo: true,
+        publicPath: '/build/',
+        filename: '[name].bundle.js'
+    };
+
+    config.plugins = config.plugins.concat([
+        new webpack.optimize.OccurenceOrderPlugin(true),
+        new webpack.optimize.DedupePlugin(),
+        new webpack.optimize.UglifyJsPlugin({ output: { comments: false } })
+    ]);
+
+    config.module.loaders = config.module.loaders.concat([
+        { test: /\.js$/, loaders: ['babel-loader'], exclude: /node_modules/ }
+    ]);
+} else {
+    // Development config
+    config.devtool = '#inline-source-map';
+
+    config.module.loaders = config.module.loaders.concat([
+        { test: /\.js$/, loaders: ['react-hot', 'babel-loader'], exclude: /node_modules/ }
+    ]);
+}
 
 module.exports = config;

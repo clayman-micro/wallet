@@ -1,7 +1,7 @@
 Wallet
 ==========
 
-[![Circle CI](https://circleci.com/gh/clayman74/wallet/tree/master.svg?style=svg)](https://circleci.com/gh/clayman74/wallet/tree/master)
+[![Circle CI](https://circleci.com/gh/clayman74/wallet/tree/master.svg?style=svg)](https://circleci.com/gh/clayman74/wallet/tree/master) [![Coverage Status](https://coveralls.io/repos/clayman74/wallet/badge.svg?branch=master&service=github)](https://coveralls.io/github/clayman74/wallet?branch=master)
 
 Experimental project to learn how to use `asyncio`, `aiohttp` and some other stuffs.
 
