@@ -1,8 +1,8 @@
 import React from 'react';
 import { Navigation } from 'react-router';
 
-import SessionActions from '../actions/SessionActions';
-import SessionStore from '../stores/SessionStore';
+// import SessionActions from '../actions/SessionActions';
+// import SessionStore from '../stores/SessionStore';
 
 
 let Login = React.createClass({
@@ -16,11 +16,11 @@ let Login = React.createClass({
     },
 
     componentDidMount: function () {
-        SessionStore.addChangeListener(this.onChange);
+        // SessionStore.addChangeListener(this.onChange);
     },
 
     componentWillUnmount: function () {
-        SessionStore.removeChangeListener(this.onChange);
+        // SessionStore.removeChangeListener(this.onChange);
     },
 
     handleSubmit: function (event) {
@@ -36,19 +36,19 @@ let Login = React.createClass({
             return;
         }
 
-        SessionActions.loginUser(username, password);
+        // SessionActions.loginUser(username, password);
     },
 
     onChange: function () {
-        if (SessionStore.isLoggedIn()) {
-            this.transitionTo('/');
-        } else {
-            this.setState({
-                user: '',
-                password: '',
-                errors: SessionStore.errors
-            });
-        }
+        // if (SessionStore.isLoggedIn()) {
+        //     this.transitionTo('/');
+        // } else {
+        //     this.setState({
+        //         user: '',
+        //         password: '',
+        //         // errors: SessionStore.errors
+        //     });
+        // }
     },
 
     getUsernameField: function () {

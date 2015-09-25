@@ -1,24 +1,26 @@
-/* eslint no-var: 0 */
+/* eslint no-var: 0 no-process-env: 0 */
 
 var path = require('path');
 var webpack = require('webpack');
-var objectAssign = require('object-assign');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 var NODE_ENV = process.env.NODE_ENV;
 
-var env = {
-    production: NODE_ENV === 'production',
-    development: NODE_ENV === 'development' || typeof NODE_ENV === 'undefined'
-};
+// var env = {
+//     production: NODE_ENV === 'production',
+//     development: NODE_ENV === 'development' || typeof NODE_ENV === 'undefined'
+// };
 
-objectAssign(env, {
-    build: env.production
-});
+// objectAssign(env, {
+//     build: env.production
+// });
 
 var config = {
     entry: {
-        app: './src/js/app.js',
+        vendor: ['react', 'react-dom', 'react-mixin',
+                 'react-router', 'react-redux', 'redux', 'redux-router', 'redux-thunk',
+                 'redux-devtools', 'history', 'key-mirror'],
+        app: './src/js/index.js',
         index: './src/htdocs/index.html'
     },
     output: {
@@ -27,7 +29,8 @@ var config = {
         publicPath: '/build/'
     },
     plugins: [
-        new ExtractTextPlugin('bundle.css', {allChunks: true}),
+        new webpack.optimize.CommonsChunkPlugin('vendor', 'vendor.bundle.js'),
+        new ExtractTextPlugin('bundle.css', { allChunks: true }),
         new webpack.HotModuleReplacementPlugin(),
         new webpack.NoErrorsPlugin(),
         new webpack.DefinePlugin({
@@ -52,10 +55,10 @@ var config = {
             loader: 'url-loader?limit=8192'
         }, {
             test: /\.html$/,
-            loader: "file?name=[name].[ext]",
+            loader: 'file?name=[name].[ext]'
         }]
     }
-}
+};
 
 if (typeof process.env.NODE_ENV !== 'undefined' && process.env.NODE_ENV === 'production') {
     // Production config
@@ -85,7 +88,7 @@ if (typeof process.env.NODE_ENV !== 'undefined' && process.env.NODE_ENV === 'pro
     config.devtool = '#inline-source-map';
 
     config.module.loaders = config.module.loaders.concat([
-        { test: /\.js$/, loaders: ['react-hot', 'babel-loader'], exclude: /node_modules/ }
+        { test: /\.js$/, loaders: ['react-hot', 'babel-loader?optional[]=runtime&stage=0'], exclude: /node_modules/ }
     ]);
 }
 

@@ -9,6 +9,8 @@ html, body {
 .layout {
   position: relative;
   background-color: #fff;
+  width: 320px;
+  margin: auto;
 
   &__sidebar {
     position: fixed;
@@ -22,7 +24,8 @@ html, body {
   &__content {
     background-color: #fff;
     position: relative;
-    margin: 0 0 0 @layout__sidebar-width;
+    padding: 0 10px;
+    // margin: 0 0 0 @layout__sidebar-width;
     border-left: 1px solid @layout__content-border-color;
   }
 }
