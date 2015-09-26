@@ -34,7 +34,8 @@ def run(context, host, port):
 
     app = context.instance
 
-    f = context.loop.create_server(app.make_handler(), host, port)
+    handler = app.make_handler()
+    f = context.loop.create_server(handler, host, port)
     srv = context.loop.run_until_complete(f)
 
     print('Application serving on %s' % str(srv.sockets[0].getsockname()))
@@ -42,7 +43,11 @@ def run(context, host, port):
     try:
         context.loop.run_forever()
     except KeyboardInterrupt:
-        context.loop.run_until_complete(app.close())
+        pass
+    finally:
+        srv.sockets[0].close()
+        context.loop.run_until_complete(handler.finish_connections())
+        context.loop.run_until_complete(app.finish())
         context.loop.close()
 
 

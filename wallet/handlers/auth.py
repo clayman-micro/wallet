@@ -82,8 +82,10 @@ class RegistrationHandler(base.BaseHandler):
 class LoginHandler(base.BaseHandler):
     endpoints = (
         ('POST', '/login', 'login'),
+        ('OPTIONS', '/login', 'login_cors'),
     )
 
+    @base.allow_cors(methods=('POST', ))
     @asyncio.coroutine
     def post(self, request):
         payload = yield from self.get_payload(request)
@@ -107,11 +109,12 @@ class LoginHandler(base.BaseHandler):
                 }}, status=400)
 
             config = request.app.config
+            expire = datetime.now() + timedelta(
+                seconds=config.get('TOKEN_EXPIRES'))
+
             token = jwt.encode({
                 'id': user.id,
-                'exp': datetime.now() + timedelta(
-                    seconds=config.get('TOKEN_EXPIRES')
-                )
+                'exp': expire
             }, config.get('SECRET_KEY'), algorithm='HS256')
 
             query = auth.users_table.update().where(
@@ -119,6 +122,15 @@ class LoginHandler(base.BaseHandler):
                 last_login=datetime.now())
             yield from conn.execute(query)
 
-            return self.json_response({'user': {'id': user.id}}, headers={
-                'X-ACCESS-TOKEN': token.decode('utf-8')
+            return self.json_response({'user': {
+                'id': user.id,
+                'login': user.login
+            }}, headers={
+                'X-ACCESS-TOKEN': token.decode('utf-8'),
+                'X-ACCESS-TOKEN-EXPIRE': str(int(expire.timestamp() * 1000))
             })
+
+    @base.allow_cors(methods=('POST', ))
+    @asyncio.coroutine
+    def options(self, request):
+        return web.Response(status=200)

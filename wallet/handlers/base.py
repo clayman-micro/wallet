@@ -1,4 +1,5 @@
 import asyncio
+import functools
 from cerberus import Validator
 from psycopg2 import ProgrammingError, IntegrityError
 from aiohttp import web
@@ -27,6 +28,56 @@ def reverse_url(request, route, parts=None):
 
     return '{scheme}://{host}{path}'.format(scheme=request.scheme,
                                             host=request.host, path=path)
+
+
+def allow_cors(headers=None, methods=None):
+    def decorator(f):
+        @asyncio.coroutine
+        @functools.wraps(f)
+        def wrapper(*args):
+            if asyncio.iscoroutinefunction(f):
+                coro = f
+            else:
+                coro = asyncio.coroutine(f)
+            request = args[-1]
+
+            exclude_headers = set(name.upper() for name in {
+                'Cache-Control', 'Content-Language', 'Content-Type', 'Expires',
+                'Last-Modified', 'Pragma', 'Content-Length'
+            })
+
+            allow_methods = ['OPTIONS']
+            if methods:
+                allow_methods.extend([name.upper() for name in methods])
+
+            response = yield from coro(*args)
+
+            response.headers.update({
+                'Access-Control-Allow-Credentials': 'true',
+                'Access-Control-Request-Method': ', '.join(allow_methods)
+            })
+
+            if 'Origin' in request.headers:
+                response.headers.update({
+                    'Access-Control-Allow-Origin': request.headers['Origin']
+                })
+
+                expose_headers = {name for name in response.headers
+                                  if name.upper() not in exclude_headers}
+                if expose_headers:
+                    response.headers.update({
+                        'Access-Control-Expose-Headers': ', '.join(
+                            expose_headers)
+                    })
+
+                if 'Access-Control-Request-Headers' in request.headers:
+                    response.headers.update({
+                        'Access-Control-Allow-Headers': request.headers.get(
+                            'Access-Control-Request-Headers')
+                    })
+            return response
+        return wrapper
+    return decorator
 
 
 class BaseHandler(object):
