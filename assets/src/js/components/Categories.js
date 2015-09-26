@@ -2,18 +2,12 @@ import React, { Component, PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import Header from '../components/Header';
-import MainSection from '../components/MainSection';
-import CategoryActions from '../actions/Categories';
+import Header from 'js/components/Header';
+import MainSection from 'js/components/MainSection';
+import CategoryActions from 'js/actions/Categories';
 
 
-@connect(state => ({ categories: state.categories }))
 class Categories extends Component {
-    static propTypes = {
-        categories: PropTypes.array.isRequired,
-        dispatch: PropTypes.func.isRequired
-    }
-
     render() {
         const { categories, dispatch } = this.props;
         const actions = bindActionCreators(CategoryActions, dispatch);
@@ -27,4 +21,15 @@ class Categories extends Component {
     }
 }
 
-export default Categories;
+
+Categories.propTypes = {
+    categories: PropTypes.array.isRequired,
+    dispatch: PropTypes.func.isRequired
+};
+
+
+function mapStateToProps(state) {
+    return { categories: state.categories };
+}
+
+export default connect(mapStateToProps)(Categories);

@@ -1,4 +1,4 @@
-import { ActionTypes } from '../constants/Categories';
+import { ActionTypes } from 'js/constants/Categories';
 
 const initialState = [{
     id: 0,

@@ -1,22 +1,22 @@
 import React, { Component, PropTypes } from 'react';
 import { connect } from 'react-redux';
 
+import LoginForm from 'js/components/auth/LoginForm';
 
-class App extends Component {
+
+class LoginPage extends Component {
     render() {
         return (
             <div>
-                <h1>App container</h1>
-                {this.props.children}
+                <LoginForm />
             </div>
         );
     }
 }
 
 
-App.propTypes = {
+LoginPage.propTypes = {
     routerState: PropTypes.object.isRequired,
-    children: PropTypes.node,
     dispatch: PropTypes.func.isRequired
 };
 
@@ -25,4 +25,4 @@ function mapStateToProps(state) {
     return { routerState: state.router };
 }
 
-export default connect(mapStateToProps)(App);
+export default connect(mapStateToProps)(LoginPage);

@@ -1,4 +1,4 @@
-import { ActionTypes } from '../constants/Categories';
+import { ActionTypes } from 'js/constants/Categories';
 
 export default {
     addCategory: function (name) {

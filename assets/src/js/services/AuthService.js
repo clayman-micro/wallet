@@ -1,8 +1,7 @@
 /* eslint no-else-return: 0 */
 /* global fetch */
 
-import ServerActions from '../actions/ServerActions';
-import SessionActions from '../actions/SessionActions';
+import { APIEndpoints } from 'js/constants/Session';
 
 
 function checkStatus(response) {
@@ -18,44 +17,21 @@ function checkStatus(response) {
 
 class AuthService {
     login(username, password) {
+        let body = JSON.stringify({
+            login: username,
+            password: password
+        });
+        let headers = new Headers({ 'Content-Type': 'application/json' });
+
         let params = {
-            method: 'post',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                login: username,
-                password: password
-            })
+            method: 'POST',
+            headers: headers,
+            body: body,
+            credentials: 'include'
         };
 
-        return fetch('/auth/login', params)
-            .then(checkStatus)
-            .then(function (response) {
-                response.json().then(function (data) {
-                    ServerActions.receiveLogin({
-                        user: data.user,
-                        token: response.headers.get('X-ACCESS-TOKEN')
-                    }, null);
-                });
-            })
-            .catch(function (error) {
-                let errors = {};
-                if (error.response.status === 400) {
-                    error.response.json().then(function (data) {
-                        errors = data;
-                    });
-                } else {
-                    errors[error.response.status] = error.response.statusText;
-                }
-
-                ServerActions.receiveLogin(null, errors);
-            });
-    }
-
-    logout() {
-        SessionActions.logout();
+        return fetch(APIEndpoints.LOGIN, params)
+            .then(checkStatus);
     }
 }
 

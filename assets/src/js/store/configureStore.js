@@ -5,9 +5,12 @@ import thunkMiddleware from 'redux-thunk';
 import { devTools } from 'redux-devtools';
 import createHistory from 'history/lib/createBrowserHistory';
 
-import rootReducer from '../reducers';
+import rootReducer from 'js/reducers';
+import authMiddleware from 'js/middleware/auth';
 
-const middleware = [thunkMiddleware];
+
+const middleware = [thunkMiddleware, authMiddleware];
+
 
 export default function configureStore(initialState) {
     const store = compose(

@@ -1,4 +1,5 @@
 import 'babel-core/polyfill';
+import 'less/app.less';
 
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
@@ -8,18 +9,25 @@ import { ReduxRouter } from 'redux-router';
 import configureStore from './store/configureStore';
 import { DevTools, DebugPanel, LogMonitor } from 'redux-devtools/lib/react';
 
-import App from './containers/App';
-import Accounts from './components/Accounts';
-import Categories from './components/Categories';
-import Login from './components/Login';
+import App from 'js/containers/App';
+import LoginPage from 'js/containers/LoginPage';
+import Accounts from 'js/components/Accounts';
+import Categories from 'js/components/Categories';
 
 
 const store = configureStore();
 
 function requireAuth(nextState, redirect) {
-    const state = store.getState().session;
-    if (!state.user) {
-        redirect({ nextPathname: nextState.location.pathname }, '/login');
+    const session = store.getState().session;
+    if (!session.user) {
+        redirect({}, '/login', { next: nextState.location.pathname });
+    }
+}
+
+function anonymousOnly(nextState, redirect) {
+    const session = store.getState().session;
+    if (session.isAuthenticated) {
+        redirect({}, '/');
     }
 }
 
@@ -34,7 +42,7 @@ class Root extends Component {
                             <Route path="accounts" components={Accounts} />
                             <Route path="categories" components={Categories} />
                         </Route>
-                        <Route path="/login" components={Login} />
+                        <Route path="/login" components={LoginPage} onEnter={anonymousOnly} />
                     </ReduxRouter>
                 </Provider>
                 <DebugPanel top right bottom>

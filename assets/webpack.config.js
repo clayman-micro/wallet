@@ -6,21 +6,13 @@ var ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 var NODE_ENV = process.env.NODE_ENV;
 
-// var env = {
-//     production: NODE_ENV === 'production',
-//     development: NODE_ENV === 'development' || typeof NODE_ENV === 'undefined'
-// };
-
-// objectAssign(env, {
-//     build: env.production
-// });
-
 var config = {
     entry: {
         vendor: ['react', 'react-dom', 'react-mixin',
                  'react-router', 'react-redux', 'redux', 'redux-router', 'redux-thunk',
                  'redux-devtools', 'history', 'key-mirror'],
         app: './src/js/index.js',
+        test: './src/js/test.js',
         index: './src/htdocs/index.html'
     },
     output: {
@@ -41,6 +33,7 @@ var config = {
         })
     ],
     resolve: {
+        root: path.join(__dirname, 'src'),
         extension: ['', '.js', '.jsx', '.less']
     },
     module: {
@@ -88,7 +81,7 @@ if (typeof process.env.NODE_ENV !== 'undefined' && process.env.NODE_ENV === 'pro
     config.devtool = '#inline-source-map';
 
     config.module.loaders = config.module.loaders.concat([
-        { test: /\.js$/, loaders: ['react-hot', 'babel-loader?optional[]=runtime&stage=0'], exclude: /node_modules/ }
+        { test: /\.js$/, loaders: ['react-hot', 'babel-loader'], exclude: /node_modules/ }
     ]);
 }
 
