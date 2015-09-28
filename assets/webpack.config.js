@@ -12,7 +12,6 @@ var config = {
                  'react-router', 'react-redux', 'redux', 'redux-router', 'redux-thunk',
                  'redux-devtools', 'history', 'key-mirror'],
         app: './src/js/index.js',
-        test: './src/js/test.js',
         index: './src/htdocs/index.html'
     },
     output: {
@@ -49,6 +48,10 @@ var config = {
         }, {
             test: /\.html$/,
             loader: 'file?name=[name].[ext]'
+        }, {
+            test: /\.js$/,
+            loaders: ['babel-loader'],
+            exclude: /node_modules/
         }]
     }
 };
@@ -72,17 +75,9 @@ if (typeof process.env.NODE_ENV !== 'undefined' && process.env.NODE_ENV === 'pro
         new webpack.optimize.DedupePlugin(),
         new webpack.optimize.UglifyJsPlugin({ output: { comments: false } })
     ]);
-
-    config.module.loaders = config.module.loaders.concat([
-        { test: /\.js$/, loaders: ['babel-loader'], exclude: /node_modules/ }
-    ]);
 } else {
     // Development config
     config.devtool = '#inline-source-map';
-
-    config.module.loaders = config.module.loaders.concat([
-        { test: /\.js$/, loaders: ['react-hot', 'babel-loader'], exclude: /node_modules/ }
-    ]);
 }
 
 module.exports = config;

@@ -1,26 +1,36 @@
-/* eslint no-var: 0, no-console: 0 */
-
+var path = require('path');
+var express = require('express');
 var webpack = require('webpack');
-var WebpackDevServer = require('webpack-dev-server');
 var config = require('./webpack.config');
 
 config.entry.app = [
-    'webpack-dev-server/client?http://localhost:3000',
-    'webpack/hot/only-dev-server',
+    'webpack-hot-middleware/client?http://localhost:3000',
+    //'webpack/hot/only-dev-server',
     config.entry.app
 ];
 
 config.output.publicPath = 'http://localhost:3000/';
 
 
-new WebpackDevServer(webpack(config), {
-    publicPath: config.output.publicPath,
-    hot: true,
-    historyApiFallback: true
-}).listen(3000, 'localhost', function (err, result) {
-    if (err) {
-        console.log(err);
-    }
+var app = express();
+var compiler = webpack(config);
 
-    console.log('Listening at localhost:3000');
+app.use(require('webpack-dev-middleware')(compiler, {
+  noInfo: true,
+  publicPath: config.output.publicPath
+}));
+
+app.use(require('webpack-hot-middleware')(compiler));
+
+app.get('*', function(req, res) {
+  res.sendFile(path.join(__dirname, 'src' , 'htdocs', 'index.html'));
+});
+
+app.listen(3000, 'localhost', function(err) {
+  if (err) {
+    console.log(err);
+    return;
+  }
+
+  console.log('Listening at http://localhost:3000');
 });
