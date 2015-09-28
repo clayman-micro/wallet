@@ -72,7 +72,7 @@ setup(
     data_files=data_files,
 
     tests_require=[
-        'pytest==2.7.2',
+        'pytest==2.8.0',
         'pytest-cov==1.8.1'
     ],
 
