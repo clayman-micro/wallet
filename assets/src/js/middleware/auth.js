@@ -1,6 +1,6 @@
 import { pushState } from 'redux-router';
 
-import { ActionTypes } from 'js/constants/Session';
+import { ActionTypes } from 'js/constants/session';
 
 
 export default store => next => action => {

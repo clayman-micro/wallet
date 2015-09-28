@@ -1,6 +1,6 @@
 /* eslint no-underscore-dangle: 0 */
 
-import { ActionTypes } from 'js/constants/Session';
+import { ActionTypes } from 'js/constants/session';
 
 class PersistStore {
     constructor() {
@@ -17,10 +17,10 @@ class PersistStore {
                 }
             }
 
-            const token = window.sessionStorage.getItem('token');
+            const token = window.sessionStorage.getItem('accessToken');
             if (token) {
                 try {
-                    this._token = JSON.parse(token);
+                    this._accessToken = JSON.parse(token);
                 } catch (err) {
 
                 }
