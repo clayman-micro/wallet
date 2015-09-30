@@ -1,5 +1,6 @@
 import asyncio
 
+from aiohttp import web
 from sqlalchemy import and_
 
 from ..models import categories
@@ -14,15 +15,26 @@ class CategoryAPIHandler(base.BaseAPIHandler):
     schema = categories.categories_schema
     serializer = categories.CategorySerializer()
 
-    decorators = (auth.owner_required, )
+    decorators = (
+        base.allow_cors(methods=('GET', 'POST', 'PUT', 'DELETE')),
+        auth.owner_required,
+    )
 
     endpoints = (
         ('GET', '/categories', 'get_categories'),
         ('POST', '/categories', 'create_category'),
         ('GET', '/categories/{instance_id}', 'get_category'),
         ('PUT', '/categories/{instance_id}', 'update_category'),
-        ('DELETE', '/categories/{instance_id}', 'remove_category')
+        ('DELETE', '/categories/{instance_id}', 'remove_category'),
+
+        ('OPTIONS', '/categories', 'categories_cors'),
+        ('OPTIONS', '/categories/{instance_id}', 'category_cors')
     )
+
+    @asyncio.coroutine
+    def options(self, request):
+        print(request.headers)
+        return web.Response(status=200)
 
     @asyncio.coroutine
     def validate_payload(self, request, payload, instance=None):

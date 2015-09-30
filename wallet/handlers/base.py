@@ -54,7 +54,7 @@ def allow_cors(headers=None, methods=None):
 
             response.headers.update({
                 'Access-Control-Allow-Credentials': 'true',
-                'Access-Control-Request-Method': ', '.join(allow_methods)
+                'Access-Control-Allow-Methods': ', '.join(allow_methods)
             })
 
             if 'Origin' in request.headers:
@@ -167,7 +167,7 @@ class BaseAPIHandler(BaseHandler):
     def update_instance(self, request, payload, document):
         with (yield from request.app.engine) as conn:
             try:
-                query = self.table.update().values(**payload)
+                query = self.table.update().where(self.table.c.id == document.get('id')).values(**payload)
                 result = yield from conn.execute(query)
             except IntegrityError as exc:
                 return None, {'IntegrityError': exc.args[0]}
@@ -213,6 +213,7 @@ class BaseAPIHandler(BaseHandler):
 
         return validator.document, None
 
+    @allow_cors(methods=('GET', ))
     @asyncio.coroutine
     def get(self, request):
         if 'instance_id' in request.match_info:
@@ -281,6 +282,7 @@ class BaseAPIHandler(BaseHandler):
         response, errors = self.serializer.dump(instance, many=False)
         return self.json_response({self.resource_name: response})
 
+    @allow_cors(methods=('DELETE', ))
     @asyncio.coroutine
     def delete(self, request):
         instance_id = request.match_info['instance_id']

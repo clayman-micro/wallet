@@ -20,6 +20,9 @@ def owner_required(f):
             coro = asyncio.coroutine(f)
         request = args[-1]
 
+        if request.method == 'OPTIONS':
+            return (yield from coro(*args))
+
         token = request.headers.get('X-ACCESS-TOKEN', None)
         if token:
             try:
