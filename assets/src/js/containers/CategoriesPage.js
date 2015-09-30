@@ -2,24 +2,27 @@ import React, { Component, PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import CategoryActions, { getCategories } from 'js/actions/categories';
+import CategoryActions, { getCategories, editCategory, removeCategory } from 'js/actions/categories';
 import CategoriesList from 'js/components/categories/list';
 
 
 class CategoriesPage extends Component {
     componentDidMount() {
         const { dispatch, session } = this.props;
-        const token = session.accessToken.value;
-        dispatch(getCategories(token));
+        if (session.accessToken) {
+            const token = session.accessToken.value;
+            dispatch(getCategories(token));
+        }
     }
 
     render() {
-        const { categories, dispatch } = this.props;
-        const actions = bindActionCreators(CategoryActions, dispatch);
+        const { categories, session, dispatch } = this.props;
+        const actions = bindActionCreators({ editCategory, removeCategory }, dispatch);
+        const token = session.accessToken.value;
 
         return (
             <div>
-                <CategoriesList categories={categories} actions={actions} />
+                <CategoriesList categories={categories} token={token} actions={actions} />
             </div>
         );
     }

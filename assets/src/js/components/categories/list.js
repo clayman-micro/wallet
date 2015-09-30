@@ -7,13 +7,15 @@ import CategoryItem from './item';
 class Categories extends Component {
     render() {
         const { categories, actions } = this.props;
+        console.log(actions);
 
+        console.log(categories);
         return (
             <div>
                 <AddCategory />
                 <ul className="categories-list">
                     {categories.items.map(category =>
-                        <CategoryItem key={category.id} category={category} {...actions} />
+                        <CategoryItem key={category.id} token={this.props.token} category={category} {...actions} />
                     )}
                 </ul>
             </div>
@@ -23,6 +25,7 @@ class Categories extends Component {
 
 
 Categories.propTypes = {
+    token: PropTypes.string,
     categories: PropTypes.object.isRequired,
     actions: PropTypes.object.isRequired
 };

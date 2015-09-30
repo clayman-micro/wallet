@@ -2,7 +2,7 @@ import React, { Component, PropTypes } from 'react';
 import ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 
-import CategoryActions from 'js/actions/categories';
+import { createCategory } from 'js/actions/categories';
 
 
 class AddCategory extends Component {
@@ -29,7 +29,8 @@ class AddCategory extends Component {
             });
         }
 
-        this.props.dispatch(CategoryActions.addCategory(name));
+        const token = this.props.session.accessToken.value;
+        this.props.dispatch(createCategory(token, { name: name }));
     }
 
     getNameField() {
@@ -73,7 +74,12 @@ class AddCategory extends Component {
 
 
 AddCategory.propTypes = {
+    session: PropTypes.object,
     dispatch: PropTypes.func.isRequired
 };
 
-export default connect()(AddCategory);
+function mapStateToProps(state) {
+    return { session: state.session };
+}
+
+export default connect(mapStateToProps)(AddCategory);

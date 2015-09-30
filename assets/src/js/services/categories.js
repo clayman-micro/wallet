@@ -5,7 +5,7 @@ import BaseService from './base';
 
 class CategoriesService extends BaseService {
     getCollection(token) {
-        let headers = new Headers({ 'X-ACCESS-TOKEN': token, accept: 'application/json', });
+        let headers = new Headers({ 'X-ACCESS-TOKEN': token, accept: 'application/json' });
         let params = {
             method: 'GET',
             headers: headers,
@@ -16,4 +16,4 @@ class CategoriesService extends BaseService {
     }
 }
 
-export default new CategoriesService();
+export default new CategoriesService(APIEndpoints.COLLECTION, APIEndpoints.RESOURCE);

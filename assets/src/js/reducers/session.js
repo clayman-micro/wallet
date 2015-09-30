@@ -4,8 +4,8 @@ import { ActionTypes } from 'js/constants/session';
 
 class PersistStore {
     constructor() {
-        this._user = null;
-        this._accessToken = null;
+        this._user = {};
+        this._accessToken = {};
 
         if (typeof window.sessionStorage !== 'undefined') {
             const user = window.sessionStorage.getItem('user');
@@ -68,7 +68,7 @@ export default function session(state = initialState, action) {
         persistStore.token = action.accessToken;
         return Object.assign({}, state, {
             user: persistStore.user,
-            accessToken: persistStore.accessToken,
+            accessToken: persistStore.token,
             isFetching: false,
             isAuthenticated: true,
             errors: []
