@@ -73,7 +73,7 @@ setup(
 
     tests_require=[
         'pytest==2.8.0',
-        'pytest-cov==1.8.1'
+        # 'pytest-cov==1.8.1'
     ],
 
     cmdclass={'test': PyTest},
