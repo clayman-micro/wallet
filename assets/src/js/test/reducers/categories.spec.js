@@ -1,3 +1,5 @@
+/* eslint max-nested-callbacks: 0 no-undefined: 0 */
+
 import expect from 'expect';
 import { ActionTypes } from '../../constants/categories';
 import reducer from '../../reducers/categories';
@@ -9,7 +11,7 @@ describe('Categories reducers', () => {
             isFetching: false,
             items: [],
             errors: []
-        })
+        });
     });
 
     describe('Get categories', () => {
@@ -19,7 +21,7 @@ describe('Categories reducers', () => {
                 isFetching: true,
                 items: [],
                 errors: []
-            })
+            });
         });
 
         describe('response', () => {
@@ -63,7 +65,7 @@ describe('Categories reducers', () => {
                 isFetching: true,
                 items: [],
                 errors: []
-            })
+            });
         });
 
         it('should handle CREATE_CATEGORY_RESPONSE', () => {

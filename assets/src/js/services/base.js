@@ -1,72 +1,105 @@
 /* eslint no-underscore-dangle: 0 */
+import 'isomorphic-fetch';
+
 
 export default class BaseService {
-    constructor(collectionEndpoint, resourceEndpoint) {
-        this._collectionEndpoint = collectionEndpoint;
-        this._resourceEndpoint = resourceEndpoint;
+    constructor(token) {
+        this._token = token;
     }
 
-    checkStatus(response) {
-        if (response.status >= 200 && response.status < 300) {
-            return Promise.resolve(response);
-        } else {
-            let error = new Error(response.statusText);
-            error.response = response;
-            return Promise.reject(error);
-        }
+    request(url, params) {
+        return fetch(url, params)
+            .then(response => {
+                // check status
+                let contentType = response.headers.get('Content-Type');
+                if (response.status >= 200 && response.status < 300) {
+                    return Promise.resolve(response).then(response => {
+                        if (contentType && contentType === 'application/json') {
+                            return response.json().then(json => Promise.resolve({
+                                status: response.status,
+                                statusText: response.statusText,
+                                headers: response.headers,
+                                data: json
+                            }));
+                        } else {
+                            return response.text().then(text => Promise.resolve({
+                                status: response.status,
+                                statusText: response.statusText,
+                                headers: response.headers,
+                                data: text
+                            }));
+                        }
+                    });
+                } else {
+                    let error = new Error(response.statusText);
+                    error.response = response;
+                    return Promise.reject(error);
+                }
+            }).catch(error => {
+                // handle error
+                let response = error.response;
+                if (typeof response !== 'undefined') {
+                    let contentType = response.headers.get('Content-Type');
+                    if (contentType && contentType === 'application/json') {
+                        return response.json().then(json => Promise.reject({
+                            status: response.status,
+                            statusText: response.statusText,
+                            headers: response.headers,
+                            data: typeof json.errors !== 'undefined' ? json.errors : json
+                        }));
+                    } else {
+                        return response.text().then(text => Promise.reject({
+                            status: response.status,
+                            statusText: response.statusText,
+                            headers: response.headers,
+                            data: text
+                        }));
+                    }
+                } else {
+                    throw error;
+                }
+            });
     }
 
-    request(endpoint, params) {
-        return fetch(endpoint, params).then(this.checkStatus);
-    }
-
-    getCollection(token) {
-        let headers = new Headers({ 'X-ACCESS-TOKEN': token, accept: 'application/json' });
+    getCollection(url) {
         let params = {
             method: 'GET',
-            headers: headers,
+            headers: { 'X-ACCESS-TOKEN': this._token, accept: 'application/json' },
             credentials: 'include'
         };
 
-        return this.request(this._collectionEndpoint, params).then(request => request.json());
+        return this.request(url, params);
     }
 
-    createResource(token, payload) {
-        let headers = new Headers({ 'X-ACCESS-TOKEN': token, 'Content-Type': 'application/json' });
+    createResource(url, payload) {
         let params = {
             method: 'POST',
-            headers: headers,
+            headers: { 'X-ACCESS-TOKEN': this._token, 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify(payload)
         };
 
-        return this.request(this._collectionEndpoint, params).then(request => request.json());
+        return this.request(url, params);
     }
 
-    getResource(token, resourceId) {
-
-    }
-
-    editResource(token, resourseId, payload) {
-        let headers = new Headers({ 'X-ACCESS-TOKEN': token, 'Content-Type': 'application/json' });
+    editResource(url, payload) {
         let params = {
             method: 'PUT',
-            headers: headers,
+            headers: { 'X-ACCESS-TOKEN': this._token, 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify(payload)
         };
 
-        return this.request(this._resourceEndpoint.replace('{id}', resourseId), params).then(request => request.json());
+        return this.request(url, params);
     }
 
-    removeResource(token, resourceId) {
-        let headers = new Headers({ 'X-ACCESS-TOKEN': token });
+    removeResource(url) {
         let params = {
             method: 'DELETE',
-            headers: headers,
+            headers: { 'X-ACCESS-TOKEN': this._token },
             credentials: 'include'
         };
 
-        return this.request(this._resourceEndpoint.replace('{id}', resourceId), params);
+        return this.request(url, params);
     }
 }
