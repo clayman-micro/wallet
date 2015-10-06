@@ -32,6 +32,7 @@ pip-log.txt
 .tox
 cover
 tests/coverage
+assets/coverage
 htmlcov
 coverage.xml
 nosetests.xml
@@ -41,6 +42,7 @@ nosetests.xml
 *.pot
 
 # Mr Developer
+.cache
 .project
 .pydevproject
 .idea

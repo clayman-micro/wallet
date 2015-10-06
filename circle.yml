@@ -3,7 +3,7 @@ machine:
     Asia/Yekaterinburg
 
   python:
-    version: 3.4.2
+    version: 3.5.0
 
   node:
     version: 0.10.28
