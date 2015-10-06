@@ -2,9 +2,9 @@ import React, { Component, PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import Header from 'js/components/Header';
-import MainSection from 'js/components/MainSection';
-import CategoryActions from 'js/actions/Categories';
+import Header from '../components/Header';
+import MainSection from '../components/MainSection';
+import CategoryActions from '../actions/Categories';
 
 
 class Categories extends Component {

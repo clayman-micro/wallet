@@ -1,13 +1,10 @@
-import { ActionTypes } from 'js/constants/categories';
+import { ActionTypes } from '../constants/categories';
 
 
 const initialState = {
     isFetching: false,
-    items: [{
-        id: 0,
-        name: 'Use Redux'
-    }],
-    errors: []
+    items: [],
+    errors: {}
 };
 
 function categoriesCollection(state = initialState, action) {

@@ -5,7 +5,7 @@ import ReactDOM from 'react-dom';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import { loginUser } from 'js/actions/session';
+import { loginUser } from '../../actions/session';
 
 
 class LoginForm extends Component {

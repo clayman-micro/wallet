@@ -1,5 +1,5 @@
-import { ActionTypes } from 'js/constants/session';
-import AuthService from 'js/services/auth';
+import { ActionTypes } from '../constants/session';
+import AuthService from '../services/auth';
 
 
 function loginUserRequest(username, password) {

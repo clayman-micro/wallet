@@ -5,8 +5,8 @@ import thunkMiddleware from 'redux-thunk';
 import { devTools } from 'redux-devtools';
 import createHistory from 'history/lib/createBrowserHistory';
 
-import rootReducer from 'js/reducers';
-import authMiddleware from 'js/middleware/auth';
+import rootReducer from '../reducers';
+import authMiddleware from '../middleware/auth';
 
 
 const middleware = [thunkMiddleware, authMiddleware];

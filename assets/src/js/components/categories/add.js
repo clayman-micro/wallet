@@ -2,7 +2,7 @@ import React, { Component, PropTypes } from 'react';
 import ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 
-import { createCategory } from 'js/actions/categories';
+import { createCategory } from '../../actions/categories';
 
 
 class AddCategory extends Component {

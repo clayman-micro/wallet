@@ -1,7 +1,7 @@
 import React, { Component, PropTypes } from 'react';
 import classnames from 'classnames';
 
-import TextInput from 'js/components/common/TextInput';
+import TextInput from '../../components/common/TextInput';
 
 
 class CategoryItem extends Component {

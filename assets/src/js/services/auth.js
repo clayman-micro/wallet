@@ -1,7 +1,7 @@
 /* eslint no-else-return: 0 */
 /* global fetch */
 
-import { APIEndpoints } from 'js/constants/session';
+import { APIEndpoints } from '../constants/session';
 
 
 function checkStatus(response) {

@@ -1,5 +1,6 @@
-import { ActionTypes } from 'js/constants/categories';
-import CategoriesService from 'js/services/categories';
+import { ActionTypes, APIEndpoints } from '../constants/categories';
+import CategoriesService from '../services/categories';
+import APIService from '../services/base';
 
 
 function getCategoriesRequest() {

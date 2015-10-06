@@ -2,8 +2,8 @@ import React, { Component, PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import CategoryActions, { getCategories, editCategory, removeCategory } from 'js/actions/categories';
-import CategoriesList from 'js/components/categories/list';
+import CategoryActions, { getCategories, editCategory, removeCategory } from '../actions/categories';
+import CategoriesList from '../components/categories/list';
 
 
 class CategoriesPage extends Component {

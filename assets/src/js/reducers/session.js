@@ -1,6 +1,6 @@
 /* eslint no-underscore-dangle: 0 */
 
-import { ActionTypes } from 'js/constants/session';
+import { ActionTypes } from '../constants/session';
 
 class PersistStore {
     constructor() {
