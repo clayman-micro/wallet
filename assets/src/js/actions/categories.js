@@ -1,18 +1,11 @@
 import { ActionTypes, APIEndpoints } from '../constants/categories';
 import APIService from '../services/base';
+import { makeActionCreator } from './base';
 
 
-function getCategoriesRequest() {
-    return { type: ActionTypes.GET_CATEGORIES_REQUEST };
-}
-
-function getCategoriesResponse(json) {
-    return { type: ActionTypes.GET_CATEGORIES_RESPONSE, categories: json.categories };
-}
-
-function getCategoriesFailed(errors) {
-    return { type: ActionTypes.GET_CATEGORIES_FAILED, errors: errors };
-}
+const getCategoriesRequest = makeActionCreator(ActionTypes.GET_CATEGORIES_REQUEST);
+const getCategoriesResponse = makeActionCreator(ActionTypes.GET_CATEGORIES_RESPONSE, 'json');
+const getCategoriesFailed = makeActionCreator(ActionTypes.GET_CATEGORIES_FAILED, 'errors');
 
 export function getCategories(token) {
     return dispatch => {
@@ -25,18 +18,9 @@ export function getCategories(token) {
     };
 }
 
-
-function createCategoryRequest(payload) {
-    return { type: ActionTypes.CREATE_CATEGORY_REQUEST, payload: payload };
-}
-
-function createCategoryResponse(json) {
-    return { type: ActionTypes.CREATE_CATEGORY_RESPONSE, category: json.category };
-}
-
-function createCategoryFailed(payload, errors) {
-    return { type: ActionTypes.CREATE_CATEGORY_FAILED, payload: payload, errors: errors };
-}
+const createCategoryRequest = makeActionCreator(ActionTypes.CREATE_CATEGORY_REQUEST, 'payload');
+const createCategoryResponse = makeActionCreator(ActionTypes.CREATE_CATEGORY_RESPONSE, 'json');
+const createCategoryFailed = makeActionCreator(ActionTypes.CREATE_CATEGORY_FAILED, 'payload', 'errors');
 
 export function createCategory(token, payload) {
     return dispatch => {
@@ -50,19 +34,9 @@ export function createCategory(token, payload) {
 }
 
 
-function editCategoryRequest(category, payload) {
-    return { type: ActionTypes.EDIT_CATEGORY_REQUEST, payload: payload, category: category };
-}
-
-function editCategoryResponse(category, json) {
-    return { type: ActionTypes.EDIT_CATEGORY_RESPONSE, categoryId: category.id,
-             category: json.category };
-}
-
-function editCategoryFailed(category, payload, errors) {
-    return { type: ActionTypes.EDIT_CATEGORY_FAILED, errors: errors,
-             payload: payload, category: category };
-}
+const editCategoryRequest = makeActionCreator(ActionTypes.EDIT_CATEGORY_REQUEST, 'category', 'payload');
+const editCategoryResponse = makeActionCreator(ActionTypes.EDIT_CATEGORY_RESPONSE, 'category', 'json');
+const editCategoryFailed = makeActionCreator(ActionTypes.EDIT_CATEGORY_FAILED, 'category', 'payload', 'errors');
 
 export function editCategory(token, category, payload) {
     return dispatch => {
@@ -76,17 +50,9 @@ export function editCategory(token, category, payload) {
 }
 
 
-function removeCategoryRequest(category) {
-    return { type: ActionTypes.REMOVE_CATEGORY_REQUEST, category: category };
-}
-
-function removeCategoryResponse(category) {
-    return { type: ActionTypes.REMOVE_CATEGORY_RESPONSE, category: category };
-}
-
-function removeCategoryFailed(category, errors) {
-    return { type: ActionTypes.REMOVE_CATEGORY_FAILED, category: category, errors: errors };
-}
+const removeCategoryRequest = makeActionCreator(ActionTypes.REMOVE_CATEGORY_REQUEST, 'category');
+const removeCategoryResponse = makeActionCreator(ActionTypes.REMOVE_CATEGORY_RESPONSE, 'category');
+const removeCategoryFailed = makeActionCreator(ActionTypes.REMOVE_CATEGORY_FAILED, 'category', 'errors');
 
 export function removeCategory(token, category) {
     return dispatch => {

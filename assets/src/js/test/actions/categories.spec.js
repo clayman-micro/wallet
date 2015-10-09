@@ -38,7 +38,7 @@ describe('Category actions', () => {
                 });
                 dispatchSpy.secondCall.should.have.been.calledWith({
                     type: ActionTypes.GET_CATEGORIES_RESPONSE,
-                    categories: [{ id: 1, name: 'Test' }]
+                    json: { categories: [{ id: 1, name: 'Test' }] }
                 });
             });
         });
@@ -85,7 +85,7 @@ describe('Category actions', () => {
                 });
                 dispatchSpy.secondCall.should.have.been.calledWith({
                     type: ActionTypes.CREATE_CATEGORY_RESPONSE,
-                    category: [{ id: 1, name: 'Test', owner_id: 1 }]
+                    json: { category: [{ id: 1, name: 'Test', owner_id: 1 }] }
                 });
             });
         });
@@ -140,8 +140,8 @@ describe('Category actions', () => {
                 });
                 dispatchSpy.secondCall.should.have.been.calledWith({
                     type: ActionTypes.EDIT_CATEGORY_RESPONSE,
-                    categoryId: 1,
-                    category: [{ id: 1, name: 'Test', owner_id: 1 }]
+                    category: category,
+                    json: { category: [{ id: 1, name: 'Test', owner_id: 1 }] }
                 });
             });
         });
