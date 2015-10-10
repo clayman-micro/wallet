@@ -1,4 +1,4 @@
-import keyMirror from 'key-mirror';
+import keyMirror from 'keyMirror';
 
 export const APIEndpoints = {
     COLLECTION: 'http://localhost:5000/api/accounts',

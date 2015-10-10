@@ -73,7 +73,7 @@ describe('Category actions', () => {
                 .post('/api/categories', {
                     name: 'Test'
                 })
-                .reply(200, '{ "category": [{ "id": 1, "name": "Test", "owner_id": 1 }]}', {
+                .reply(200, '{"category":{"id": 1, "name": "Test", "owner_id": 1}}', {
                     'Content-Type': 'application/json'
                 });
 
@@ -85,7 +85,7 @@ describe('Category actions', () => {
                 });
                 dispatchSpy.secondCall.should.have.been.calledWith({
                     type: ActionTypes.CREATE_CATEGORY_RESPONSE,
-                    json: { category: [{ id: 1, name: 'Test', owner_id: 1 }] }
+                    json: { category: { id: 1, name: 'Test', owner_id: 1 } }
                 });
             });
         });
@@ -95,7 +95,7 @@ describe('Category actions', () => {
                 .post('/api/categories', {
                     name: 'Test'
                 })
-                .reply(400, '{ "errors": [{ "name": "Already exist" }]}', {
+                .reply(400, '{"errors": [{"name": "Already exist"}]}', {
                     'Content-Type': 'application/json'
                 });
 
@@ -201,7 +201,7 @@ describe('Category actions', () => {
         it('should dispatch REMOVE_CATEGORY_FAILED action on failed', () => {
             nock('http://localhost:5000')
                 .delete('/api/categories/1')
-                .reply(400, '{ "errors": [{ "id": "Does not exist" }]}', {
+                .reply(400, '{ "errors": { "id": "Does not exist" }}', {
                     'Content-Type': 'application/json'
                 });
 
@@ -214,7 +214,7 @@ describe('Category actions', () => {
                 dispatchSpy.secondCall.should.have.been.calledWith({
                     type: ActionTypes.REMOVE_CATEGORY_FAILED,
                     category: category,
-                    errors: [{ id: 'Does not exist' }]
+                    errors: { id: 'Does not exist' }
                 });
             });
         });

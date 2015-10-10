@@ -5,7 +5,7 @@ import { ActionTypes } from '../../constants/categories';
 import reducer from '../../reducers/categories';
 
 
-describe('Categories reducers', () => {
+describe('Categories reducer', () => {
     it('should handle initial state', () => {
         expect(reducer(undefined, {})).to.deep.equal({
             isFetching: false,
@@ -52,21 +52,21 @@ describe('Categories reducers', () => {
 
     describe('Create category', () => {
         it('should handle CREATE_CATEGORY_REQUEST', () => {
-            const action = { type: ActionTypes.CREATE_CATEGORY_REQUEST, name: 'Test' };
+            const action = { type: ActionTypes.CREATE_CATEGORY_REQUEST, payload: { name: 'Test' } };
             expect(reducer(undefined, action)).to.deep.equal({
                 isFetching: true, items: [], errors: {}
             });
         });
 
         it('should handle CREATE_CATEGORY_RESPONSE', () => {
-            const action = { type: ActionTypes.CREATE_CATEGORY_RESPONSE, json: { category: { id: 1, name: 'Test' } }};
+            const action = { type: ActionTypes.CREATE_CATEGORY_RESPONSE, json: { category: { id: 1, name: 'Test' } } };
             expect(reducer(undefined, action)).to.deep.equal({
                 isFetching: false, items: [{ id: 1, name: 'Test' }], errors: {}
             });
         });
 
         it('should handle CREATE_CATEGORY_FAILED', () => {
-            const action = { type: ActionTypes.CREATE_CATEGORY_FAILED, errors: { name: 'Could not be empty' }};
+            const action = { type: ActionTypes.CREATE_CATEGORY_FAILED, errors: { name: 'Could not be empty' } };
             expect(reducer(undefined, action)).to.deep.equal({
                 isFetching: false, items: [], errors: { name: 'Could not be empty' }
             });
