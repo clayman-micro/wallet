@@ -16,14 +16,24 @@ chai.use(sinonChai);
 /** @namespace dispatchSpy.secondCall.should.have.been */
 describe('Account actions', () => {
     let dispatchSpy;
-    let getStateSpy;
+    let getStateSpy = function () {
+        return {
+            session: {
+                accessToken: {
+                    value: 'token',
+                    isValid: function () {
+                        return true;
+                    }
+                }
+            }
+        };
+    };
     let action;
 
     describe('getAccounts action', () => {
         beforeEach(() => {
             dispatchSpy = sinon.spy();
-            getStateSpy = sinon.spy();
-            action = actions.getAccounts('token');
+            action = actions.getAccounts();
         });
 
         it('should dispatch GET_ACCOUNTS_RESPONSE action on success', () => {
@@ -66,8 +76,7 @@ describe('Account actions', () => {
     describe('createAccount action', () => {
         beforeEach(() => {
             dispatchSpy = sinon.spy();
-            getStateSpy = sinon.spy();
-            action = actions.createAccount('token', { name: 'Debit card', original_amount: 30000.0 });
+            action = actions.createAccount({ name: 'Debit card', original_amount: 30000.0 });
         });
 
         it('should dispatch CREATE_ACCOUNT_RESPONSE action on success', () => {
@@ -123,8 +132,7 @@ describe('Account actions', () => {
 
         beforeEach(() => {
             dispatchSpy = sinon.spy();
-            getStateSpy = sinon.spy();
-            action = actions.editAccount('token', account, { original_amount: 20000.0 });
+            action = actions.editAccount(account, { original_amount: 20000.0 });
         });
 
         it('should dispatch EDIT_ACCOUNT_RESPONSE action on success', () => {
@@ -148,6 +156,29 @@ describe('Account actions', () => {
                 });
             });
         });
+
+        it('should dispatch EDIT_ACCOUNT_FAILED action on failure', () => {
+            nock('http://localhost:5000')
+                .put('/api/accounts/1', {
+                    original_amount: 20000.0
+                })
+                .reply(400, '{"errors":{"original_amount": "Could not be equal 20000.0"}}', {
+                    'Content-Type': 'application/json'
+                });
+
+            return action(dispatchSpy, getStateSpy).then(() => {
+                dispatchSpy.should.have.callCount(2);
+                dispatchSpy.firstCall.should.have.been.calledWith({
+                    type: ActionTypes.EDIT_ACCOUNT_REQUEST,
+                    payload: { original_amount: 20000.0 }, account: account
+                });
+                dispatchSpy.secondCall.should.have.been.calledWith({
+                    type: ActionTypes.EDIT_ACCOUNT_FAILED, account,
+                    payload: { original_amount: 20000.0 },
+                    errors: { original_amount: "Could not be equal 20000.0" }
+                });
+            });
+        });
     });
 
     describe('removeAccount action', () => {
@@ -155,8 +186,7 @@ describe('Account actions', () => {
 
         beforeEach(() => {
             dispatchSpy = sinon.spy();
-            getStateSpy = sinon.spy();
-            action = actions.removeAccount('token', account);
+            action = actions.removeAccount(account);
         });
 
         it('should dispatch REMOVE_ACCOUNT_RESPONSE action on success', () => {

@@ -1,5 +1,5 @@
 import { ActionTypes } from '../constants/accounts';
-import { createReducer } from './base';
+import { createCRUDReducer } from './base';
 
 const initialState = {
     isFetching: false,
@@ -7,66 +7,43 @@ const initialState = {
     errors: {}
 };
 
-const accounts = createReducer(initialState, {
-    // Fetch collection
-    [ActionTypes.GET_ACCOUNTS_REQUEST](state) {
-        return Object.assign({}, state, { isFetching: true });
-    },
-    [ActionTypes.GET_ACCOUNTS_RESPONSE](state, action) {
-        return Object.assign({}, state, {
-            isFetching: false,
-            items: [...action.json.accounts],
-            errors: {}
-        });
-    },
-    [ActionTypes.GET_ACCOUNTS_FAILED](state, action) {
-        return Object.assign({}, state, { isFetching: false, errors: action.errors });
-    },
+const mapHandlersToActions = {
+    [ActionTypes.GET_ACCOUNTS_REQUEST]: 'getCollectionRequest',
+    [ActionTypes.GET_ACCOUNTS_RESPONSE]: 'getCollectionResponse',
+    [ActionTypes.GET_ACCOUNTS_FAILED]: 'getCollectionFailed',
 
-    // Create instance
-    [ActionTypes.CREATE_ACCOUNT_REQUEST](state) {
-        return Object.assign({}, state, { isFetching: true });
-    },
-    [ActionTypes.CREATE_ACCOUNT_RESPONSE](state, action) {
-        return Object.assign({}, state, {
-            items: [...state.items, action.json.account],
-            isFetching: false,
-            errors: {}
-        });
-    },
-    [ActionTypes.CREATE_ACCOUNT_FAILED](state, action) {
-        return Object.assign({}, state, { isFetching: false, errors: action.errors });
-    },
+    [ActionTypes.CREATE_ACCOUNT_REQUEST]: 'createResourceRequest',
+    [ActionTypes.CREATE_ACCOUNT_RESPONSE]: 'createResourceResponse',
+    [ActionTypes.CREATE_ACCOUNT_FAILED]: 'createResourceFailed',
 
-    // Edit instance
-    [ActionTypes.EDIT_ACCOUNT_REQUEST](state) {
-        return Object.assign({}, state, { isFetching: true });
-    },
-    [ActionTypes.EDIT_ACCOUNT_RESPONSE](state, action) {
-        return Object.assign({}, state, {
-            items: state.items.map(account =>
-                account.id === action.json.account.id ?
-                    Object.assign({}, account, action.json.account) : account),
-            isFetching: false,
-            errors: {}
-        });
-    },
-    [ActionTypes.EDIT_ACCOUNT_FAILED](state, action) {
-        return Object.assign({}, state, { isFetching: false, errors: action.errors });
-    },
+    [ActionTypes.EDIT_ACCOUNT_REQUEST]: 'editResourceRequest',
+    [ActionTypes.EDIT_ACCOUNT_RESPONSE]: 'editResourceResponse',
+    [ActionTypes.EDIT_ACCOUNT_FAILED]: 'editResourceFailed',
 
-    // Remove instance
-    [ActionTypes.REMOVE_ACCOUNT_REQUEST](state) {
-        return Object.assign({}, state, { isFetching: true });
-    },
-    [ActionTypes.REMOVE_ACCOUNT_RESPONSE](state, action) {
-        return Object.assign({}, state, { items: state.items.filter(account =>
+    [ActionTypes.REMOVE_ACCOUNT_REQUEST]: 'removeResourceRequest',
+    [ActionTypes.REMOVE_ACCOUNT_RESPONSE]: 'removeResourceResponse',
+    [ActionTypes.REMOVE_ACCOUNT_FAILED]: 'removeResourceFailed'
+};
+
+const accounts = createCRUDReducer(initialState, mapHandlersToActions, {
+    getCollectionResponse: (state, action) => Object.assign({}, state, {
+        isFetching: false, items: [...action.json.accounts], errors: {} }),
+    createResourceResponse: (state, action) => Object.assign({}, state, {
+        isFetching: false, items: [...state.items, action.json.account], errors: {} }),
+    editResourceResponse: (state, action) => Object.assign({}, state, {
+        isFetching: false,
+        items: state.items.map(account =>
+            account.id === action.json.account.id ?
+                Object.assign({}, account, action.json.account) : account),
+        errors: {}
+    }),
+    removeResourceResponse: (state, action) => Object.assign({
+        isFetching: false,
+        items: state.items.filter(account =>
             account.id !== action.account.id
-        ) });
-    },
-    [ActionTypes.REMOVE_ACCOUNT_FAILED](state, action) {
-        return Object.assign({}, state, { isFetching: false, errors: action.errors });
-    }
+        ),
+        errors: {}
+    })
 });
 
 export default accounts;

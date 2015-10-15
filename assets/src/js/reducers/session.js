@@ -2,6 +2,28 @@
 
 import { ActionTypes } from '../constants/session';
 
+
+class Token {
+    constructor(value, expire) {
+        this._value = value;
+
+        if (Number.isInteger(expire) && expire > Date.now()) {
+            this._expire = expire;
+        } else {
+            throw Error('Expire must be integer and bigger than now');
+        }
+    }
+
+    get value() {
+        return this._value;
+    }
+
+    isValid() {
+        return Date.now() < this._expire;
+    }
+}
+
+
 class PersistStore {
     constructor() {
         this._user = {};
@@ -17,10 +39,11 @@ class PersistStore {
                 }
             }
 
-            const token = window.sessionStorage.getItem('accessToken');
+            let token = window.sessionStorage.getItem('accessToken');
             if (token) {
                 try {
-                    this._accessToken = JSON.parse(token);
+                    token = JSON.parse(token);
+                    this._accessToken = new Token(token.value, token.expire);
                 } catch (err) {
 
                 }
@@ -42,8 +65,8 @@ class PersistStore {
     }
 
     set token(token) {
-        this._accessToken = token;
-        window.sessionStorage.setItem('accessToken', JSON.stringify(this._accessToken));
+        this._accessToken = new Token(token.value, token.expire);
+        window.sessionStorage.setItem('accessToken', JSON.stringify(token));
     }
 }
 
@@ -57,7 +80,7 @@ const initialState = {
     errors: []
 };
 
-export default function session(state = initialState, action) {
+export default function session(state = initialState, action = null) {
     if (action.type === ActionTypes.LOGIN_REQUEST) {
         return Object.assign({}, state, {
             isFetching: true,

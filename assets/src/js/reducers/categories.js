@@ -1,5 +1,5 @@
 import { ActionTypes } from '../constants/categories';
-import { createReducer } from './base';
+import { createCRUDReducer } from './base';
 
 const initialState = {
     isFetching: false,
@@ -7,67 +7,43 @@ const initialState = {
     errors: {}
 };
 
-const categories = createReducer(initialState, {
-    // Fetch collection
-    [ActionTypes.GET_CATEGORIES_REQUEST](state) {
-        return Object.assign({}, state, { isFetching: true });
-    },
-    [ActionTypes.GET_CATEGORIES_RESPONSE](state, action) {
-        return Object.assign({}, state, {
-            isFetching: false,
-            items: [...action.json.categories],
-            errors: {}
-        });
-    },
-    [ActionTypes.GET_CATEGORIES_FAILED](state, action) {
-        return Object.assign({}, state, { isFetching: false, errors: action.errors });
-    },
+const mapHandlersToActions = {
+    [ActionTypes.GET_CATEGORIES_REQUEST]: 'getCollectionRequest',
+    [ActionTypes.GET_CATEGORIES_RESPONSE]: 'getCollectionResponse',
+    [ActionTypes.GET_CATEGORIES_FAILED]: 'getCollectionFailed',
 
-    // Create instance
-    [ActionTypes.CREATE_CATEGORY_REQUEST](state) {
-        return Object.assign({}, state, { isFetching: true });
-    },
-    [ActionTypes.CREATE_CATEGORY_RESPONSE](state, action) {
-        return Object.assign({}, state, {
-            items: [action.json.category, ...state.items],
-            isFetching: false,
-            errors: {}
-        });
-    },
-    [ActionTypes.CREATE_CATEGORY_FAILED](state, action) {
-        return Object.assign({}, state, { isFetching: false, errors: action.errors });
-    },
+    [ActionTypes.CREATE_CATEGORY_REQUEST]: 'createResourceRequest',
+    [ActionTypes.CREATE_CATEGORY_RESPONSE]: 'createResourceResponse',
+    [ActionTypes.CREATE_CATEGORY_FAILED]: 'createResourceFailed',
 
-    // Edit instance
-    [ActionTypes.EDIT_CATEGORY_REQUEST](state) {
-        return Object.assign({}, state, { isFetching: true });
-    },
-    [ActionTypes.EDIT_CATEGORY_RESPONSE](state, action) {
-        return Object.assign({}, state, {
-            items: state.items.map(category =>
-                category.id === action.json.category.id ?
-                    Object.assign({}, category, action.json.category) : category),
-            isFetching: false,
-            errors: {}
-        });
-    },
-    [ActionTypes.EDIT_CATEGORY_FAILED](state, action) {
-        return Object.assign({}, state, { isFetching: false, errors: action.errors });
-    },
+    [ActionTypes.EDIT_CATEGORY_REQUEST]: 'editResourceRequest',
+    [ActionTypes.EDIT_CATEGORY_RESPONSE]: 'editResourceResponse',
+    [ActionTypes.EDIT_CATEGORY_FAILED]: 'editResourceFailed',
 
-    // Remove instance
-    [ActionTypes.REMOVE_CATEGORY_REQUEST](state) {
-        return Object.assign({}, state, { isFetching: true });
-    },
-    [ActionTypes.REMOVE_CATEGORY_RESPONSE](state, action) {
-        return Object.assign({}, state, { items: state.items.filter(category =>
+    [ActionTypes.REMOVE_CATEGORY_REQUEST]: 'removeResourceRequest',
+    [ActionTypes.REMOVE_CATEGORY_RESPONSE]: 'removeResourceResponse',
+    [ActionTypes.REMOVE_CATEGORY_FAILED]: 'removeResourceFailed'
+};
+
+const categories = createCRUDReducer(initialState, mapHandlersToActions, {
+    getCollectionResponse: (state, action) => Object.assign({}, state, {
+        isFetching: false, items: [...action.json.categories], errors: {} }),
+    createResourceResponse: (state, action) => Object.assign({}, state, {
+        isFetching: false, items: [...state.items, action.json.category], errors: {} }),
+    editResourceResponse: (state, action) => Object.assign({}, state, {
+        isFetching: false,
+        items: state.items.map(category =>
+            category.id === action.json.category.id ?
+                Object.assign({}, category, action.json.category) : category),
+        errors: {}
+    }),
+    removeResourceResponse: (state, action) => Object.assign({
+        isFetching: false,
+        items: state.items.filter(category =>
             category.id !== action.category.id
-        ) });
-    },
-    [ActionTypes.REMOVE_CATEGORY_FAILED](state, action) {
-        return Object.assign({}, state, { isFetching: false, errors: action.errors });
-    }
+        ),
+        errors: {}
+    })
 });
-
 
 export default categories;

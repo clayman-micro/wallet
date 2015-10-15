@@ -14,14 +14,24 @@ chai.use(sinonChai);
 
 describe('Category actions', () => {
     let dispatchSpy;
-    let getStateSpy;
+    let getStateSpy = function () {
+        return {
+            session: {
+                accessToken: {
+                    value: 'token',
+                    isValid: function () {
+                        return true;
+                    }
+                }
+            }
+        };
+    };
     let action;
 
     describe('getCategories action', () => {
         beforeEach(() => {
             dispatchSpy = sinon.spy();
-            getStateSpy = sinon.spy();
-            action = actions.getCategories('token');
+            action = actions.getCategories();
         });
 
         it('should dispatch GET_CATEGORIES_RESPONSE action on success', () => {
@@ -64,8 +74,7 @@ describe('Category actions', () => {
     describe('createCategory action', () => {
         beforeEach(() => {
             dispatchSpy = sinon.spy();
-            getStateSpy = sinon.spy();
-            action = actions.createCategory('token', { name: 'Test' });
+            action = actions.createCategory({ name: 'Test' });
         });
 
         it('should dispatch CREATE_CATEGORY_RESPONSE action on success', () => {
@@ -119,8 +128,7 @@ describe('Category actions', () => {
 
         beforeEach(() => {
             dispatchSpy = sinon.spy();
-            getStateSpy = sinon.spy();
-            action = actions.editCategory('token', category, { name: 'Test' });
+            action = actions.editCategory(category, { name: 'Test' });
         });
 
         it('should dispatch EDIT_CATEGORY_RESPONSE action on success', () => {
@@ -176,8 +184,7 @@ describe('Category actions', () => {
 
         beforeEach(() => {
             dispatchSpy = sinon.spy();
-            getStateSpy = sinon.spy();
-            action = actions.removeCategory('token', category);
+            action = actions.removeCategory(category);
         });
 
         it('should dispatch REMOVE_CATEGORY_RESPONSE action on success', () => {
