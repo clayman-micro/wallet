@@ -20,8 +20,7 @@ class CategoryItem extends Component {
         if (name.length === 0) {
             // delete category
         } else if (this.props.category.name !== name) {
-            console.log(category)
-            this.props.editCategory(this.props.token, category, { name: name });
+            this.props.editCategory(category, { name: name });
         }
 
         this.setState({ editing: false });
@@ -37,7 +36,7 @@ class CategoryItem extends Component {
                 <TextInput text={category.name}
                            editing={this.state.editing}
                            onSave={(name) => this.handleSave(category.id, name)} />
-            )
+            );
         } else {
             element = (
                 <div className="view">
@@ -45,9 +44,9 @@ class CategoryItem extends Component {
                         {category.name}
                     </label>
                     <button className="destroy"
-                            onClick={() => removeCategory(this.props.token, category.id)} />
+                            onClick={() => removeCategory(category)} />
                 </div>
-            )
+            );
         }
         return (
             <li className={classnames({ editing: this.state.editing })}>{element}</li>
@@ -57,7 +56,6 @@ class CategoryItem extends Component {
 
 
 CategoryItem.propTypes = {
-    token: PropTypes.string,
     category: PropTypes.object.isRequired,
     editCategory: PropTypes.func.isRequired,
     removeCategory: PropTypes.func.isRequired

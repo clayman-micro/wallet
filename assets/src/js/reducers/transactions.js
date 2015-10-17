@@ -1,9 +1,10 @@
+import { StatusChoices } from '../constants/status';
 import { ActionTypes } from '../constants/transactions';
 import { createCRUDReducer } from './base';
 
 
 const initialState = {
-    isFetching: false,
+    status: StatusChoices.INITIAL,
     items: [],
     errors: {}
 };
@@ -28,18 +29,18 @@ const mapHandlersToActions = {
 
 const transactions = createCRUDReducer(initialState, mapHandlersToActions, {
     getCollectionResponse: (state, action) => Object.assign({}, state, {
-        isFetching: false, items: [...action.json.transactions], errors: {} }),
+        status: StatusChoices.FETCH_DONE, items: [...action.json.transactions], errors: {} }),
     createResourceResponse: (state, action) => Object.assign({}, state, {
-        isFetching: false, items: [...state.items, action.json.transaction], errors: {} }),
+        status: StatusChoices.CREATE_DONE, items: [...state.items, action.json.transaction], errors: {} }),
     editResourceResponse: (state, action) => Object.assign({}, state, {
-        isFetching: false,
+        status: StatusChoices.EDIT_DONE,
         items: state.items.map(transaction =>
             transaction.id === action.json.transaction.id ?
                 Object.assign({}, transaction, action.json.transaction) : transaction),
         errors: {}
     }),
     removeResourceResponse: (state, action) => Object.assign({
-        isFetching: false,
+        status: StatusChoices.REMOVE_DONE,
         items: state.items.filter(transaction =>
             transaction.id !== action.transaction.id
         ),

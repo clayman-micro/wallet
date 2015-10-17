@@ -1,6 +1,7 @@
 @import '../variables';
 
 .form {
+  padding: 10px 10px 0;
   position: relative;
 
   &__section {
@@ -13,8 +14,8 @@
 
   &__label {
     display: block;
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: bold;
     margin: 0 0 5px 10px;
   }
 
@@ -28,10 +29,16 @@
     padding: 9px 10px 7px;
     -webkit-appearance: none;
     outline: none;
-    
+
     &_error {
       border-color: @form_error_color;
     }
+  }
+
+  &__error {
+    font-size: 12px;
+    padding: 5px 5px 5px 10px;
+    color: @form_error_color;
   }
 
   &__errors {

@@ -4,14 +4,18 @@ import 'less/app.less';
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
-import { Route } from 'react-router';
+import { IndexRoute, Route } from 'react-router';
 import { ReduxRouter } from 'redux-router';
 import configureStore from './store/configureStore';
 
-import App from './containers/App';
+import AppRoot from './containers/root';
+import HomePage from './containers/home';
 import LoginPage from './containers/LoginPage';
+import AccountsPage from './containers/AccountsPage';
 import CategoriesPage from './containers/CategoriesPage';
-import Accounts from './components/accounts/Accounts';
+import TransactionsPage from './containers/transactions/main';
+import TransactionList from './containers/transactions/list';
+import AddTransactionPage from './containers/transactions/add';
 
 
 const store = configureStore();
@@ -31,22 +35,25 @@ function anonymousOnly(nextState, redirect) {
 }
 
 
-class Root extends Component {
-    render() {
-        return (
-            <div>
-                <Provider store={store}>
-                    <ReduxRouter>
-                        <Route path="/" component={App} onEnter={requireAuth}>
-                            <Route path="accounts" components={Accounts} />
-                            <Route path="categories" components={CategoriesPage} />
+function Root() {
+    return (
+        <div>
+            <Provider store={store}>
+                <ReduxRouter>
+                    <Route path="/" component={AppRoot} onEnter={requireAuth}>
+                        <IndexRoute component={HomePage} />
+                        <Route path="accounts" component={AccountsPage} />
+                        <Route path="categories" component={CategoriesPage} />
+                        <Route path="transactions" component={TransactionsPage} >
+                            <IndexRoute component={TransactionList} />
+                            <Route path="add" component={AddTransactionPage} />
                         </Route>
-                        <Route path="/login" components={LoginPage} onEnter={anonymousOnly} />
-                    </ReduxRouter>
-                </Provider>
-            </div>
-        );
-    }
+                    </Route>
+                    <Route path="/login" component={LoginPage} onEnter={anonymousOnly} />
+                </ReduxRouter>
+            </Provider>
+        </div>
+    );
 }
 
 ReactDOM.render(<Root />, document.getElementById('root'));
