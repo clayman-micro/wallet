@@ -33,7 +33,6 @@ class CategoryAPIHandler(base.BaseAPIHandler):
 
     @asyncio.coroutine
     def options(self, request):
-        print(request.headers)
         return web.Response(status=200)
 
     @asyncio.coroutine

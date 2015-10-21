@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from aiohttp import web
 
 from sqlalchemy import and_
 
@@ -15,15 +16,25 @@ class AccountAPIHandler(base.BaseAPIHandler):
     schema = accounts.accounts_schema
     serializer = accounts.AccountSerializer(exclude=('created_on', ))
 
-    decorators = (auth.owner_required, )
+    decorators = (
+        base.allow_cors(methods=('GET', 'POST', 'PUT', 'DELETE')),
+        auth.owner_required
+    )
 
     endpoints = (
         ('GET', '/accounts', 'get_accounts'),
         ('POST', '/accounts', 'create_account'),
         ('GET', '/accounts/{instance_id}', 'get_account'),
         ('PUT', '/accounts/{instance_id}', 'update_account'),
-        ('DELETE', '/accounts/{instance_id}', 'remove_account')
+        ('DELETE', '/accounts/{instance_id}', 'remove_account'),
+
+        ('OPTIONS', '/accounts', 'accounts_cors'),
+        ('OPTIONS', '/accounts/{instance_id}', 'account_cors')
     )
+
+    @asyncio.coroutine
+    def options(self, request):
+        return web.Response(status=200)
 
     @asyncio.coroutine
     def validate_payload(self, request, payload, instance=None):

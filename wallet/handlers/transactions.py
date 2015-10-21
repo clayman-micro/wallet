@@ -18,7 +18,10 @@ class TransactionAPIHandler(base.BaseAPIHandler):
     schema = transactions.transactions_schema
     serializer = transactions.TransactionSerializer()
 
-    decorators = (auth.owner_required, )
+    decorators = (
+        base.allow_cors(methods=('GET', 'POST', 'PUT', 'DELETE')),
+        auth.owner_required,
+    )
 
     endpoints = (
         ('GET', '/transactions', 'get_transactions'),
@@ -26,7 +29,14 @@ class TransactionAPIHandler(base.BaseAPIHandler):
         ('GET', '/transactions/{instance_id}', 'get_transaction'),
         ('PUT', '/transactions/{instance_id}', 'update_transaction'),
         ('DELETE', '/transactions/{instance_id}', 'remove_transaction'),
+
+        ('OPTIONS', '/transactions', 'transactions_cors'),
+        ('OPTIONS', '/transactions/{instance_id}', 'transaction_cors')
     )
+
+    @asyncio.coroutine
+    def options(self, request):
+        return web.Response(status=200)
 
     @asyncio.coroutine
     def validate_payload(self, request, payload, instance=None):
@@ -190,7 +200,11 @@ class TransactionDetailAPIHandler(base.BaseAPIHandler):
     schema = transactions.transaction_details_schema
     serializer = transactions.TransactionDetailSerializer()
 
-    decorators = (transaction_required, auth.owner_required)
+    decorators = (
+        base.allow_cors(methods=('GET', 'POST', 'PUT', 'DELETE')),
+        transaction_required,
+        auth.owner_required
+    )
 
     endpoints = (
         ('GET', '/transactions/{transaction_id}/details', 'get_details'),
@@ -201,6 +215,11 @@ class TransactionDetailAPIHandler(base.BaseAPIHandler):
          'update_detail'),
         ('DELETE', '/transactions/{transaction_id}/details/{instance_id}',
          'remove_detail'),
+
+        ('OPTIONS', '/transactions/{transaction_id}/details',
+            'transaction_details_cors'),
+        ('OPTIONS', '/transactions/{transaction_id}/details/{instance_id}',
+            'transaction_detail_cors')
     )
 
     def get_collection_query(self, request):
