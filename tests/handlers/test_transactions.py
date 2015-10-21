@@ -126,7 +126,7 @@ class TestTransactionCollection(BaseTransactionTest):
         params['data'] = {'description': 'Meal', 'amount': 300.0,
                           'type': transactions.INCOME_TRANSACTION,
                           'account_id': account_id, 'category_id': category_id,
-                          'created_on': '20-08-2015'}
+                          'created_on': '2015-08-20'}
         params['headers'] = {'X-ACCESS-TOKEN': token}
         params['url'] = server.reverse_url('api.create_transaction')
 
@@ -213,6 +213,27 @@ class TestTransactionResource(BaseTransactionTest):
         }
         with (yield from server.response_ctx(method, **params)) as response:
             assert response.status == 404
+
+    @pytest.mark.undefined
+    @pytest.mark.parametrize('method,endpoint', (
+        ('GET', 'api.get_transaction'),
+        ('PUT', 'api.update_transaction'),
+        ('DELETE', 'api.remove_transaction')
+    ))
+    @async_test(create_database=True)
+    def test_wrong_instance_id(self, application, server, method, endpoint):
+        owner = {'login': 'John', 'password': 'top_secret'}
+        yield from self.create_owner(application, owner)
+
+        params = {
+            'headers': {
+                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+            },
+            'url': server.reverse_url(endpoint, {'instance_id': 'undefined'})
+        }
+
+        with (yield from server.response_ctx(method, **params)) as response:
+            assert response.status == 400
 
     @async_test(create_database=True)
     def test_get_success(self, application, server):

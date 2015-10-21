@@ -56,7 +56,7 @@ class TestAccountBalance(BaseHandlerTest):
         yield from self.create_transaction(server, token, {
             'description': 'Meal', 'amount': amount, 'type': tr_type,
             'account_id': account_id, 'category_id': category_id,
-            'created_on': '20-08-2015'
+            'created_on': '2015-08-20'
         })
 
         with (yield from application.engine) as conn:
@@ -82,7 +82,7 @@ class TestAccountBalance(BaseHandlerTest):
         transaction_id = yield from self.create_transaction(server, token, {
             'description': 'Meal', 'amount': before, 'type': tr_type,
             'account_id': account_id, 'category_id': category_id,
-            'created_on': '20-08-2015'
+            'created_on': '2015-08-20'
         })
 
         params = {
@@ -119,7 +119,7 @@ class TestAccountBalance(BaseHandlerTest):
         transaction_id = yield from self.create_transaction(server, token, {
             'description': 'Meal', 'amount': amount, 'type': tr_type,
             'account_id': account_id, 'category_id': category_id,
-            'created_on': '20-08-2015'
+            'created_on': '2015-08-20'
         })
         params = {
             'headers': {'X-ACCESS-TOKEN': token},

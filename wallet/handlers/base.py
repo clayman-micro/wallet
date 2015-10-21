@@ -116,6 +116,17 @@ class BaseAPIHandler(BaseHandler):
     def get_instance_query(self, request, instance_id):
         return self.table.select().where(self.table.c.id == instance_id)
 
+    def get_instance_id(self, request):
+        instance_id = request.match_info['instance_id']
+
+        try:
+            instance_id = int(instance_id)
+        except ValueError:
+            raise web.HTTPBadRequest(
+                text="%s invalid instance id" % instance_id)
+        else:
+            return instance_id
+
     @asyncio.coroutine
     def get_collection(self, request):
         instances = []
@@ -152,6 +163,7 @@ class BaseAPIHandler(BaseHandler):
     @asyncio.coroutine
     def get_instance(self, request, instance_id):
         instance = None
+
         with (yield from request.app.engine) as conn:
             query = self.get_instance_query(request, instance_id)
             result = yield from conn.execute(query)
@@ -217,7 +229,7 @@ class BaseAPIHandler(BaseHandler):
     @asyncio.coroutine
     def get(self, request):
         if 'instance_id' in request.match_info:
-            instance_id = request.match_info['instance_id']
+            instance_id = self.get_instance_id(request)
             instance = yield from self.get_instance(request, instance_id)
 
             if instance:
@@ -258,7 +270,7 @@ class BaseAPIHandler(BaseHandler):
 
     @asyncio.coroutine
     def put(self, request):
-        instance_id = request.match_info['instance_id']
+        instance_id = self.get_instance_id(request)
         original = yield from self.get_instance(request, instance_id)
         if not original:
             raise web.HTTPNotFound(text='%s not found' % self.resource_name)
@@ -285,7 +297,7 @@ class BaseAPIHandler(BaseHandler):
     @allow_cors(methods=('DELETE', ))
     @asyncio.coroutine
     def delete(self, request):
-        instance_id = request.match_info['instance_id']
+        instance_id = self.get_instance_id(request)
         instance = yield from self.get_instance(request, instance_id)
         if not instance:
             raise web.HTTPNotFound(text='%s not found' % self.resource_name)
