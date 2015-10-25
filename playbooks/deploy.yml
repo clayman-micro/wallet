@@ -4,5 +4,5 @@
   remote_user: root
   hosts: all
   roles:
-    - { role: app, deploy: True, bootstrap: False}
+    - { role: app, deploy: True, bootstrap: False, backup: False }
     - role: web

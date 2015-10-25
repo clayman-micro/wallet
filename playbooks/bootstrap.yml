@@ -13,5 +13,5 @@
 - name: Bootstrap project
   hosts: all
   roles:
-    - { role: app, bootstrap: True, deploy: False }
+    - { role: app, bootstrap: True, deploy: False, backup: False }
     - role: web

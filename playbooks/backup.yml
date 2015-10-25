@@ -1,0 +1,7 @@
+---
+
+- name: Backup project on server
+  remote_user: root
+  hosts: all
+  roles:
+    - { role: app, deploy: False, bootstrap: False, backup: True }

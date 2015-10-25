@@ -9,3 +9,8 @@
   when: deploy
   tags:
     - deploy
+
+- include: backup.yml
+  when: backup
+  tags:
+    - backup
