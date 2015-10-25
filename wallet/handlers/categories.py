@@ -31,8 +31,7 @@ class CategoryAPIHandler(base.BaseAPIHandler):
         ('OPTIONS', '/categories/{instance_id}', 'category_cors')
     )
 
-    @asyncio.coroutine
-    def options(self, request):
+    async def options(self, request):
         return web.Response(status=200)
 
     @asyncio.coroutine

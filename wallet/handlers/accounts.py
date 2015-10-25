@@ -32,8 +32,7 @@ class AccountAPIHandler(base.BaseAPIHandler):
         ('OPTIONS', '/accounts/{instance_id}', 'account_cors')
     )
 
-    @asyncio.coroutine
-    def options(self, request):
+    async def options(self, request):
         return web.Response(status=200)
 
     @asyncio.coroutine

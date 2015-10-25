@@ -34,8 +34,7 @@ class TransactionAPIHandler(base.BaseAPIHandler):
         ('OPTIONS', '/transactions/{instance_id}', 'transaction_cors')
     )
 
-    @asyncio.coroutine
-    def options(self, request):
+    async def options(self, request):
         return web.Response(status=200)
 
     @asyncio.coroutine

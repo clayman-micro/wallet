@@ -6,16 +6,20 @@ from aiohttp import web
 import ujson
 
 
-@asyncio.coroutine
-def get_payload(request):
+async def get_payload(request: web.Request) -> dict:
+    """
+    Extract payload from request by Content-Type in headers.
+
+    Method is a coroutine.
+    """
     if 'application/json' in request.headers.get('CONTENT-TYPE'):
-        payload = yield from request.json()
+        payload = await request.json()
     else:
-        payload = yield from request.post()
+        payload = await request.post()
     return dict(payload)
 
 
-def json_response(data, **kwargs):
+def json_response(data: dict, **kwargs) -> web.Response:
     kwargs.setdefault('content_type', 'application/json')
     return web.Response(body=ujson.dumps(data).encode('utf-8'), **kwargs)
 
@@ -32,9 +36,8 @@ def reverse_url(request, route, parts=None):
 
 def allow_cors(headers=None, methods=None):
     def decorator(f):
-        @asyncio.coroutine
         @functools.wraps(f)
-        def wrapper(*args):
+        async def wrapper(*args):
             if asyncio.iscoroutinefunction(f):
                 coro = f
             else:
@@ -50,7 +53,7 @@ def allow_cors(headers=None, methods=None):
             if methods:
                 allow_methods.extend([name.upper() for name in methods])
 
-            response = yield from coro(*args)
+            response = await coro(*args)
 
             response.headers.update({
                 'Access-Control-Allow-Credentials': 'true',
@@ -84,18 +87,17 @@ class BaseHandler(object):
     decorators = tuple()
     endpoints = tuple()
 
-    @asyncio.coroutine
-    def get_payload(self, request):
+    async def get_payload(self, request: web.Request) -> dict:
         if 'application/json' in request.headers.get('CONTENT-TYPE'):
-            payload = yield from request.json()
+            payload = await request.json()
         else:
-            payload = yield from request.post()
+            payload = await request.post()
         return dict(payload)
 
-    def response(self, content, **kwargs):
+    def response(self, content: str, **kwargs) -> web.Response:
         return web.Response(body=content.encode('utf-8'), **kwargs)
 
-    def json_response(self, content, **kwargs):
+    def json_response(self, content: dict, **kwargs) -> web.Response:
         kwargs.setdefault('content_type', 'application/json')
         return self.response(ujson.dumps(content), **kwargs)
 
@@ -143,7 +145,7 @@ class BaseAPIHandler(BaseHandler):
         return instances
 
     @asyncio.coroutine
-    def create_instance(self, request, document):
+    def create_instance(self, request, document) -> tuple:
         with (yield from request.app.engine) as conn:
             try:
                 query = self.table.insert().values(**document)
@@ -156,8 +158,7 @@ class BaseAPIHandler(BaseHandler):
                 document.update(id=uid)
                 return document, {}
 
-    @asyncio.coroutine
-    def after_create_instance(self, request, instance):
+    async def after_create_instance(self, request, instance):
         pass
 
     @asyncio.coroutine
@@ -192,8 +193,7 @@ class BaseAPIHandler(BaseHandler):
                     raise web.HTTPNotFound(
                         text='%s not found' % self.resource_name)
 
-    @asyncio.coroutine
-    def after_update_instance(self, request, instance, before):
+    async def after_update_instance(self, request, instance, before):
         pass
 
     @asyncio.coroutine
@@ -204,12 +204,10 @@ class BaseAPIHandler(BaseHandler):
         if not result.rowcount:
             raise web.HTTPNotFound(text='%s not found' % self.resource_name)
 
-    @asyncio.coroutine
-    def after_remove_instance(self, request, instance):
+    async def after_remove_instance(self, request, instance):
         pass
 
-    @asyncio.coroutine
-    def validate_payload(self, request, payload, instance=None):
+    async def validate_payload(self, request, payload, instance=None):
         schema = self.schema
         if instance:
             schema = {}
@@ -226,11 +224,10 @@ class BaseAPIHandler(BaseHandler):
         return validator.document, None
 
     @allow_cors(methods=('GET', ))
-    @asyncio.coroutine
-    def get(self, request):
+    async def get(self, request):
         if 'instance_id' in request.match_info:
             instance_id = self.get_instance_id(request)
-            instance = yield from self.get_instance(request, instance_id)
+            instance = await self.get_instance(request, instance_id)
 
             if instance:
                 resource, errors = self.serializer.dump(instance, many=False)
@@ -238,7 +235,7 @@ class BaseAPIHandler(BaseHandler):
             else:
                 raise web.HTTPNotFound(text='%s not found' % self.resource_name)
         else:
-            instances = yield from self.get_collection(request)
+            instances = await self.get_collection(request)
             collection, errors = self.serializer.dump(instances, many=True)
 
             response = {
@@ -252,57 +249,56 @@ class BaseAPIHandler(BaseHandler):
         return self.json_response(response)
 
     @asyncio.coroutine
-    def post(self, request):
-        payload = yield from self.get_payload(request)
+    async def post(self, request):
+        payload = await self.get_payload(request)
 
-        document, errors = yield from self.validate_payload(request, payload)
+        document, errors = await self.validate_payload(request, payload)
         if errors:
             return self.json_response({'errors': errors}, status=400)
 
-        instance, errors = yield from self.create_instance(request, document)
+        instance, errors = await self.create_instance(request, document)
         if errors:
             return self.json_response({'errors': errors}, status=400)
 
-        yield from self.after_create_instance(request, instance)
+        await self.after_create_instance(request, instance)
 
         response, errors = self.serializer.dump(instance, many=False)
         return self.json_response({self.resource_name: response}, status=201)
 
     @asyncio.coroutine
-    def put(self, request):
+    async def put(self, request):
         instance_id = self.get_instance_id(request)
-        original = yield from self.get_instance(request, instance_id)
+        original = await self.get_instance(request, instance_id)
         if not original:
             raise web.HTTPNotFound(text='%s not found' % self.resource_name)
 
-        payload = yield from self.get_payload(request)
+        payload = await self.get_payload(request)
         instance = original.copy()
         instance.update(**payload)
 
-        document, errors = yield from self.validate_payload(request, payload,
+        document, errors = await self.validate_payload(request, payload,
                                                             instance)
         if errors:
             return self.json_response({'errors': errors}, status=400)
 
-        instance, errors = yield from self.update_instance(request, payload,
+        instance, errors = await self.update_instance(request, payload,
                                                            document)
         if errors:
             return self.json_response({'errors': errors}, status=400)
 
-        yield from self.after_update_instance(request, instance, original)
+        await self.after_update_instance(request, instance, original)
 
         response, errors = self.serializer.dump(instance, many=False)
         return self.json_response({self.resource_name: response})
 
     @allow_cors(methods=('DELETE', ))
-    @asyncio.coroutine
-    def delete(self, request):
+    async def delete(self, request):
         instance_id = self.get_instance_id(request)
-        instance = yield from self.get_instance(request, instance_id)
+        instance = await self.get_instance(request, instance_id)
         if not instance:
             raise web.HTTPNotFound(text='%s not found' % self.resource_name)
 
-        yield from self.remove_instance(request, instance)
-        yield from self.after_remove_instance(request, instance)
+        await self.remove_instance(request, instance)
+        await self.after_remove_instance(request, instance)
 
         return web.Response(text='removed')

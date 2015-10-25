@@ -1,4 +1,4 @@
-import asyncio
+from aiohttp import web
 
 from . import base
 
@@ -8,8 +8,7 @@ class IndexHandler(base.BaseHandler):
         ('GET', '/', 'index'),
     )
 
-    @asyncio.coroutine
-    def get(self, request):
+    async def get(self, request: web.Request) -> web.Response:
         return self.json_response({
             'project': request.app.config.get('PROJECT_NAME')
         })

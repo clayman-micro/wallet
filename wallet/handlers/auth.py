@@ -134,6 +134,5 @@ class LoginHandler(base.BaseHandler):
             })
 
     @base.allow_cors(methods=('POST', ))
-    @asyncio.coroutine
-    def options(self, request):
+    async def options(self, request):
         return web.Response(status=200)
