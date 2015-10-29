@@ -82,6 +82,16 @@ export default class BaseService {
         return this.request(url, params);
     }
 
+    getResource(url) {
+        let params = {
+            method: 'GET',
+            headers: { 'X-ACCESS-TOKEN': this._token, 'Content-Type': 'application/json' },
+            credentials: 'include'
+        };
+
+        return this.request(url, params);
+    }
+
     editResource(url, payload) {
         let params = {
             method: 'PUT',

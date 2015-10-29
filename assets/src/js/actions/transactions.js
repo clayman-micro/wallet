@@ -41,6 +41,25 @@ export function createTransaction(payload) {
 }
 
 
+const getTransactionRequest = makeActionCreator(ActionTypes.GET_TRANSACTION_REQUEST, 'transaction');
+const getTransactionResponse = makeActionCreator(ActionTypes.GET_TRANSACTION_RESPONSE, 'transaction', 'json');
+const getTransactionFailed = makeActionCreator(ActionTypes.GET_TRANSACTION_FAILED, 'transaction', 'errors');
+
+export function getTransaction(transaction) {
+    return (dispatch, getState) => {
+        dispatch(getTransactionRequest(transaction));
+
+        const { session } = getState();
+        if (session.accessToken && session.accessToken.isValid()) {
+            const service = new APIService(session.accessToken.value);
+            return service.getResource(APIEndpoints.RESOURCE.replace('{id}', transaction.id))
+                .then(response => dispatch(getTransactionResponse(transaction, response.data)))
+                .catch(errors => dispatch(getTransactionFailed(transaction, errors.data)));
+        }
+    };
+}
+
+
 const editTransactionRequest = makeActionCreator(ActionTypes.EDIT_TRANSACTION_REQUEST, 'transaction', 'payload');
 const editTransactionResponse = makeActionCreator(ActionTypes.EDIT_TRANSACTION_RESPONSE, 'transaction', 'json');
 const editTransactionFailed = makeActionCreator(ActionTypes.EDIT_TRANSACTION_FAILED, 'transaction', 'payload', 'errors');

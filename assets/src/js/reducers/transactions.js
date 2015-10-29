@@ -18,6 +18,10 @@ const mapHandlersToActions = {
     [ActionTypes.CREATE_TRANSACTION_RESPONSE]: 'createResourceResponse',
     [ActionTypes.CREATE_TRANSACTION_FAILED]: 'createResourceFailed',
 
+    [ActionTypes.GET_TRANSACTION_REQUEST]: 'getResourceRequest',
+    [ActionTypes.GET_TRANSACTION_RESPONSE]: 'getResourceResponse',
+    [ActionTypes.GET_TRANSACTION_FAILED]: 'getResourceFailed',
+
     [ActionTypes.EDIT_TRANSACTION_REQUEST]: 'editResourceRequest',
     [ActionTypes.EDIT_TRANSACTION_RESPONSE]: 'editResourceResponse',
     [ActionTypes.EDIT_TRANSACTION_FAILED]: 'editResourceFailed',
@@ -32,6 +36,8 @@ const transactions = createCRUDReducer(initialState, mapHandlersToActions, {
         status: StatusChoices.FETCH_DONE, items: [...action.json.transactions], errors: {} }),
     createResourceResponse: (state, action) => Object.assign({}, state, {
         status: StatusChoices.CREATE_DONE, items: [...state.items, action.json.transaction], errors: {} }),
+    getResourceResponse: (state, action) => Object.assign({}, state,
+        { items: [action.json.transaction], errors: {} }),
     editResourceResponse: (state, action) => Object.assign({}, state, {
         status: StatusChoices.EDIT_DONE,
         items: state.items.map(transaction =>
