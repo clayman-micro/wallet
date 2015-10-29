@@ -35,7 +35,7 @@ transaction_details_table = create_table('transaction_details', (
 
 
 def to_datetime(value):
-    return datetime.strptime(value, '%Y-%m-%d')
+    return datetime.strptime(value, '%Y-%m-%dT%H:%M:%S')
 
 
 transactions_schema = {

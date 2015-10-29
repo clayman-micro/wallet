@@ -38,10 +38,18 @@
   remote_user: "{{ project_user }}"
   sudo: True
 
-- name: Generate ssl certificate
-  shell: openssl req -newkey rsa:2048 -nodes -keyout {{ project_root }}/certs/cert.key -x509 -days 365 -out {{ project_root }}/certs/cert.crt -subj "/C=/ST=/L=/O=/CN={{ project_domain }}" creates={{ project_root }}/certs/cert.crt
+- name: Upload ssl certificate
+  copy: src="{{ project_certs }}/{{ item }}" dest="{{ project_root }}/certs/{{ item }}" owner="{{ project_user }}" group="{{ project_user }}" mode="u=r,g=r,o=r"
+  with_items:
+    - "wallet.crt"
+    - "wallet.key"
   remote_user: "{{ project_user }}"
   sudo: True
+
+# - name: Generate ssl certificate
+#   shell: openssl req -newkey rsa:2048 -nodes -keyout {{ project_root }}/certs/cert.key -x509 -days 365 -out {{ project_root }}/certs/cert.crt -subj "/C=/ST=/L=/O=/CN={{ project_domain }}" creates={{ project_root }}/certs/cert.crt
+#   remote_user: "{{ project_user }}"
+#   sudo: True
 
 - name: Extract web assets
   shell: tar -xzvf web.tar.gz chdir="{{ project_root }}"
