@@ -1,7 +1,7 @@
 import keyMirror from 'key-mirror';
 
 export const APIEndpoints = {
-    LOGIN: 'http://localhost:5000/auth/login'
+    LOGIN: '/auth/login'
 };
 
 export const ActionTypes = keyMirror({

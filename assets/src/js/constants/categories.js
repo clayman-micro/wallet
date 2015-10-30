@@ -1,8 +1,8 @@
 import keyMirror from 'keyMirror';
 
 export const APIEndpoints = {
-    COLLECTION: 'http://localhost:5000/api/categories',
-    RESOURCE: 'http://localhost:5000/api/categories/{id}'
+    COLLECTION: '/api/categories',
+    RESOURCE: '/api/categories/{id}'
 };
 
 export const ActionTypes = keyMirror({

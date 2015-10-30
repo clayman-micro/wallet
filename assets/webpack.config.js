@@ -10,26 +10,27 @@ var config = {
     entry: {
         vendor: ['react', 'react-dom', 'react-mixin',
                  'react-router', 'react-redux', 'redux', 'redux-router', 'redux-thunk',
-                 'redux-devtools', 'history', 'key-mirror'],
+                 'history', 'key-mirror'],
         app: './src/js/index.js',
         index: './src/htdocs/index.html'
     },
     output: {
-        path: path.join(__dirname, '..', 'build'),
-        filename: '[name].bundle.js',
+        path: path.join(__dirname, 'build'),
+        filename: 'assets/[name].bundle.js',
         publicPath: '/build/'
     },
     plugins: [
-        new webpack.optimize.CommonsChunkPlugin('vendor', 'vendor.bundle.js'),
-        new ExtractTextPlugin('bundle.css', { allChunks: true }),
+        new webpack.optimize.CommonsChunkPlugin('vendor', 'assets/vendor.bundle.js'),
+        new ExtractTextPlugin('assets/[name].bundle.css', { allChunks: true }),
         new webpack.HotModuleReplacementPlugin(),
         new webpack.NoErrorsPlugin(),
         new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify(NODE_ENV)
-        //})
+            DEBUG: NODE_ENV !== 'production',
+            HOST: JSON.stringify('http://localhost:5000')
+        })
         //new webpack.ProvidePlugin({
         //    fetch: 'imports?this=>global!exports?global.fetch!whatwg-fetch'
-        })
+        //})
     ],
     resolve: {
         root: path.join(__dirname, 'src'),
@@ -38,7 +39,8 @@ var config = {
     module: {
         loaders: [{
             test: /\.less$/,
-            loader: ExtractTextPlugin.extract('style-loader', 'css-loader?sourceMap!autoprefixer?browsers=last 2 version!less-loader?sourceMap')
+            loader: ExtractTextPlugin.extract('style-loader',
+                'css-loader?sourceMap!autoprefixer?browsers=last 2 version!less-loader?sourceMap')
         }, {
             test: /\.css$/,
             loader: ExtractTextPlugin.extract('style-loader', 'css-loader')
@@ -67,7 +69,7 @@ if (typeof process.env.NODE_ENV !== 'undefined' && process.env.NODE_ENV === 'pro
         path: './build',
         pathInfo: true,
         publicPath: '/build/',
-        filename: '[name].bundle.js'
+        filename: 'assets/[name].bundle.js'
     };
 
     config.plugins = config.plugins.concat([
