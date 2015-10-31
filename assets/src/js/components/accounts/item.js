@@ -1,63 +1,24 @@
-import React, { Component, PropTypes } from 'react';
-import classNames from 'classnames';
+import '../../../less/accounts/list-item.less';
 
-import TextInput from '../../components/common/TextInput';
+import React from 'react';
+import { Link } from 'react-router';
+import Icon from 'react-fa';
 
 
-class AccountItem extends Component {
-    constructor(props, context) {
-        super(props, context);
-        this.state = {
-            editing: false
-        };
-    }
-
-    handleDoubleClick() {
-        this.setState({ editing: true });
-    }
-
-    handleSave(account, name) {
-        if (name.length === 0) {
-            // delete account
-        } else if (this.props.account.name !== name) {
-            this.props.editAccount(account, { name: name });
-        }
-    }
-
-    render() {
-        const { account, removeAccount } = this.props;
-
-        let element;
-
-        if (this.state.editing) {
-            element = (
-                <TextInput text={account.name}
-                           editing={this.state.editing}
-                           onSave={(name) => this.handleSave(account, { name: name })} />
-            );
-        } else {
-            element = (
-                <div className="view">
-                    <label onDoubleClick={this.handleDoubleClick.bind(this)}>
-                        {account.name} - {account.original_amount}
-                    </label>
-                    <button className="destroy"
-                            onClick={() => removeAccount(account)} />
+export default function AccountItem(props) {
+    return (
+        <li className="objects-list__item">
+            <Link to={'/accounts/' + props.account.id}>
+                <div className="account">
+                    <div className="account__info">
+                        <div className="account__name">{props.account.name}</div>
+                        <div className="account__original">
+                            {props.account.original_amount}&nbsp;<Icon name="rub" />
+                        </div>
+                    </div>
+                    <div className="account__amount">{props.account.current_amount}&nbsp;<Icon name="rub" /></div>
                 </div>
-            );
-        }
-
-        return (
-            <li className={classNames({ editing: this.state.editing })}>{element}</li>
-        );
-    }
+            </Link>
+        </li>
+    );
 }
-
-
-AccountItem.propTypes = {
-    account: PropTypes.object.isRequired,
-    editAccount: PropTypes.func.isRequired,
-    removeAccount: PropTypes.func.isRequired
-};
-
-export default AccountItem;

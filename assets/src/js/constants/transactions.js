@@ -5,6 +5,11 @@ export const APIEndpoints = {
     RESOURCE: '/api/transactions/{id}'
 };
 
+export const TransactionTypes = {
+    INCOME: 'income',
+    EXPENSE: 'expense'
+};
+
 export const ActionTypes = keyMirror({
     GET_TRANSACTIONS_REQUEST: '',
     GET_TRANSACTIONS_RESPONSE: '',

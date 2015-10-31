@@ -1,4 +1,6 @@
-/* eslint no-underscore-dangle: 0 */
+/* eslint no-underscore-dangle: 0, no-else-return: 0 */
+/* global DEBUG, HOST */
+
 import 'isomorphic-fetch';
 
 
@@ -7,8 +9,14 @@ export default class BaseService {
         this._token = token;
     }
 
-    request(url, params) {
-        return fetch(url, params)
+    request(path, params) {
+        const url = [];
+        if (DEBUG) {
+            url.push(HOST);
+        }
+        url.push(path);
+
+        return fetch(url.join(''), params)
             .then(response => {
                 // check status
                 let contentType = response.headers.get('Content-Type');

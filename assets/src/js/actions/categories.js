@@ -1,4 +1,5 @@
 import { ActionTypes, APIEndpoints } from '../constants/categories';
+import { StatusChoices } from '../constants/status';
 import APIService from '../services/base';
 import { makeActionCreator } from './base';
 
@@ -20,6 +21,26 @@ export function getCategories() {
         }
     };
 }
+
+function shouldGetCategories(state) {
+    const { categories } = state;
+    if (!categories.items.length) {
+        return true;
+    } else if (categories.status === StatusChoices.FETCHING) {
+        return false;
+    }
+
+    return false;
+}
+
+export function getCategoriesIfNeeded() {
+    return (dispatch, getState) => {
+        if (shouldGetCategories(getState())) {
+            return dispatch(getCategories());
+        }
+    };
+}
+
 
 const createCategoryRequest = makeActionCreator(ActionTypes.CREATE_CATEGORY_REQUEST, 'payload');
 const createCategoryResponse = makeActionCreator(ActionTypes.CREATE_CATEGORY_RESPONSE, 'json');

@@ -1,9 +1,9 @@
 import React from 'react';
 
 
-export default function TransactionsPage(props) {
+export default function Wrapper(props) {
     return (
-        <div className="transactions-page">
+        <div className="wrapper">
             {props.children}
         </div>
     );

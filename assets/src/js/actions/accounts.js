@@ -1,4 +1,5 @@
 import { ActionTypes, APIEndpoints } from '../constants/accounts';
+import { StatusChoices } from '../constants/status';
 import APIService from '../services/base';
 import { makeActionCreator } from './base';
 
@@ -20,6 +21,26 @@ export function getAccounts() {
         }
     };
 }
+
+function shouldGetAccounts(state) {
+    const { accounts } = state;
+    if (!accounts.items.length) {
+        return true;
+    } else if (accounts.status === StatusChoices.FETCHING) {
+        return false;
+    }
+
+    return false;
+}
+
+export function getAccountsIfNeeded() {
+    return (dispatch, getState) => {
+        if (shouldGetAccounts(getState())) {
+            return dispatch(getAccounts());
+        }
+    };
+}
+
 
 const createAccountRequest = makeActionCreator(ActionTypes.CREATE_ACCOUNT_REQUEST, 'payload');
 const createAccountResponse = makeActionCreator(ActionTypes.CREATE_ACCOUNT_RESPONSE, 'json');

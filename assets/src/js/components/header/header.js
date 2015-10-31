@@ -5,25 +5,19 @@ import { goBack } from 'redux-router';
 
 
 class Header extends Component {
-
-    onLeftLinkClick(event) {
-        event.preventDefault();
-
-        this.props.dispatch(goBack());
-    }
-
     render() {
         const { leftLink, rightLink } = this.props;
 
         return (
             <header className="header">
                 <div className="header__title">{ this.props.title }</div>
-                { leftLink ?
-                    <Link className="header__link header__link_left"
-                        onClick={this.onLeftLinkClick.bind(this)}
+                { Object.keys(leftLink).length ?
+                    <Link className="header__link header__link_left" style={leftLink.style}
+                        onClick={leftLink.handle}
                         to={leftLink.path}>{leftLink.text}</Link> : '' }
-                { rightLink ?
-                    <Link className="header__link header__link_right"
+                { Object.keys(rightLink).length ?
+                    <Link className="header__link header__link_right" style={rightLink.style}
+                          onClick={rightLink.handle}
                         to={rightLink.path}>{rightLink.text}</Link> : '' }
             </header>
         );
@@ -39,7 +33,8 @@ Header.propTypes = {
 };
 
 Header.defaultProps = {
-    leftLink: { text: 'Back', path: '#' }
+    leftLink: { text: 'Back', path: '#' },
+    rightLink: {}
 };
 
 export default connect()(Header);

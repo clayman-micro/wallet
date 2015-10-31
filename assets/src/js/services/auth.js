@@ -1,5 +1,5 @@
 /* eslint no-else-return: 0 */
-/* global fetch */
+/* global fetch, DEBUG, HOST */
 
 import { APIEndpoints } from '../constants/session';
 
@@ -30,7 +30,13 @@ class AuthService {
             credentials: 'include'
         };
 
-        return fetch(APIEndpoints.LOGIN, params)
+        const url = [];
+        if (DEBUG) {
+            url.push(HOST);
+        }
+        url.push(APIEndpoints.LOGIN);
+
+        return fetch(url.join(''), params)
             .then(checkStatus);
     }
 }
