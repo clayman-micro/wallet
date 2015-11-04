@@ -11,7 +11,8 @@ class ManageForm extends BaseManageForm {
 
         this.state = {
             name: '',
-            original_amount: 0,
+            count: 1,
+            price_per_unit: 0,
             errors: {}
         };
     }
@@ -33,8 +34,12 @@ class ManageForm extends BaseManageForm {
             errors.name = 'Could not be empty';
         }
 
-        if (isNaN(payload.original_amount)) {
-            errors.original_amount = 'Should be numeric';
+        if (isNaN(payload.count)) {
+            errors.amount = 'Should be numeric';
+        }
+
+        if (isNaN(payload.price_per_unit)) {
+            errors.price_per_unit = 'Should be numeric';
         }
 
         if (Object.keys(errors).length) {
@@ -47,14 +52,16 @@ class ManageForm extends BaseManageForm {
     getStateFromInstance(instance) {
         return {
             name: instance.name,
-            original_amount: instance.original_amount
+            count: instance.count,
+            price_per_unit: instance.price_per_unit
         };
     }
 
     getPayload() {
         return {
             name: this.state.name,
-            original_amount: parseFloat(this.state.original_amount)
+            count: parseFloat(this.state.count),
+            price_per_unit: parseFloat(this.state.price_per_unit)
         };
     }
 
@@ -62,8 +69,9 @@ class ManageForm extends BaseManageForm {
         return (
             <form className="form">
                 {this.getField('name', 'Name')}
-                {this.getField('original_amount', 'Original amount')}
-                <button type="submit" className="form__submit" onClick={this.handleSubmit.bind(this)}>Submit</button>
+                {this.getField('price_per_unit', 'Price per unit')}
+                {this.getField('count', 'Count')}
+                {this.getSubmitButton()}
             </form>
         );
     }

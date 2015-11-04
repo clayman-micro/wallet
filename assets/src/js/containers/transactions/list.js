@@ -45,7 +45,7 @@ class TransactionList extends React.Component {
 }
 
 TransactionList.propTypes = {
-    // Props from State
+    // Props from Store
     categories: React.PropTypes.object.isRequired,
     transactions: React.PropTypes.object.isRequired,
 

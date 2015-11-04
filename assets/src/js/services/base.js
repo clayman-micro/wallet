@@ -45,6 +45,7 @@ export default class BaseService {
                 }
             }).catch(error => {
                 // handle error
+                console.log(errors);
                 let response = error.response;
                 if (typeof response !== 'undefined') {
                     let contentType = response.headers.get('Content-Type');

@@ -22,6 +22,8 @@ import ManageCategory from './containers/categories/manage';
 import TransactionList from './containers/transactions/list';
 import ManageTransaction from './containers/transactions/manage';
 
+import DetailsList from './containers/details/list';
+import ManageDetail from './containers/details/manage';
 
 const store = configureStore();
 
@@ -62,6 +64,9 @@ function Root() {
                         <IndexRoute component={TransactionList} />
                         <Route path="add" component={ManageTransaction} />
                         <Route path=":instanceID" component={ManageTransaction} />
+                        <Route path=":transactionID/details" component={DetailsList} />
+                        <Route path=":transactionID/details/add" component={ManageDetail} />
+                        <Route path=":transactionID/details/:instanceID" component={ManageDetail} />
                     </Route>
                 </Route>
                 <Route path="/login" component={LoginPage} onEnter={anonymousOnly} />

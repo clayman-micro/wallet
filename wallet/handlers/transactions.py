@@ -165,6 +165,9 @@ def transaction_required(f):
             coro = asyncio.coroutine(f)
         request = args[-1]
 
+        if request.method == 'OPTIONS':
+            return (yield from coro(*args, **kwargs))
+
         transaction_id = request.match_info['transaction_id']
 
         with (yield from request.app.engine) as conn:
@@ -220,6 +223,9 @@ class TransactionDetailAPIHandler(base.BaseAPIHandler):
         ('OPTIONS', '/transactions/{transaction_id}/details/{instance_id}',
             'transaction_detail_cors')
     )
+
+    async def options(self, request):
+        return web.Response(status=200)
 
     def get_collection_query(self, request):
         transaction_id = request.match_info['transaction_id']

@@ -78,3 +78,4 @@ class TransactionDetailSerializer(Schema):
     price_per_unit = fields.Float()
     count = fields.Float()
     total = fields.Float()
+    transaction_id = fields.Integer()

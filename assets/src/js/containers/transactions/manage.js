@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router';
 import { connect } from 'react-redux';
 import { pushState } from 'redux-router';
 import Icon from 'react-fa';
@@ -88,8 +89,12 @@ class ManageTransaction extends React.Component {
             };
         }
 
+        const style = { margin: '10px', display: 'block', borderBottom: 'none' };
+
         return (
             <Page title={title} leftLink={leftLink} rightLink={rightLink} >
+                { Object.keys(transaction).length ?
+                    <Link style={style} to={'/transactions/' + transaction.id + '/details'}>Details</Link> : ''}
                 <ManageForm
                     accounts={accounts}
                     categories={categories}

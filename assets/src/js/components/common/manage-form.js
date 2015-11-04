@@ -1,12 +1,36 @@
 /* eslint camelcase: 0 */
 
 import React from 'react';
+import isEqual from 'lodash/lang/isEqual';
 import classNames from 'classnames';
 
 
-export default class ManageForm extends React.Component {
+class ManageForm extends React.Component {
     handleChange(field, event) {
         this.setState({ [field]: event.target.value });
+    }
+
+    handleSubmit(event) {
+        event.preventDefault();
+
+        const payload = this.getPayload();
+
+        try {
+            this.validatePayload(payload);
+            this.props.submitHandler(payload);
+        } catch (err) {
+            this.setState({ errors: err.errors });
+        }
+    }
+
+    validatePayload() {
+        let errors = {};
+
+        if (Object.keys(errors).length) {
+            let error = new Error('Bad payload');
+            error.errors = errors;
+            throw error;
+        }
     }
 
     getField(name, label, type = 'text', placeholder = '', choices = []) {
@@ -49,4 +73,48 @@ export default class ManageForm extends React.Component {
             </div>
         );
     }
+
+    getSubmitButton() {
+        return (
+            <button type="submit" className="form__submit" onClick={this.handleSubmit.bind(this)}>Submit</button>
+        );
+    }
+
+    updateFromState(props) {
+        const { instance, collection } = props;
+        let nextState = {};
+
+        if (Object.keys(instance).length && !isEqual(this.props.instance, instance)) {
+            nextState = this.getStateFromInstance(instance);
+        }
+
+        if (Object.keys(collection.errors).length) {
+            nextState = Object.assign({}, nextState, collection.errors);
+        }
+
+        if (Object.keys(nextState).length) {
+            this.setState(nextState);
+        }
+    }
+
+    getPayload() {
+        return {};
+    }
+
+    getStateFromInstance(instance) {
+        return instance;
+    }
 }
+
+
+ManageForm.propTypes = {
+    instance: React.PropTypes.object.isRequired,
+    collection: React.PropTypes.object.isRequired,
+    submitHandler: React.PropTypes.object.isRequired
+};
+
+ManageForm.defaultProps = {
+    instance: {}
+};
+
+export default ManageForm;
