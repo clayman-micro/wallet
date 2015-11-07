@@ -5,7 +5,7 @@ ANSIBLE_TAGS=ENV['ANSIBLE_TAGS']
 
 Vagrant.configure("2") do |config|
   config.vm.provider :virtualbox do |vb|
-    vb.customize ["modifyvm", :id, "--memory", "512"]
+    vb.customize ["modifyvm", :id, "--memory", "1024"]
   end
 
   config.vm.define "wallet" do |wallet|
@@ -28,9 +28,10 @@ Vagrant.configure("2") do |config|
         common_user: 'clayman',
         common_user_password: '$6$rounds=100000$.8T6PFb3OsCTxhhx$lEW5mbxgI5wTBA5NU27iB51YeI./ljG9tlkygQ6NOwIRAMuS8qnp3UAqEQNO5hTI5OaDxFL6XLJQSh67qAEkO0',
 
+        project_env: 'vagrant',
         project_user: 'clayman',
         project_name: 'wallet',
-        project_domain: 'wallet.clayman.pro',
+        project_domain: 'wallet.dev.clayman.pro',
         project_socket: 'wallet:5000',
         project_venv: '/vagrant',
         project_assets: '/vagrant/wallet',

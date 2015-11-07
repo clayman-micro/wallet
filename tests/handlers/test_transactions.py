@@ -126,7 +126,7 @@ class TestTransactionCollection(BaseTransactionTest):
         params['data'] = {'description': 'Meal', 'amount': 300.0,
                           'type': transactions.INCOME_TRANSACTION,
                           'account_id': account_id, 'category_id': category_id,
-                          'created_on': '2015-08-20'}
+                          'created_on': '2015-08-20T00:00:00'}
         params['headers'] = {'X-ACCESS-TOKEN': token}
         params['url'] = server.reverse_url('api.create_transaction')
 
@@ -214,7 +214,6 @@ class TestTransactionResource(BaseTransactionTest):
         with (yield from server.response_ctx(method, **params)) as response:
             assert response.status == 404
 
-    @pytest.mark.undefined
     @pytest.mark.parametrize('method,endpoint', (
         ('GET', 'api.get_transaction'),
         ('PUT', 'api.update_transaction'),
@@ -374,6 +373,7 @@ class TestTransactionDetailsCollection(BaseTransactionDetailTest):
 
             expected = {'id': detail_id, 'name': 'Soup',
                         'price_per_unit': 300.0, 'count': 1.0,
+                        'transaction_id': transaction_id,
                         'total': 300.0}
 
             response = yield from resp.json()
@@ -455,6 +455,7 @@ class TestTransactionDetailsCollection(BaseTransactionDetailTest):
             assert resp.status == 201
 
             expected = {'id': 1, 'name': 'Soup',
+                        'transaction_id': transaction_id,
                         'price_per_unit': 300.0, 'count': 1.0, 'total': 300.0}
 
             response = yield from resp.json()
@@ -511,7 +512,6 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
         with (yield from server.response_ctx(method, **params)) as response:
             assert response.status == 401
 
-    @pytest.mark.transactions
     @pytest.mark.parametrize('method,endpoint', (
         ('GET', 'api.get_detail'),
         ('PUT', 'api.update_detail'),
@@ -582,7 +582,6 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
             assert resp.status == 200
 
             detail['id'] = detail_id
-            del detail['transaction_id']
 
             response = yield from resp.json()
             assert 'detail' in response
@@ -609,7 +608,6 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
 
         detail['id'] = detail_id
         detail['price_per_unit'] = 270.0
-        del detail['transaction_id']
 
         with (yield from server.response_ctx('PUT', **params)) as resp:
             assert resp.status == 200
