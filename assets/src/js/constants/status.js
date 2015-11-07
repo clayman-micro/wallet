@@ -1,4 +1,4 @@
-import keyMirror from 'keyMirror';
+import keyMirror from 'keymirror';
 
 export const StatusChoices = keyMirror({
     INITIAL: '',

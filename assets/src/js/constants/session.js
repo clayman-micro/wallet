@@ -1,4 +1,4 @@
-import keyMirror from 'key-mirror';
+import keyMirror from 'keymirror';
 
 export const APIEndpoints = {
     LOGIN: '/auth/login'

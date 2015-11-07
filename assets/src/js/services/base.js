@@ -11,8 +11,8 @@ export default class BaseService {
 
     request(path, params) {
         const url = [];
-        if (DEBUG) {
-            url.push(HOST);
+        if (typeof DEBUG !== 'undefined' ? DEBUG : true) {
+            url.push(typeof HOST !== 'undefined' ? HOST : 'http://localhost:5000');
         }
         url.push(path);
 
@@ -45,7 +45,6 @@ export default class BaseService {
                 }
             }).catch(error => {
                 // handle error
-                console.log(errors);
                 let response = error.response;
                 if (typeof response !== 'undefined') {
                     let contentType = response.headers.get('Content-Type');
