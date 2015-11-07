@@ -49,7 +49,7 @@ setup(
     author_email='clayman74@gmail.com',
     description='Aiohttp boilerplate project',
 
-    zip_safe=False,
+    zip_safe=True,
     include_package_data=True,
 
     packages=find_packages(exclude=['tests', ]),

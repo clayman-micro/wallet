@@ -5,4 +5,4 @@
   hosts: all
   roles:
     - { role: app, deploy: True, bootstrap: False, backup: False }
-    - role: web
+    - { role: web, deploy: True, bootstrap: False }

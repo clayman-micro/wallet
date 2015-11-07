@@ -12,9 +12,8 @@ Vagrant.configure("2") do |config|
     wallet.vm.box = "ubuntu/trusty64"
     wallet.vm.hostname = "wallet"
 
-    wallet.vm.network "forwarded_port", guest: 80, host: 9000
-    wallet.vm.network "forwarded_port", guest: 8000, host: 9001
     wallet.vm.network "private_network", type: "dhcp"
+    wallet.vm.network :public_network, ip: "192.168.1.25", :bridge => "en1: Wi-Fi (Airport)"
 
     wallet.vm.synced_folder ".", "/vagrant", type: "nfs"
   end

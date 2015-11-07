@@ -1,3 +1,0 @@
----
-consul_image: progrium/consul:latest
-consul_container: consul

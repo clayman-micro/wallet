@@ -7,7 +7,6 @@ RUN apt-get install -y --force-yes software-properties-common && \
     apt-get install -y --force-yes nginx
 
 # Copy nginx config
-COPY wallet.nginx.conf /etc/nginx/conf.d/wallet.conf
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Remove default site

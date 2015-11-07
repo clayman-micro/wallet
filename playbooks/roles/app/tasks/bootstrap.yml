@@ -10,25 +10,25 @@
   sudo: True
 
 - name: Check db user already exist
-  shell: docker run --rm -e PGPASSWORD='docker' --link {{ postgres_container }}:postgres {{ postgres_image }} psql -h postgres -d docker -U docker -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ project_db_user }}';"
+  shell: docker run --rm -e PGPASSWORD='docker' --net=backend {{ postgres_image }} psql -h postgres -d docker -U docker -tAc "SELECT 1 FROM pg_roles WHERE rolname='{{ project_db_user }}';"
   register: output
   remote_user: "{{ project_user }}"
   sudo: True
 
 - name: Create project db user
-  shell: docker run --rm -e PGPASSWORD="docker" --link {{ postgres_container }}:postgres {{ postgres_image }} psql -h postgres -d docker -U docker -c "CREATE USER {{ project_db_user }} WITH CREATEDB NOSUPERUSER PASSWORD '{{ project_db_password }}';"
+  shell: docker run --rm -e PGPASSWORD="docker" --net=backend {{ postgres_image }} psql -h postgres -d docker -U docker -c "CREATE USER {{ project_db_user }} WITH CREATEDB NOSUPERUSER PASSWORD '{{ project_db_password }}';"
   when: output.stdout.find('1') == -1
   remote_user: "{{ project_user }}"
   sudo: True
 
 - name: Check db already exist
-  shell: docker run --rm -e PGPASSWORD="docker" --link {{ postgres_container }}:postgres {{ postgres_image }} psql -h postgres -d docker -U docker -tAc "SELECT 1 FROM pg_database WHERE datname='{{ project_db_name }}';"
+  shell: docker run --rm -e PGPASSWORD="docker" --net=backend {{ postgres_image }} psql -h postgres -d docker -U docker -tAc "SELECT 1 FROM pg_database WHERE datname='{{ project_db_name }}';"
   register: output
   remote_user: "{{ project_user }}"
   sudo: True
 
 - name: Create project db
-  shell: docker run --rm -e PGPASSWORD="docker" --link {{ postgres_container }}:postgres {{ postgres_image }} psql -h postgres -d docker -U docker -c "CREATE DATABASE {{ item }} WITH OWNER {{ project_db_user }};"
+  shell: docker run --rm -e PGPASSWORD="docker" --net=backend {{ postgres_image }} psql -h postgres -d docker -U docker -c "CREATE DATABASE {{ item }} WITH OWNER {{ project_db_user }};"
   with_items:
     - "{{ project_db_name }}"
     - "{{ project_db_name }}_tests"

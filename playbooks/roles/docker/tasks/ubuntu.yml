@@ -3,9 +3,6 @@
 - name: Add docker.io repo
   apt_repository: repo='deb https://get.docker.com/ubuntu docker main' state=present
 
-# - name: Add docker.io repo key
-#   apt_key: url=https://get.docker.io/gpg state=present
-
 - name: Install docker
   apt: name=lxc-docker update_cache=yes state=installed force=yes
 
@@ -14,3 +11,9 @@
 
 - name: Create folder for containers logs
   file: path=/var/log/containers/ state=directory
+
+- name: Create networks
+  shell: docker network ls | grep {{ item }} || docker network create {{ item }}
+  with_items:
+    - backend
+    - frontend

@@ -16,12 +16,12 @@ var config = {
     },
     output: {
         path: path.join(__dirname, 'build'),
-        filename: 'assets/[name].bundle.js',
-        publicPath: '/build/'
+        filename: '[name].bundle.js',
+        publicPath: '/'
     },
     plugins: [
-        new webpack.optimize.CommonsChunkPlugin('vendor', 'assets/vendor.bundle.js'),
-        new ExtractTextPlugin('assets/[name].bundle.css', { allChunks: true }),
+        new webpack.optimize.CommonsChunkPlugin('vendor', 'vendor.bundle.js'),
+        new ExtractTextPlugin('[name].bundle.css', { allChunks: true }),
         new webpack.HotModuleReplacementPlugin(),
         new webpack.NoErrorsPlugin(),
         new webpack.DefinePlugin({
@@ -68,8 +68,8 @@ if (typeof process.env.NODE_ENV !== 'undefined' && process.env.NODE_ENV === 'pro
     config.output = {
         path: './build',
         pathInfo: true,
-        publicPath: '/build/',
-        filename: 'assets/[name].bundle.js'
+        publicPath: '/',
+        filename: '[name].bundle.js'
     };
 
     config.plugins = config.plugins.concat([

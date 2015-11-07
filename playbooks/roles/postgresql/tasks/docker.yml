@@ -20,7 +20,7 @@
   when: containers.stdout.find('{{postgres_container}}') != -1
 
 - name: Create postgresql container
-  shell: docker create --name {{postgres_container}} --volumes-from {{postgres_container}}_data -p 5432:5432 --restart=always {{postgres_image}}
+  shell: docker create --name {{postgres_container}} --volumes-from {{postgres_container}}_data --net=backend --restart=always {{postgres_image}}
 
 - name: Start postgresql container
   shell: docker start {{postgres_container}}
