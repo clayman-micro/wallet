@@ -137,7 +137,8 @@ class TransactionAPIHandler(base.BaseAPIHandler):
         join = sqlalchemy.join(self.table, accounts_alias,
                                accounts_alias.c.id == self.table.c.account_id)
         return self.table.select().select_from(join).where(
-            accounts_alias.c.owner_id == request.owner.get('id'))
+            accounts_alias.c.owner_id == request.owner.get('id')).order_by(
+                self.table.c.created_on.desc())
 
     def get_instance_query(self, request, instance_id):
         accounts_alias = accounts.accounts_table.alias()
