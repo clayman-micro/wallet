@@ -10,7 +10,7 @@ var config = {
     entry: {
         vendor: ['react', 'react-dom', 'react-mixin',
                  'react-router', 'react-redux', 'redux', 'redux-router', 'redux-thunk',
-                 'history', 'key-mirror'],
+                 'history', 'keymirror'],
         app: './src/js/index.js',
         index: './src/htdocs/index.html'
     },
@@ -26,11 +26,9 @@ var config = {
         new webpack.NoErrorsPlugin(),
         new webpack.DefinePlugin({
             DEBUG: NODE_ENV !== 'production',
+            TESTING: NODE_ENV === 'testing',
             HOST: JSON.stringify('http://localhost:5000')
         })
-        //new webpack.ProvidePlugin({
-        //    fetch: 'imports?this=>global!exports?global.fetch!whatwg-fetch'
-        //})
     ],
     resolve: {
         root: path.join(__dirname, 'src'),

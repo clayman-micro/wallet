@@ -1,5 +1,5 @@
 /* eslint no-else-return: 0 */
-/* global fetch, DEBUG, HOST */
+/* global fetch, TESTING, HOST */
 
 import { APIEndpoints } from '../constants/session';
 
@@ -31,7 +31,7 @@ class AuthService {
         };
 
         const url = [];
-        if (DEBUG) {
+        if (typeof TESTING !== 'undefined' ? TESTING : true) {
             url.push(HOST);
         }
         url.push(APIEndpoints.LOGIN);

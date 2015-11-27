@@ -1,5 +1,5 @@
 /* eslint no-underscore-dangle: 0, no-else-return: 0 */
-/* global DEBUG, HOST */
+/* global HOST, TESTING */
 
 import 'isomorphic-fetch';
 
@@ -11,7 +11,7 @@ export default class BaseService {
 
     request(path, params) {
         const url = [];
-        if (typeof DEBUG !== 'undefined' ? DEBUG : true) {
+        if (typeof TESTING !== 'undefined' ? TESTING : true) {
             url.push(typeof HOST !== 'undefined' ? HOST : 'http://localhost:5000');
         }
         url.push(path);
