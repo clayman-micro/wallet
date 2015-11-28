@@ -43,7 +43,8 @@ export default class BaseService {
                     error.response = response;
                     return Promise.reject(error);
                 }
-            }).catch(error => {
+            })
+            .catch(error => {
                 // handle error
                 let response = error.response;
                 if (typeof response !== 'undefined') {

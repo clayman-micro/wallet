@@ -65,7 +65,7 @@ describe('Transaction actions', () => {
                 });
                 dispatchSpy.secondCall.should.have.been.calledWith({
                     type: ActionTypes.GET_TRANSACTIONS_FAILED,
-                    errors: 'Forbidden'
+                    errors: {}
                 });
             });
         });

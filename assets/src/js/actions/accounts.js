@@ -2,6 +2,7 @@ import { ActionTypes, APIEndpoints } from '../constants/accounts';
 import { StatusChoices } from '../constants/status';
 import APIService from '../services/base';
 import { makeActionCreator } from './base';
+import { authRequired } from './auth';
 
 
 const getAccountsRequest = makeActionCreator(ActionTypes.GET_ACCOUNTS_REQUEST);
@@ -12,13 +13,11 @@ export function getAccounts() {
     return (dispatch, getState) => {
         dispatch(getAccountsRequest());
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.getCollection(APIEndpoints.COLLECTION)
-                .then(response => dispatch(getAccountsResponse(response.data)))
-                .catch(errors => dispatch(getAccountsFailed(errors.data)));
-        }
+                .then(response => dispatch(getAccountsResponse(response.data)));
+        }, getAccountsFailed);
     };
 }
 
@@ -50,13 +49,11 @@ export function createAccount(payload) {
     return (dispatch, getState) => {
         dispatch(createAccountRequest(payload));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.createResource(APIEndpoints.COLLECTION, payload)
-                .then(response => dispatch(createAccountResponse(response.data)))
-                .catch(errors => dispatch(createAccountFailed(payload, errors.data)));
-        }
+                .then(response => dispatch(createAccountResponse(response.data)));
+        }, createAccountFailed.bind(this, payload));
     };
 }
 
@@ -68,13 +65,11 @@ export function editAccount(account, payload) {
     return (dispatch, getState) => {
         dispatch(editAccountRequest(account, payload));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.editResource(APIEndpoints.RESOURCE.replace('{id}', account.id), payload)
-                .then(response => dispatch(editAccountResponse(account, response.data)))
-                .catch(errors => dispatch(editAccountFailed(account, payload, errors.data)));
-        }
+                .then(response => dispatch(editAccountResponse(account, response.data)));
+        }, editAccountFailed.bind(this, account, payload));
     };
 }
 
@@ -86,12 +81,10 @@ export function removeAccount(account) {
     return (dispatch, getState) => {
         dispatch(removeAccountRequest(account));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.removeResource(APIEndpoints.RESOURCE.replace('{id}', account.id))
-                .then(() => dispatch(removeAccountResponse(account)))
-                .catch(errors => dispatch(removeAccountFailed(account, errors.data)));
-        }
+                .then(() => dispatch(removeAccountResponse(account)));
+        }, removeAccountFailed.bind(this, account));
     };
 }

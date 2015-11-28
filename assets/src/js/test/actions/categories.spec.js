@@ -65,7 +65,7 @@ describe('Category actions', () => {
                 });
                 dispatchSpy.secondCall.should.have.been.calledWith({
                     type: ActionTypes.GET_CATEGORIES_FAILED,
-                    errors: 'Forbidden'
+                    errors: {}
                 });
             });
         });

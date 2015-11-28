@@ -10,7 +10,7 @@ class Header extends React.Component {
         if (Object.keys(options).length) {
             const buttonClass = classNames('header__button', className);
             content = (
-                <Link className={buttonClass} style={options.style} to={options.path} onClick={options.handler}>
+                <Link className={buttonClass} style={options.style} to={options.path} onClick={options.handle}>
                     {options.text}
                 </Link>
             );

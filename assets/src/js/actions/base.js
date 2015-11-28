@@ -7,3 +7,8 @@ export function makeActionCreator(type, ...argNames) {
         return action;
     };
 }
+
+
+export function handleError(error) {
+
+}

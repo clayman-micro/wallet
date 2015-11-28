@@ -2,6 +2,7 @@ import { ActionTypes, APIEndpoints } from '../constants/categories';
 import { StatusChoices } from '../constants/status';
 import APIService from '../services/base';
 import { makeActionCreator } from './base';
+import { authRequired } from './auth';
 
 
 const getCategoriesRequest = makeActionCreator(ActionTypes.GET_CATEGORIES_REQUEST);
@@ -12,13 +13,11 @@ export function getCategories() {
     return (dispatch, getState) => {
         dispatch(getCategoriesRequest());
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.getCollection(APIEndpoints.COLLECTION)
-                .then(response => dispatch(getCategoriesResponse(response.data)))
-                .catch(errors => dispatch(getCategoriesFailed(errors.data)));
-        }
+                .then(response => dispatch(getCategoriesResponse(response.data)));
+        }, getCategoriesFailed);
     };
 }
 
@@ -50,13 +49,11 @@ export function createCategory(payload) {
     return (dispatch, getState) => {
         dispatch(createCategoryRequest(payload));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.createResource(APIEndpoints.COLLECTION, payload)
-                .then(response => dispatch(createCategoryResponse(response.data)))
-                .catch(errors => dispatch(createCategoryFailed(payload, errors.data)));
-        }
+                .then(response => dispatch(createCategoryResponse(response.data)));
+        }, createCategoryFailed.bind(this, payload));
     };
 }
 
@@ -69,13 +66,11 @@ export function editCategory(category, payload) {
     return (dispatch, getState) => {
         dispatch(editCategoryRequest(category, payload));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.editResource(APIEndpoints.RESOURCE.replace('{id}', category.id), payload)
-                .then(response => dispatch(editCategoryResponse(category, response.data)))
-                .catch(errors => dispatch(editCategoryFailed(category, payload, errors.data)));
-        }
+                .then(response => dispatch(editCategoryResponse(category, response.data)));
+        }, editCategoryFailed.bind(this, category, payload));
     };
 }
 
@@ -88,12 +83,10 @@ export function removeCategory(category) {
     return (dispatch, getState) => {
         dispatch(removeCategoryRequest(category));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.removeResource(APIEndpoints.RESOURCE.replace('{id}', category.id))
-                .then(() => dispatch(removeCategoryResponse(category)))
-                .catch(errors => dispatch(removeCategoryFailed(category, errors.data)));
-        }
+                .then(() => dispatch(removeCategoryResponse(category)));
+        }, removeCategoryFailed.bind(this, category));
     };
 }

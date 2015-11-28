@@ -1,6 +1,7 @@
 import { ActionTypes, APIEndpoints } from '../constants/transactions';
 import APIService from '../services/base';
 import { makeActionCreator } from './base';
+import { authRequired } from './auth';
 
 
 const getTransactionsRequest = makeActionCreator(ActionTypes.GET_TRANSACTIONS_REQUEST);
@@ -11,13 +12,11 @@ export function getTransactions() {
     return (dispatch, getState) => {
         dispatch(getTransactionsRequest());
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.getCollection(APIEndpoints.COLLECTION)
-                .then(response => dispatch(getTransactionsResponse(response.data)))
-                .catch(errors => dispatch(getTransactionsFailed(errors.data)));
-        }
+                .then(response => dispatch(getTransactionsResponse(response.data)));
+        }, getTransactionsFailed);
     };
 }
 
@@ -30,13 +29,11 @@ export function createTransaction(payload) {
     return (dispatch, getState) => {
         dispatch(createTransactionRequest(payload));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.createResource(APIEndpoints.COLLECTION, payload)
-                .then(response => dispatch(createTransactionResponse(response.data)))
-                .catch(errors => dispatch(createTransactionFailed(payload, errors.data)));
-        }
+                .then(response => dispatch(createTransactionResponse(response.data)));
+        }, createTransactionFailed.bind(this, payload));
     };
 }
 
@@ -49,13 +46,11 @@ export function getTransaction(transaction) {
     return (dispatch, getState) => {
         dispatch(getTransactionRequest(transaction));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.getResource(APIEndpoints.RESOURCE.replace('{id}', transaction.id))
-                .then(response => dispatch(getTransactionResponse(transaction, response.data)))
-                .catch(errors => dispatch(getTransactionFailed(transaction, errors.data)));
-        }
+                .then(response => dispatch(getTransactionResponse(transaction, response.data)));
+        }, getTransactionFailed.bind(this, transaction));
     };
 }
 
@@ -68,13 +63,11 @@ export function editTransaction(transaction, payload) {
     return (dispatch, getState) => {
         dispatch(editTransactionRequest(transaction, payload));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.editResource(APIEndpoints.RESOURCE.replace('{id}', transaction.id), payload)
-                .then(response => dispatch(editTransactionResponse(transaction, response.data)))
-                .catch(errors => dispatch(editTransactionFailed(transaction, payload, errors.data)));
-        }
+                .then(response => dispatch(editTransactionResponse(transaction, response.data)));
+        }, editTransactionFailed.bind(this, transaction, payload));
     };
 }
 
@@ -87,13 +80,11 @@ export function removeTransaction(transaction) {
     return (dispatch, getState) => {
         dispatch(removeTransactionRequest(transaction));
 
-        const { session } = getState();
-        if (session.accessToken && session.accessToken.isValid()) {
-            const service = new APIService(session.accessToken.value);
+        return authRequired(dispatch, getState, (token) => {
+            const service = new APIService(token);
             return service.removeResource(APIEndpoints.RESOURCE.replace('{id}', transaction.id))
-                .then(() => dispatch(removeTransactionResponse(transaction)))
-                .catch(errors => dispatch(removeTransactionFailed(transaction, errors.data)));
-        }
+                .then(() => dispatch(removeTransactionResponse(transaction)));
+        }, removeTransactionFailed.bind(this, transaction));
     };
 }
 
