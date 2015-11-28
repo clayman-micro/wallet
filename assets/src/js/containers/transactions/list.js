@@ -17,19 +17,19 @@ class TransactionList extends React.Component {
 
     render() {
         const { categories, transactions } = this.props;
-        const leftLink = {
+        const leftButton = {
             text: (<span><Icon name="chevron-left" /></span>),
             style: { fontSize: '20px', padding: '15px 5px 11px' },
             path: '/'
         };
-        const rightLink = {
+        const rightButton = {
             text: (<Icon name="plus" />),
             style: { fontSize: '20px', padding: '15px 5px 11px' },
             path: '/transactions/add'
         };
 
         return (
-            <Page title="Transactions" leftLink={leftLink} rightLink={rightLink}>
+            <Page title="Transactions" leftButton={leftButton} rightButton={rightButton}>
                 <ul className="transactions-list objects-list">
                     { transactions.items.map(transaction =>
                         <TransactionItem

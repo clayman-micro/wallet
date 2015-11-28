@@ -53,14 +53,14 @@ class ManageDetail extends ManagePage {
         let instance = this.getInstance();
 
         let title = 'Add detail';
-        let rightLink = {};
+        let rightButton = {};
         if (instanceID) {
             title = 'Edit detail';
-            rightLink = this.getRightLink(instance);
+            rightButton = this.getRightLink(instance);
         }
 
         return (
-            <Page title={title} leftLink={this.getLeftLink()} rightLink={rightLink} >
+            <Page title={title} leftButton={this.getLeftLink()} rightButton={rightButton} >
                 <ManageForm
                     collection={this.props.collection}
                     instance={instance}

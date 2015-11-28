@@ -8,7 +8,11 @@ class Page extends React.Component {
     render() {
         return (
             <div className={classNames('page', this.props.className)}>
-                <Header title={this.props.title} rightLink={this.props.rightLink} leftLink={this.props.leftLink} />
+                <Header
+                    title={this.props.title}
+                    leftButton={this.props.leftButton}
+                    rightButton={this.props.rightButton}
+                />
                 <div className="page__content">
                     {this.props.children}
                 </div>
@@ -20,8 +24,8 @@ class Page extends React.Component {
 Page.propTypes = {
     className: React.PropTypes.string.isRequired,
     title: React.PropTypes.string.isRequired,
-    leftLink: React.PropTypes.object.isRequired,
-    rightLink: React.PropTypes.object.isRequired,
+    leftButton: React.PropTypes.object.isRequired,
+    rightButton: React.PropTypes.object.isRequired,
 
     children: React.PropTypes.node
 };

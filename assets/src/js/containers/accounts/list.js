@@ -14,19 +14,19 @@ class AccountsList extends React.Component {
     }
 
     render() {
-        const leftLink = {
+        const leftButton = {
             text: (<span><Icon name="chevron-left" /></span>),
             style: { fontSize: '20px', padding: '15px 5px 11px' },
             path: '/'
         };
-        const rightLink = {
+        const rightButton = {
             text: (<Icon name="plus" />),
             style: { fontSize: '20px', padding: '15px 5px 11px' },
             path: '/accounts/add'
         };
 
         return (
-            <Page title="Accounts" leftLink={leftLink} rightLink={rightLink}>
+            <Page title="Accounts" leftLink={leftButton} rightLink={rightButton}>
                 <ul className="objects-list">
                     { this.props.accounts.items.map((account, index) =>
                         <AccountItem key={index} account={account} />

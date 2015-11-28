@@ -72,8 +72,8 @@ class ManageTransaction extends React.Component {
         let transaction = this.getTransaction();
 
         let title = 'Add transaction';
-        let rightLink = {};
-        const leftLink = {
+        let rightButton = {};
+        const leftButton = {
             text: (<span><Icon name="chevron-left" /></span>),
             style: { fontSize: '20px', padding: '15px 5px 11px' },
             path: '/transactions'
@@ -81,7 +81,7 @@ class ManageTransaction extends React.Component {
 
         if (instanceID) {
             title = 'Edit transaction';
-            rightLink = {
+            rightButton = {
                 text: (<Icon name="trash-o" />),
                 style: { fontSize: '20px', padding: '13px 0' },
                 path: '#',
@@ -92,7 +92,7 @@ class ManageTransaction extends React.Component {
         const style = { margin: '10px', display: 'block', borderBottom: 'none' };
 
         return (
-            <Page title={title} leftLink={leftLink} rightLink={rightLink} >
+            <Page title={title} leftLink={leftButton} rightLink={rightButton} >
                 { Object.keys(transaction).length ?
                     <Link style={style} to={'/transactions/' + transaction.id + '/details'}>Details</Link> : ''}
                 <ManageForm

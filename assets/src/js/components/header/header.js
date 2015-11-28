@@ -1,40 +1,46 @@
-import React, { Component, PropTypes } from 'react';
+import React from 'react';
 import { Link } from 'react-router';
-import { connect } from 'react-redux';
-import { goBack } from 'redux-router';
+import classNames from 'classnames';
 
 
-class Header extends Component {
+class Header extends React.Component {
+    getButton(options, className) {
+        let content = '';
+
+        if (Object.keys(options).length) {
+            const buttonClass = classNames('header__button', className);
+            content = (
+                <Link className={buttonClass} style={options.style} to={options.path} onClick={options.handler}>
+                    {options.text}
+                </Link>
+            );
+        }
+
+        return content;
+    }
+
     render() {
-        const { leftLink, rightLink } = this.props;
-
         return (
             <header className="header">
                 <div className="header__title">{ this.props.title }</div>
-                { Object.keys(leftLink).length ?
-                    <Link className="header__link header__link_left" style={leftLink.style}
-                        onClick={leftLink.handle}
-                        to={leftLink.path}>{leftLink.text}</Link> : '' }
-                { Object.keys(rightLink).length ?
-                    <Link className="header__link header__link_right" style={rightLink.style}
-                          onClick={rightLink.handle}
-                        to={rightLink.path}>{rightLink.text}</Link> : '' }
+                { this.getButton(this.props.leftButton, 'header__button_left') }
+                { this.getButton(this.props.rightButton, 'header__button_right') }
             </header>
         );
     }
 }
 
 Header.propTypes = {
-    title: PropTypes.string.isRequired,
-    leftLink: PropTypes.object,
-    rightLink: PropTypes.object,
+    title: React.PropTypes.string.isRequired,
+    leftButton: React.PropTypes.object,
+    rightButton: React.PropTypes.object,
 
-    dispatch: PropTypes.func
+    dispatch: React.PropTypes.func
 };
 
 Header.defaultProps = {
-    leftLink: { text: 'Back', path: '#' },
-    rightLink: {}
+    leftButton: {},
+    rightButton: {}
 };
 
-export default connect()(Header);
+export default Header;

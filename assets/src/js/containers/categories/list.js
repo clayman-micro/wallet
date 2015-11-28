@@ -14,19 +14,19 @@ class CategoriesList extends React.Component {
     }
 
     render() {
-        const leftLink = {
+        const leftButton = {
             text: (<span><Icon name="chevron-left" /></span>),
             style: { fontSize: '20px', padding: '15px 5px 11px' },
             path: '/'
         };
-        const rightLink = {
+        const rightButton = {
             text: (<Icon name="plus" />),
             style: { fontSize: '20px', padding: '15px 5px 11px' },
             path: '/categories/add'
         };
 
         return (
-            <Page title="Categories" leftLink={leftLink} rightLink={rightLink} >
+            <Page title="Categories" leftLink={leftButton} rightLink={rightButton} >
                 <ul className="objects-list">
                     {this.props.categories.items.map((category, index) =>
                         <CategoryItem key={index} category={category} />

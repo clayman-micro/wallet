@@ -29,15 +29,15 @@ class ManageCategory extends ManagePage {
         let instance = this.getInstance();
 
         let title = 'Add category';
-        let rightLink = {};
 
+        let rightButton = {};
         if (instanceID) {
             title = 'Edit category';
-            rightLink = this.getRightLink(instance);
+            rightButton = this.getRightLink(instance);
         }
 
         return (
-            <Page title={title} leftLink={this.getLeftLink()} rightLink={rightLink} >
+            <Page title={title} leftButton={this.getLeftLink()} rightButton={rightButton} >
                 <ManageForm
                     collection={this.props.collection}
                     instance={instance}

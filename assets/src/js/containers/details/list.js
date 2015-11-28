@@ -46,7 +46,7 @@ class DetailsList extends React.Component {
         const transactionID = this.getTransactionID();
         const details = this.props.details.items.filter(detail => detail.transaction_id === transactionID);
         return (
-            <Page title="Details" leftLink={this.getLeftLink()} rightLink={this.getRightLink()}>
+            <Page title="Details" leftButton={this.getLeftLink()} rightButton={this.getRightLink()}>
                 <ul className="transactions-list objects-list">
                     { details.map((detail, index) =>
                         <DetailItem
