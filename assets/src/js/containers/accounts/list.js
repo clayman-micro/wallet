@@ -1,58 +1,30 @@
-import React from 'react';
 import { connect } from 'react-redux';
-import Icon from 'react-fa';
 
 import { getAccountsIfNeeded } from '../../actions/accounts';
 
 import AccountItem from '../../components/accounts/item';
-import Page from '../../components/common/page';
+import List from '../common/list';
 
 
-class AccountsList extends React.Component {
-    componentWillMount() {
-        this.props.getAccountsIfNeeded();
-    }
+class AccountsList extends List {
+    constructor(props) {
+        super(props);
 
-    render() {
-        const leftButton = {
-            text: (<span><Icon name="chevron-left" /></span>),
-            style: { fontSize: '20px', padding: '15px 5px 11px' },
-            path: '/'
-        };
-        const rightButton = {
-            text: (<Icon name="plus" />),
-            style: { fontSize: '20px', padding: '15px 5px 11px' },
-            path: '/accounts/add'
-        };
+        this.title = 'Accounts';
+        this.rightButtonPath = '/accounts/add';
 
-        return (
-            <Page title="Accounts" leftLink={leftButton} rightLink={rightButton}>
-                <ul className="objects-list">
-                    { this.props.accounts.items.map((account, index) =>
-                        <AccountItem key={index} account={account} />
-                    )}
-                </ul>
-            </Page>
-        );
+        this.listItemComponent = AccountItem;
     }
 }
 
-AccountsList.propTypes = {
-    // Props from Store
-    accounts: React.PropTypes.object.isRequired,
-
-    // Action creators
-    getAccountsIfNeeded: React.PropTypes.func.isRequired
-};
-
 function mapStateToProps(state) {
     return {
-        accounts: state.accounts
+        collection: state.accounts
     };
 }
 
 const mapDispatchToProps = {
-    getAccountsIfNeeded
+    fetchObjects: getAccountsIfNeeded
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(AccountsList);

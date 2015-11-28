@@ -92,7 +92,7 @@ class ManageTransaction extends React.Component {
         const style = { margin: '10px', display: 'block', borderBottom: 'none' };
 
         return (
-            <Page title={title} leftLink={leftButton} rightLink={rightButton} >
+            <Page title={title} leftButton={leftButton} rightButton={rightButton} >
                 { Object.keys(transaction).length ?
                     <Link style={style} to={'/transactions/' + transaction.id + '/details'}>Details</Link> : ''}
                 <ManageForm

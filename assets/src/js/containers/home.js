@@ -17,7 +17,7 @@ export default function HomePage() {
 
     return (
         <div className="home-page">
-            <Header title="Wallet" leftLink={{}} />
+            <Header title="Wallet" />
             {links}
         </div>
     );

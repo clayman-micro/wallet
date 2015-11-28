@@ -33,7 +33,7 @@ class ManageAccount extends ManagePage {
         }
 
         return (
-            <Page title={title} leftButton={this.getLeftLink()} rightLink={rightButton} >
+            <Page title={title} leftButton={this.getLeftLink()} rightButton={rightButton} >
                 <ManageForm
                     collection={this.props.collection}
                     instance={instance}

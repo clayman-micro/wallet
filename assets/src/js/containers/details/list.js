@@ -1,84 +1,85 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import Icon from 'react-fa';
 
 import { getDetails } from '../../actions/details';
 
-import Page from '../../components/common/page';
 import DetailItem from '../../components/details/item';
+import List from '../common/list';
 
 
-class DetailsList extends React.Component {
+class DetailsList extends List {
+    constructor(props) {
+        super(props);
+
+        this.title = 'Details';
+        this.transactionID = 0;
+        this.instanceID = 0;
+    }
+
     componentWillMount() {
         const transactionID = this.getTransactionID();
-        this.props.getDetails({ id: transactionID });
+        this.props.fetchObjects({ id: transactionID });
     }
 
     getTransactionID() {
-        const { transactionID } = this.props.routerState.params;
-        return typeof transactionID !== 'undefined' ? parseInt(transactionID, 10) : 0;
+        if (!this.transactionID) {
+            const { transactionID } = this.props.routerState.params;
+            this.transactionID = typeof transactionID !== 'undefined' ? parseInt(transactionID, 10) : 0;
+        }
+
+        return this.transactionID;
     }
 
     getInstanceID() {
-        const { instanceID } = this.props.routerState.params;
-        return typeof instanceID !== 'undefined' ? parseInt(instanceID, 10) : 0;
+        if (!this.instanceID) {
+            const { instanceID } = this.props.routerState.params;
+            this.instanceID = typeof instanceID !== 'undefined' ? parseInt(instanceID, 10) : 0;
+        }
+
+        return this.instanceID;
     }
 
-    getLeftLink() {
-        const transactionID = this.getTransactionID();
-        return {
-            text: (<span><Icon name="chevron-left" /></span>),
-            style: { fontSize: '20px', padding: '15px 5px 11px' },
-            path: `/transactions/${transactionID}`
-        };
+    getLeftButtonPath() {
+        return `/transactions/${this.getTransactionID()}`;
     }
 
-    getRightLink() {
-        const transactionID = this.getTransactionID();
-        return {
-            text: (<Icon name="plus" />),
-            style: { fontSize: '20px', padding: '15px 5px 11px' },
-            path: `/transactions/${transactionID}/details/add`
-        };
+    getRightButtonPath() {
+        return `/transactions/${this.getTransactionID()}/details/add`;
     }
 
-    render() {
+    getObjects() {
         const transactionID = this.getTransactionID();
-        const details = this.props.details.items.filter(detail => detail.transaction_id === transactionID);
-        return (
-            <Page title="Details" leftButton={this.getLeftLink()} rightButton={this.getRightLink()}>
-                <ul className="transactions-list objects-list">
-                    { details.map((detail, index) =>
-                        <DetailItem
-                            key={index}
-                            transaction={{ id: transactionID }}
-                            detail={detail}
-                        />
-                    )}
-                </ul>
-            </Page>
-        );
+        const details = this.props.collection.items.filter(detail => detail.transaction_id === transactionID);
+        return details.map(item => {
+            return (
+                <DetailItem
+                    key={item.id}
+                    item={item}
+                    transaction={{ id: transactionID }}
+                />
+            );
+        });
     }
 }
 
 DetailsList.propTypes = {
     // Props from Store
-    details: React.PropTypes.object.isRequired,
+    collection: React.PropTypes.object.isRequired,
     routerState: React.PropTypes.object.isRequired,
 
     // Action creators
-    getDetails: React.PropTypes.func.isRequired
+    fetchObjects: React.PropTypes.func.isRequired
 };
 
 function mapStateToProps(state) {
     return {
-        details: state.details,
+        collection: state.details,
         routerState: state.router
     };
 }
 
 const mapDispatchToProps = {
-    getDetails
+    fetchObjects: getDetails
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(DetailsList);
