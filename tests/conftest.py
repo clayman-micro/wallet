@@ -10,7 +10,10 @@ from alembic.config import Config as AlembicConfig
 from alembic import command
 
 
-from wallet import Application
+from wallet.app import create_app, create_config, destroy_app
+from wallet.utils import reverse_url
+
+config = create_config()
 
 
 @pytest.yield_fixture('function')
@@ -18,12 +21,11 @@ def application(request):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(None)
 
-    app = Application(loop=loop)
-    loop.run_until_complete(app.configure())
+    app = loop.run_until_complete(create_app(config, loop=loop))
 
     yield app
 
-    loop.run_until_complete(app.close())
+    loop.run_until_complete(destroy_app(app))
     loop.run_until_complete(app.finish())
     loop.close()
 
@@ -82,7 +84,7 @@ class Server(object):
         return (yield from request(method, **kwargs))
 
     def reverse_url(self, route, parts=None):
-        return ''.join((self._domain, self._app.reverse_url(route, parts)))
+        return ''.join((self._domain, reverse_url(self._app, route, parts)))
 
     @asyncio.coroutine
     def get_auth_token(self, credentials):
@@ -123,8 +125,8 @@ def async_test(create_database=False):
 
             config = None
             if create_database:
-                directory = application.config.get('MIGRATIONS_ROOT')
-                db_uri = application.config.get_sqlalchemy_dsn()
+                directory = application['config'].get('MIGRATIONS_ROOT')
+                db_uri = application['config'].get_sqlalchemy_dsn()
 
                 config = AlembicConfig(os.path.join(directory, 'alembic.ini'))
                 config.set_main_option('script_location', directory)
@@ -135,10 +137,10 @@ def async_test(create_database=False):
             try:
                 application.loop.run_until_complete(func(*args, **kwargs))
             finally:
-                application.engine.close()
+                engine = application['engine']
+                engine.close()
 
-                application.loop.run_until_complete(
-                    application.engine.wait_closed())
+                application.loop.run_until_complete(engine.wait_closed())
 
                 if create_database:
                     command.downgrade(config, revision='base')

@@ -2,7 +2,7 @@ import asyncio
 
 import click
 
-from wallet import Application
+from wallet.app import create_app, create_config, destroy_app
 from wallet.management.db import db
 
 
@@ -10,8 +10,8 @@ class Context(object):
 
     def __init__(self, config):
         self.loop = asyncio.get_event_loop()
-        self.instance = Application(config=config, loop=self.loop)
-        self.loop.run_until_complete(self.instance.configure())
+        conf = create_config(config)
+        self.instance = self.loop.run_until_complete(create_app(conf, self.loop))
 
 
 @click.group()
@@ -46,6 +46,7 @@ def run(context, host, port):
         pass
     finally:
         srv.sockets[0].close()
+        context.loop.run_until_complete(destroy_app(app))
         context.loop.run_until_complete(handler.finish_connections())
         context.loop.run_until_complete(app.finish())
         context.loop.close()

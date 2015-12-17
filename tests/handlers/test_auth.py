@@ -38,7 +38,7 @@ class TestRegistrationHandler(object):
     @pytest.mark.auth
     @async_test(create_database=True)
     def test_fail_with_already_existed(self, application, server):
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             uid = yield from conn.scalar(users_table.insert().values(
                 login='John', password='top-secret',
                 created_on=datetime.now()))
@@ -61,7 +61,7 @@ class TestLoginHandler(object):
     def prepare_user(self, application, user):
         now = datetime.now()
 
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             uid = yield from conn.scalar(users_table.insert().values(
                 login=user['login'],
                 password=encrypt_password(user['password']),
