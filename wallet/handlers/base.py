@@ -1,9 +1,21 @@
 import asyncio
 import functools
+
 from cerberus import Validator
 from psycopg2 import ProgrammingError, IntegrityError
 from aiohttp import web
 import ujson
+
+from ..exceptions import DatabaseError, SerializationError, ValidationError
+
+
+def response(content: str, **kwargs) -> web.Response:
+    return web.Response(body=content.encode('utf-8'), **kwargs)
+
+
+def json_response(data: dict, **kwargs) -> web.Response:
+    kwargs.setdefault('content_type', 'application/json')
+    return web.Response(body=ujson.dumps(data).encode('utf-8'), **kwargs)
 
 
 async def get_payload(request: web.Request) -> dict:
@@ -12,16 +24,40 @@ async def get_payload(request: web.Request) -> dict:
 
     Method is a coroutine.
     """
-    if 'application/json' in request.headers.get('CONTENT-TYPE'):
+    if 'application/json' in request.content_type:
         payload = await request.json()
     else:
         payload = await request.post()
     return dict(payload)
 
 
-def json_response(data: dict, **kwargs) -> web.Response:
-    kwargs.setdefault('content_type', 'application/json')
-    return web.Response(body=ujson.dumps(data).encode('utf-8'), **kwargs)
+def handle_response(f):
+    @functools.wraps(f)
+    async def wrapper(*args):
+        internal_error = json_response({
+            'errors': {'server': 'Internal error'}
+        }, status=500)
+
+        request = args[-1]
+
+        try:
+            response = await f(*args)
+        except ValidationError as exc:
+            return json_response({'errors': exc.errors}, status=400)
+        except Exception as exc:
+            if isinstance(exc, (web.HTTPClientError, )):
+                raise
+
+            if request.app.raven:
+                # send error to sentry
+                request.app.raven.captureException()
+            return internal_error
+
+        if isinstance(response, web.Response):
+            return response
+
+        return json_response(response)
+    return wrapper
 
 
 def reverse_url(request, route, parts=None):

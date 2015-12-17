@@ -86,12 +86,11 @@ class Application(web.Application):
             self.raven = Client(self.config.get('SENTRY_DSN'),
                                 transport=AioHttpTransport, loop=self.loop)
 
-        with register_handler_ctx(self, name_prefix='core') as register_handler:
-            register_handler(core.IndexHandler())
-
-        with register_handler_ctx(self, '/auth', 'auth') as register_handler:
-            register_handler(auth.RegistrationHandler())
-            register_handler(auth.LoginHandler())
+        self.router.add_route('GET', '/', core.index, name='core.index')
+        self.router.add_route('POST', '/auth/register', auth.register,
+                              name='auth.registration')
+        self.router.add_route('POST', '/auth/login', auth.login,
+                              name='auth.login')
 
         with register_handler_ctx(self, '/api', 'api') as register_handler:
             register_handler(accounts.AccountAPIHandler())

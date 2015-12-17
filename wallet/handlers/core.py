@@ -1,14 +1,10 @@
 from aiohttp import web
 
-from . import base
+from .base import handle_response
 
 
-class IndexHandler(base.BaseHandler):
-    endpoints = (
-        ('GET', '/', 'index'),
-    )
-
-    async def get(self, request: web.Request) -> web.Response:
-        return self.json_response({
-            'project': request.app.config.get('PROJECT_NAME')
-        })
+@handle_response
+async def index(request: web.Request) -> web.Response:
+    return {
+        'project': request.app.config.get('PROJECT_NAME')
+    }

@@ -41,7 +41,7 @@ def encrypt_password(password: str) -> str:
 
 def verify_password(password: str, encrypted_password: str) -> bool:
     try:
-        valid = pbkdf2_sha512.verify(password, encrypt_password)
+        valid = pbkdf2_sha512.verify(password, encrypted_password)
     except ValueError:
         valid = False
     return valid

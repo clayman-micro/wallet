@@ -11,6 +11,7 @@ from tests.conftest import async_test
 class TestRegistrationHandler(object):
     endpoint = 'auth.registration'
 
+    @pytest.mark.auth
     @pytest.mark.parametrize('params', [
         {'json': False},
         {'json': True}
@@ -23,6 +24,7 @@ class TestRegistrationHandler(object):
             print((yield from response.text()))
             assert response.status == 201
 
+    @pytest.mark.auth
     @async_test(create_database=True)
     def test_fail_without_password(self, application, server):
         params = {
@@ -33,6 +35,7 @@ class TestRegistrationHandler(object):
         with (yield from server.response_ctx('POST', **params)) as response:
             assert response.status == 400
 
+    @pytest.mark.auth
     @async_test(create_database=True)
     def test_fail_with_already_existed(self, application, server):
         with (yield from application.engine) as conn:
@@ -66,6 +69,7 @@ class TestLoginHandler(object):
             ))
         return uid
 
+    @pytest.mark.auth
     @pytest.mark.parametrize('params', [
         {'json': False},
         {'json': True}
@@ -82,6 +86,7 @@ class TestLoginHandler(object):
             assert response.status == 200
             assert 'X-ACCESS-TOKEN' in response.headers
 
+    @pytest.mark.auth
     @pytest.mark.parametrize('params', [
         {'data': {'login': 'John', 'password': 'wrong-password'}},
         {'data': {'login': 'John'}}
@@ -97,6 +102,7 @@ class TestLoginHandler(object):
         with (yield from server.response_ctx('POST', **params)) as response:
             assert response.status == 400
 
+    @pytest.mark.auth
     @async_test(create_database=True)
     def test_missing_user(self, application, server):
         user = {'login': 'John', 'password': 'top-secret'}
