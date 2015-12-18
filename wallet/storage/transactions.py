@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import sqlalchemy
 
 from .base import create_table, to_datetime, to_decimal
@@ -60,3 +62,15 @@ schema = {
         'empty': True
     }
 }
+
+
+def serialize(value):
+    return {
+        'id': value['id'],
+        'type': value['type'],
+        'description': value['description'],
+        'amount': float(value['amount']),
+        'account_id': value['account_id'],
+        'category_id': value['category_id'],
+        'created_on': datetime.strftime(value['created_on'], '%Y-%m-%dT%H:%M:%S')
+    }

@@ -38,7 +38,17 @@ schema = {
     },
     'transaction_id': {
         'type': 'integer',
-        'coerce': int,
-        'required': True
+        'coerce': int
     }
 }
+
+
+def serialize(value):
+    return {
+        'id': value['id'],
+        'name': value['name'],
+        'price_per_unit': round(float(value['price_per_unit']), 2),
+        'count': round(float(value['count']), 3),
+        'total': round(float(value['total']), 2),
+        'transaction_id': value['transaction_id']
+    }

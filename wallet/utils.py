@@ -30,7 +30,10 @@ def reverse_url(app: web.Application, name: str, parts=None) -> str:
 def register_handler(app: web.Application, url_prefix=None, name_prefix=None):
     def register(method, url, handler, name=None):
         if url_prefix:
-            url = '/'.join((url_prefix.rstrip('/'), url.lstrip('/')))
+            if not url:
+                url = url_prefix
+            else:
+                url = '/'.join((url_prefix.rstrip('/'), url.lstrip('/')))
 
         if name_prefix:
             name = '.'.join((name_prefix, name))

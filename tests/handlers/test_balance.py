@@ -59,7 +59,7 @@ class TestAccountBalance(BaseHandlerTest):
             'created_on': '2015-08-20T00:00:00'
         })
 
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             query = accounts.accounts_table.select().where(
                 accounts.accounts_table.c.id == account_id)
             result = yield from conn.execute(query)
@@ -96,7 +96,7 @@ class TestAccountBalance(BaseHandlerTest):
         with (yield from server.response_ctx('PUT', **params)) as response:
             assert response.status == 200
 
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             query = accounts.accounts_table.select().where(
                 accounts.accounts_table.c.id == account_id)
             result = yield from conn.execute(query)
@@ -129,7 +129,7 @@ class TestAccountBalance(BaseHandlerTest):
         with (yield from server.response_ctx('DELETE', **params)) as response:
             assert response.status == 200
 
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             query = accounts.accounts_table.select().where(
                 accounts.accounts_table.c.id == account_id)
             result = yield from conn.execute(query)

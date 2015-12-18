@@ -1,4 +1,8 @@
 
+class ImproperlyConfigure(Exception):
+    pass
+
+
 class Error(Exception):
     def __init__(self, errors):
         self.errors = errors

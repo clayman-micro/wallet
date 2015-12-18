@@ -37,6 +37,16 @@ schema = {
     },
     'owner_id': {
         'type': 'integer',
-        'coerce': int
+        'coerce': int,
+        'readonly': True
     }
 }
+
+
+def serialize(value):
+    return {
+        'id': value['id'],
+        'name': value['name'],
+        'original_amount': float(value['original_amount']),
+        'current_amount': float(value['current_amount'])
+    }

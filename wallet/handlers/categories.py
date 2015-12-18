@@ -1,73 +1,63 @@
-import asyncio
+from typing import Dict
 
 from aiohttp import web
-from sqlalchemy import and_
+from sqlalchemy import and_, func, select
 
-from ..models import categories
+from ..exceptions import ValidationError
+from ..storage import categories
+from ..utils import Connection
 from . import base, auth
 
 
-class CategoryAPIHandler(base.BaseAPIHandler):
-    collection_name = 'categories'
+@auth.owner_required
+@base.get_collection('categories')
+async def get_categories(request: web.Request, **kwargs) -> tuple:
+    owner = kwargs.get('owner')
+    params = (categories.table.c.owner_id == owner.get('id'), )
+    query = select([categories.table]).where(*params)
+    total_query = select([func.count()]).select_from(
+        categories.table).where(*params)
+
+    return query, total_query
+
+
+class CategoryResourceHandler(base.ResourceHandler):
+    decorators = (auth.owner_required, base.handle_response)
+
     resource_name = 'category'
 
-    table = categories.categories_table
-    schema = categories.categories_schema
-    serializer = categories.CategorySerializer()
+    table = categories.table
+    schema = categories.schema
 
-    decorators = (
-        base.allow_cors(methods=('GET', 'POST', 'PUT', 'DELETE')),
-        auth.owner_required,
-    )
+    def get_resource_query(self, request: web.Request, **kwargs):
+        owner = kwargs.get('owner')
+        instance_id = base.get_instance_id(request)
+        return select([self.table]).where(and_(
+            self.table.c.id == instance_id,
+            self.table.c.owner_id == owner.get('id')
+        ))
 
-    endpoints = (
-        ('GET', '/categories', 'get_categories'),
-        ('POST', '/categories', 'create_category'),
-        ('GET', '/categories/{instance_id}', 'get_category'),
-        ('PUT', '/categories/{instance_id}', 'update_category'),
-        ('DELETE', '/categories/{instance_id}', 'remove_category'),
+    async def validate(self, document: Dict, request: web.Request, **kwargs):
+        owner = kwargs.get('owner')
+        instance = kwargs.get('instance', None)
 
-        ('OPTIONS', '/categories', 'categories_cors'),
-        ('OPTIONS', '/categories/{instance_id}', 'category_cors')
-    )
+        params = [
+            self.table.c.name == document.get('name'),
+            self.table.c.owner_id == owner.get('id')
+        ]
 
-    async def options(self, request):
-        return web.Response(status=200)
+        if instance is not None:
+            params.append(self.table.c.id != instance.get('id'))
 
-    @asyncio.coroutine
-    def validate_payload(self, request, payload, instance=None):
-        if instance:
-            del instance['owner_id']
+        query = select([func.count()]).select_from(self.table).where(
+            and_(*params))
 
-        future = super(CategoryAPIHandler, self).validate_payload(
-            request, payload, instance)
-        document, errors = yield from future
+        async with Connection(request.app['engine']) as conn:
+            count = await conn.scalar(query)
+            if count > 0:
+                raise ValidationError({'name': 'Already exists'})
 
-        if errors:
-            return None, errors
+        if not instance:
+            document.setdefault('owner_id', owner.get('id'))
 
-        document.setdefault('owner_id', request.owner.get('id'))
-
-        params = self.table.c.name == document.get('name')
-        if instance:
-            params = and_(params, self.table.c.id != document.get('id'))
-
-        with (yield from request.app.engine) as conn:
-            query = self.table.select().where(params)
-            result = yield from conn.scalar(query)
-
-        if result:
-            return None, {'name': 'Already exists.'}
-        else:
-            return document, None
-
-    def get_collection_query(self, request):
-        return self.table.select().where(
-            self.table.c.owner_id == request.owner.get('id')
-        )
-
-    def get_instance_query(self, request, instance_id):
-        return self.table.select().where(
-            and_(self.table.c.id == instance_id,
-                 self.table.c.owner_id == request.owner.get('id'))
-        )
+        return document

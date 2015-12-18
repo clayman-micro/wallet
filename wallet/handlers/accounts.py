@@ -1,75 +1,72 @@
-import asyncio
 from datetime import datetime
+
 from aiohttp import web
+from sqlalchemy import and_, func, select
 
-from sqlalchemy import and_
-
-from ..models import accounts
+from ..exceptions import ValidationError
+from ..storage import accounts
+from ..utils import Connection
 from . import base, auth
 
 
-class AccountAPIHandler(base.BaseAPIHandler):
-    collection_name = 'accounts'
+@auth.owner_required
+@base.get_collection('accounts', serialize=accounts.serialize)
+async def get_accounts(request: web.Request, **kwargs) -> tuple:
+    owner = kwargs.get('owner')
+    params = accounts.table.c.owner_id == owner.get('id')
+    query = select([accounts.table]).where(params)
+    total_query = select([func.count()]).select_from(
+        accounts.table)
+
+    return query, total_query
+
+
+class AccountResourceHandler(base.ResourceHandler):
+    decorators = (auth.owner_required, base.handle_response)
+
     resource_name = 'account'
 
-    table = accounts.accounts_table
-    schema = accounts.accounts_schema
-    serializer = accounts.AccountSerializer(exclude=('created_on', ))
+    table = accounts.table
+    schema = accounts.schema
 
-    decorators = (
-        base.allow_cors(methods=('GET', 'POST', 'PUT', 'DELETE')),
-        auth.owner_required
-    )
+    def serialize(self, resource):
+        return accounts.serialize(resource)
 
-    endpoints = (
-        ('GET', '/accounts', 'get_accounts'),
-        ('POST', '/accounts', 'create_account'),
-        ('GET', '/accounts/{instance_id}', 'get_account'),
-        ('PUT', '/accounts/{instance_id}', 'update_account'),
-        ('DELETE', '/accounts/{instance_id}', 'remove_account'),
+    def get_resource_query(self, request: web.Request, **kwargs):
+        owner = kwargs.get('owner')
+        instance_id = base.get_instance_id(request, self.resource_key)
+        return select([self.table]).where(and_(
+            self.table.c.id == instance_id,
+            self.table.c.owner_id == owner.get('id')
+        ))
 
-        ('OPTIONS', '/accounts', 'accounts_cors'),
-        ('OPTIONS', '/accounts/{instance_id}', 'account_cors')
-    )
+    async def validate(self, document, request, **kwargs):
+        owner = kwargs.get('owner')
+        instance = kwargs.get('instance', None)
 
-    async def options(self, request):
-        return web.Response(status=200)
+        params = [
+            self.table.c.name == document.get('name'),
+            self.table.c.owner_id == owner.get('id')
+        ]
 
-    @asyncio.coroutine
-    def validate_payload(self, request, payload, instance=None):
-        if instance:
-            del instance['owner_id']
+        if instance is not None:
+            params.append(self.table.c.id != instance.get('id'))
 
-        future = super(AccountAPIHandler, self).validate_payload(
-            request, payload, instance)
-        document, errors = yield from future
+        query = select([func.count()]).select_from(self.table).where(
+            and_(*params))
 
-        if errors:
-            return None, errors
+        async with Connection(request.app['engine']) as conn:
+            count = await conn.scalar(query)
+            if count > 0:
+                raise ValidationError({'name': 'Already exists.'})
 
-        document.setdefault('owner_id', request.owner.get('id'))
-        document.setdefault('created_on', datetime.now())
-        document.setdefault('current_amount', document['original_amount'])
+        if not instance:
+            document.setdefault('owner_id', owner.get('id'))
+            document.setdefault('created_on', datetime.now())
+            document.setdefault('current_amount', document['original_amount'])
 
-        params = self.table.c.name == document.get('name')
-        if instance:
-            params = and_(params, self.table.c.id != document.get('id'))
+        return document
 
-        with (yield from request.app.engine) as conn:
-            query = self.table.select().where(params)
-            result = yield from conn.scalar(query)
-
-        if result:
-            return None, {'name': 'Already exists.'}
-        else:
-            return document, None
-
-    def get_collection_query(self, request):
-        return self.table.select().where(
-            self.table.c.owner_id == request.owner.get('id'))
-
-    def get_instance_query(self, request, instance_id):
-        return self.table.select().where(
-            and_(self.table.c.id == instance_id,
-                 self.table.c.owner_id == request.owner.get('id'))
-        )
+    async def after_update(self, resource, request, **kwargs):
+        # TODO: update current amount when update original amount
+        pass

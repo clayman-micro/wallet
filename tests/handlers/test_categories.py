@@ -249,7 +249,7 @@ class TestCategoryResource(BaseHandlerTest):
         with (yield from server.response_ctx('DELETE', **params)) as response:
             assert response.status == 200
 
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             query = categories.categories_table.count().where(
                 categories.categories_table.c.id == category_id)
             count = yield from conn.scalar(query)

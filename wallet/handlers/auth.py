@@ -15,8 +15,8 @@ from . import base
 
 def owner_required(f):
     @wraps(f)
-    async def wrapped(*args):
-        request = args[-1]
+    async def wrapped(*args, **kwargs):
+        request = args[0]
 
         token = request.headers.get('X-ACCESS-TOKEN', None)
 
@@ -24,7 +24,7 @@ def owner_required(f):
             raise web.HTTPUnauthorized(text='Access token required')
 
         try:
-            data = jwt.decode(token, request.app.config.get('SECRET_KEY'),
+            data = jwt.decode(token, request.app['config'].get('SECRET_KEY'),
                               algorithm='HS256')
         except jwt.ExpiredSignatureError:
             raise web.HTTPUnauthorized(text='Token signature expired')
@@ -39,8 +39,8 @@ def owner_required(f):
 
             if row:
                 owner = dict(zip(row.keys(), row.values()))
-                request.owner = owner
-                return await f(owner, *args)
+                kwargs['owner'] = owner
+                return await f(*args, **kwargs)
             else:
                 raise web.HTTPNotFound(text='owner not found')
     return wrapped

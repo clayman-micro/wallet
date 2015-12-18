@@ -37,8 +37,7 @@ class TestAccountCollection(BaseHandlerTest):
             assert response.status == 200
 
             expected = {'id': account_id, 'name': 'Credit card',
-                        'original_amount': 30000.0, 'current_amount': 0.0,
-                        'owner_id': owner_id}
+                        'original_amount': 30000.0, 'current_amount': 0.0}
 
             data = yield from response.json()
             assert 'accounts' in data
@@ -103,8 +102,7 @@ class TestAccountCollection(BaseHandlerTest):
             assert response.status == 201
 
             expected = {'id': 1, 'name': 'Credit card',
-                        'original_amount': 30000.0, 'current_amount': 30000.0,
-                        'owner_id': owner_id}
+                        'original_amount': 30000.0, 'current_amount': 30000.0}
 
             response = yield from response.json()
             assert 'account' in response
@@ -202,8 +200,7 @@ class TestAccountResource(BaseHandlerTest):
             assert response.status == 200
 
             expected = {'id': 1, 'name': 'Credit card',
-                        'original_amount': 30000.0, 'current_amount': 0.0,
-                        'owner_id': owner_id}
+                        'original_amount': 30000.0, 'current_amount': 0.0}
 
             data = yield from response.json()
             assert 'account' in data
@@ -231,8 +228,7 @@ class TestAccountResource(BaseHandlerTest):
             assert resp.status == 200
 
             expected = {'id': 1, 'name': 'Debit card',
-                        'original_amount': 30000.0, 'current_amount': 0.0,
-                        'owner_id': owner_id}
+                        'original_amount': 30000.0, 'current_amount': 0.0}
 
             response = yield from resp.json()
             assert expected == response['account']
@@ -277,7 +273,7 @@ class TestAccountResource(BaseHandlerTest):
         with (yield from server.response_ctx('DELETE', **params)) as response:
             assert response.status == 200
 
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             query = accounts.accounts_table.count().where(
                 accounts.accounts_table.c.id == account_id)
             count = yield from conn.scalar(query)

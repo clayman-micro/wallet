@@ -60,7 +60,7 @@ class TestTransactionCollection(BaseTransactionTest):
         owner, expected = yield from self.prepare_data(
             application, transaction)
 
-        expected['created_on'] = now.strftime('%d-%m-%Y %X')
+        expected['created_on'] = now.strftime('%Y-%m-%dT%X')
 
         params = {
             'headers': {
@@ -136,7 +136,7 @@ class TestTransactionCollection(BaseTransactionTest):
             expected = {'id': 1, 'description': 'Meal', 'amount': 300.0,
                         'type': transactions.INCOME_TRANSACTION,
                         'account_id': account_id, 'category_id': category_id,
-                        'created_on': '20-08-2015 00:00:00'}
+                        'created_on': '2015-08-20T00:00:00'}
 
             response = yield from response.json()
             assert 'transaction' in response
@@ -243,7 +243,7 @@ class TestTransactionResource(BaseTransactionTest):
         owner, expected = yield from self.prepare_data(
             application, transaction)
 
-        expected['created_on'] = now.strftime('%d-%m-%Y %X')
+        expected['created_on'] = now.strftime('%Y-%m-%dT%X')
 
         params = {
             'headers': {
@@ -282,7 +282,7 @@ class TestTransactionResource(BaseTransactionTest):
         with (yield from server.response_ctx('PUT', **params)) as resp:
             assert resp.status == 200
 
-            expected['created_on'] = now.strftime('%d-%m-%Y %X')
+            expected['created_on'] = now.strftime('%Y-%m-%dT%X')
             response = yield from resp.json()
             assert 'transaction' in response
             assert expected == response['transaction']
@@ -304,7 +304,7 @@ class TestTransactionResource(BaseTransactionTest):
         with (yield from server.response_ctx('DELETE', **params)) as response:
             assert response.status == 200
 
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             query = transactions.transactions_table.count().where(
                 transactions.transactions_table.c.id == expected.get('id'))
             count = yield from conn.scalar(query)
@@ -401,7 +401,7 @@ class TestTransactionDetailsCollection(BaseTransactionDetailTest):
         }
 
         with (yield from server.response_ctx(method, **params)) as resp:
-            assert resp.status == 403
+            assert resp.status == 404
 
     @pytest.mark.parametrize('method,endpoint', (
         ('GET', 'api.get_details'),
@@ -480,7 +480,7 @@ class TestTransactionDetailsCollection(BaseTransactionDetailTest):
         params['url'] = server.reverse_url('api.create_detail',
                                            {'transaction_id': transaction_id})
         with (yield from server.response_ctx('POST', **params)) as resp:
-            assert resp.status == 403
+            assert resp.status == 404
 
 
 class TestTransactionDetailsResource(BaseTransactionDetailTest):
@@ -539,7 +539,7 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
             })
         }
         with (yield from server.response_ctx(method, **params)) as response:
-            assert response.status == 403
+            assert response.status == 404
 
     @pytest.mark.parametrize('method,endpoint', (
         ('GET', 'api.get_detail'),
@@ -636,7 +636,7 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
         with (yield from server.response_ctx('DELETE', **params)) as resp:
             assert resp.status == 200
 
-        with (yield from application.engine) as conn:
+        with (yield from application['engine']) as conn:
             query = transactions.transaction_details_table.count().where(
                 transactions.transaction_details_table.c.id == detail.get('id'))
             count = yield from conn.scalar(query)
