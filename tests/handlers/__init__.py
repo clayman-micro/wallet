@@ -1,8 +1,8 @@
 import asyncio
 from datetime import datetime
 
-from wallet.models.accounts import accounts_table
-from wallet.models.auth import users_table, encrypt_password
+from wallet.storage.accounts import table as accounts_table
+from wallet.storage.users import table as users_table, encrypt_password
 
 
 class BaseHandlerTest(object):

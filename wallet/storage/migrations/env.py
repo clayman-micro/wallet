@@ -3,11 +3,12 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 
-from wallet.models.base import metadata
-from wallet.models.accounts import accounts_table
-from wallet.models.auth import users_table
-from wallet.models.categories import categories_table
-from wallet.models.transactions import transactions_table
+from wallet.storage.base import metadata
+from wallet.storage.accounts import table as accounts_table
+from wallet.storage.categories import table as categories_table
+from wallet.storage.transactions import table as transactions_table
+from wallet.storage.details import table as details_table
+from wallet.storage.users import table as users_table
 
 
 # this is the Alembic Config object, which provides

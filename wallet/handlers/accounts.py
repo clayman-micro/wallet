@@ -5,7 +5,7 @@ from sqlalchemy import and_, func, select
 
 from ..exceptions import ValidationError
 from ..storage import accounts
-from ..utils import Connection
+from ..utils.db import Connection
 from . import base, auth
 
 

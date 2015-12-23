@@ -5,17 +5,16 @@ Revises: 53820d92432
 Create Date: 2015-08-27 15:46:32.022434
 
 """
+from alembic import op
+import sqlalchemy as sa
+
+from wallet.storage.transactions import EXPENSE_TRANSACTION
 
 # revision identifiers, used by Alembic.
 revision = '47878bd6052'
 down_revision = '53820d92432'
 branch_labels = None
 depends_on = None
-
-from alembic import op
-import sqlalchemy as sa
-
-from wallet.models.transactions import EXPENSE_TRANSACTION
 
 
 def upgrade():

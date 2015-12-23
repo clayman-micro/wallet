@@ -1,5 +1,4 @@
 import asyncio
-from contextlib import contextmanager
 
 from aiohttp import web
 from aiopg.sa import create_engine
@@ -7,41 +6,13 @@ from raven import Client, os
 from raven_aiohttp import AioHttpTransport
 
 from .config import Config
-from .exceptions import ImproperlyConfigure
-from .handlers import core, auth, details, transactions
+from .handlers import core, auth
 from .handlers.accounts import get_accounts, AccountResourceHandler
 from .handlers.categories import get_categories, CategoryResourceHandler
 from .handlers.transactions import get_transactions, TransactionResourceHandler
 from .handlers.details import get_details, DetailResourceHandler
 
-from .utils import register_handler
-
-
-@contextmanager
-def register_endpoint(app: web.Application, url_prefix=None, name_prefix=None):
-    def register(method, url, handler, name=None):
-        if url_prefix:
-            if not url:
-                url = url_prefix
-            else:
-                url = '/'.join((url_prefix.rstrip('/'), url.lstrip('/')))
-
-        if name_prefix:
-            name = '.'.join((name_prefix, name))
-
-        endpoint = getattr(handler, method.lower(), None)
-        if endpoint:
-            if handler.decorators:
-                for decorator in handler.decorators:
-                    endpoint = decorator(endpoint)
-
-            app.router.add_route(method, url, endpoint, name=name)
-        else:
-            raise ImproperlyConfigure(
-                '`%s` handler does not have method `%s`' % (
-                    handler, method.lower()
-                ))
-    yield register
+from .utils.handlers import register_handler
 
 
 @asyncio.coroutine
@@ -73,21 +44,21 @@ def create_app(config: Config, loop) -> web.Application:
         register('GET', '/transactions/{transaction_id}/details', get_details,
                  'get_details')
 
-    with register_endpoint(app, '/api/accounts', 'api') as register:
+    with register_handler(app, '/api/accounts', 'api') as register:
         handler = AccountResourceHandler()
         register('POST', '', handler, 'create_account')
         register('GET', '/{instance_id}', handler, 'get_account')
         register('PUT', '/{instance_id}', handler, 'update_account')
         register('DELETE', '/{instance_id}', handler, 'remove_account')
 
-    with register_endpoint(app, '/api/categories', 'api') as register:
+    with register_handler(app, '/api/categories', 'api') as register:
         handler = CategoryResourceHandler()
         register('POST', '', handler, 'create_category')
         register('GET', '/{instance_id}', handler, 'get_category')
         register('PUT', '/{instance_id}', handler, 'update_category')
         register('DELETE', '/{instance_id}', handler, 'remove_category')
 
-    with register_endpoint(app, '/api/transactions', 'api') as register:
+    with register_handler(app, '/api/transactions', 'api') as register:
         handler = TransactionResourceHandler()
         register('POST', '', handler, 'create_transaction')
         register('GET', '/{instance_id}', handler, 'get_transaction')
@@ -95,7 +66,7 @@ def create_app(config: Config, loop) -> web.Application:
         register('DELETE', '/{instance_id}', handler, 'remove_transaction')
 
     prefix = '/api/transactions/{transaction_id}/details'
-    with register_endpoint(app, prefix, 'api') as register:
+    with register_handler(app, prefix, 'api') as register:
         handler = DetailResourceHandler()
         register('POST', '', handler, 'create_detail')
         register('GET', '/{instance_id}', handler, 'get_detail')

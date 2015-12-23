@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 
-from wallet.models import accounts, categories, transactions
+from wallet.storage import accounts, categories, transactions
 
 from tests.conftest import async_test
 from . import BaseHandlerTest
@@ -20,7 +20,7 @@ class TestAccountBalance(BaseHandlerTest):
         account_id = yield from self.create_account(app, account)
 
         category_id = yield from self.create_instance(
-            app, categories.categories_table, {
+            app, categories.table, {
                 'name': 'Food', 'owner_id': owner_id
             })
 
@@ -60,8 +60,8 @@ class TestAccountBalance(BaseHandlerTest):
         })
 
         with (yield from application['engine']) as conn:
-            query = accounts.accounts_table.select().where(
-                accounts.accounts_table.c.id == account_id)
+            query = accounts.table.select().where(
+                accounts.table.c.id == account_id)
             result = yield from conn.execute(query)
             account = yield from result.fetchone()
 
@@ -97,8 +97,8 @@ class TestAccountBalance(BaseHandlerTest):
             assert response.status == 200
 
         with (yield from application['engine']) as conn:
-            query = accounts.accounts_table.select().where(
-                accounts.accounts_table.c.id == account_id)
+            query = accounts.table.select().where(
+                accounts.table.c.id == account_id)
             result = yield from conn.execute(query)
             account = yield from result.fetchone()
 
@@ -130,8 +130,8 @@ class TestAccountBalance(BaseHandlerTest):
             assert response.status == 200
 
         with (yield from application['engine']) as conn:
-            query = accounts.accounts_table.select().where(
-                accounts.accounts_table.c.id == account_id)
+            query = accounts.table.select().where(
+                accounts.table.c.id == account_id)
             result = yield from conn.execute(query)
             account = yield from result.fetchone()
 

@@ -1,6 +1,6 @@
 import pytest
 
-from wallet.models import accounts
+from wallet.storage import accounts
 
 from tests.conftest import async_test
 from . import BaseHandlerTest
@@ -274,7 +274,7 @@ class TestAccountResource(BaseHandlerTest):
             assert response.status == 200
 
         with (yield from application['engine']) as conn:
-            query = accounts.accounts_table.count().where(
-                accounts.accounts_table.c.id == account_id)
+            query = accounts.table.count().where(
+                accounts.table.c.id == account_id)
             count = yield from conn.scalar(query)
             assert count == 0

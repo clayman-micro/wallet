@@ -6,7 +6,7 @@ from typing import Dict
 
 from ..handlers import auth, base
 from ..storage import accounts, details, transactions
-from ..utils import Connection
+from ..utils.db import Connection
 
 
 def transaction_required(f):

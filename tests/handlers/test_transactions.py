@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytest
 
-from wallet.models import categories, transactions
+from wallet.storage import categories, transactions, details
 
 from tests.conftest import async_test
 from . import BaseHandlerTest
@@ -22,7 +22,7 @@ class BaseTransactionTest(BaseHandlerTest):
 
         category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
-            app, categories.categories_table, category)
+            app, categories.table, category)
 
         if transaction:
             transaction.setdefault('account_id', account_id)
@@ -30,7 +30,7 @@ class BaseTransactionTest(BaseHandlerTest):
             transaction.setdefault('created_on', datetime.now())
 
             transaction_id = yield from self.create_instance(
-                app, transactions.transactions_table, transaction)
+                app, transactions.table, transaction)
 
             del transaction['created_on']
             transaction['id'] = transaction_id
@@ -290,7 +290,7 @@ class TestTransactionResource(BaseTransactionTest):
     @async_test(create_database=True)
     def test_remove_success(self, application, server):
         transaction = {'description': 'Meal', 'amount': 300.0,
-                       'type': transactions.INCOME_TRANSACTION,}
+                       'type': transactions.INCOME_TRANSACTION}
         owner, expected = yield from self.prepare_data(
             application, transaction)
 
@@ -305,8 +305,8 @@ class TestTransactionResource(BaseTransactionTest):
             assert response.status == 200
 
         with (yield from application['engine']) as conn:
-            query = transactions.transactions_table.count().where(
-                transactions.transactions_table.c.id == expected.get('id'))
+            query = transactions.table.count().where(
+                transactions.table.c.id == expected.get('id'))
             count = yield from conn.scalar(query)
             assert count == 0
 
@@ -324,14 +324,14 @@ class BaseTransactionDetailTest(BaseHandlerTest):
 
         category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
-            app, categories.categories_table, category)
+            app, categories.table, category)
 
         transaction = {'description': 'Meal', 'amount': 300.0,
                        'type': transactions.INCOME_TRANSACTION,
                        'created_on': datetime.now(), 'account_id': account_id,
                        'category_id': category_id}
         transaction_id = yield from self.create_instance(
-            app, transactions.transactions_table, transaction)
+            app, transactions.table, transaction)
 
         return owner, transaction_id
 
@@ -358,7 +358,7 @@ class TestTransactionDetailsCollection(BaseTransactionDetailTest):
         detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
                   'total': 300.0, 'transaction_id': transaction_id}
         detail_id = yield from self.create_instance(
-            application, transactions.transaction_details_table, detail)
+            application, details.table, detail)
 
         params = {
             'headers': {
@@ -501,7 +501,7 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
         detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
                   'total': 300.0, 'transaction_id': transaction_id}
         detail_id = yield from self.create_instance(
-            application, transactions.transaction_details_table, detail)
+            application, details.table, detail)
 
         params = {
             'headers': headers,
@@ -524,7 +524,7 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
         detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
                   'total': 300.0, 'transaction_id': transaction_id}
         detail_id = yield from self.create_instance(
-            application, transactions.transaction_details_table, detail)
+            application, details.table, detail)
 
         another_owner = {'login': 'Sam', 'password': 'top_secret'}
         yield from self.create_owner(application, another_owner)
@@ -568,7 +568,7 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
         detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
                   'total': 300.0, 'transaction_id': transaction_id}
         detail_id = yield from self.create_instance(
-            application, transactions.transaction_details_table, detail)
+            application, details.table, detail)
 
         params = {
             'headers': {
@@ -594,7 +594,7 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
         detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
                   'total': 300.0, 'transaction_id': transaction_id}
         detail_id = yield from self.create_instance(
-            application, transactions.transaction_details_table, detail)
+            application, details.table, detail)
 
         params = {
             'data': {'price_per_unit': 270.0},
@@ -623,7 +623,7 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
         detail = {'name': 'Soup', 'price_per_unit': 300.0, 'count': 1.0,
                   'total': 300.0, 'transaction_id': transaction_id}
         detail_id = yield from self.create_instance(
-            application, transactions.transaction_details_table, detail)
+            application, details.table, detail)
 
         params = {
             'headers': {
@@ -637,7 +637,7 @@ class TestTransactionDetailsResource(BaseTransactionDetailTest):
             assert resp.status == 200
 
         with (yield from application['engine']) as conn:
-            query = transactions.transaction_details_table.count().where(
-                transactions.transaction_details_table.c.id == detail.get('id'))
+            query = details.table.count().where(
+                details.table.c.id == detail.get('id'))
             count = yield from conn.scalar(query)
             assert count == 0

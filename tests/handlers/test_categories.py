@@ -1,6 +1,6 @@
 import pytest
 
-from wallet.models import categories
+from wallet.storage import categories
 
 from tests.conftest import async_test
 from . import BaseHandlerTest
@@ -26,7 +26,7 @@ class TestCategoriesCollection(BaseHandlerTest):
 
         category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
-            application, categories.categories_table, category)
+            application, categories.table, category)
 
         params = {
             'headers': {'X-ACCESS-TOKEN': token},
@@ -49,7 +49,7 @@ class TestCategoriesCollection(BaseHandlerTest):
 
         category = {'name': 'Food', 'owner_id': owner_id}
         yield from self.create_instance(
-            application, categories.categories_table, category)
+            application, categories.table, category)
 
         another_owner = {'login': 'Paul', 'password': 'top_secret'}
         yield from self.create_owner(application, another_owner)
@@ -115,13 +115,13 @@ class TestCategoryResource(BaseHandlerTest):
         ('DELETE', 'api.remove_category', {'X-ACCESS-TOKEN': 'fake-token'})
     ))
     @async_test(create_database=True)
-    def test_unauthorized(self, application, method, endpoint, headers,server):
+    def test_unauthorized(self, application, method, endpoint, headers, server):
         owner = {'login': 'John', 'password': 'top_secret'}
         owner_id = yield from self.create_owner(application, owner)
 
         category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
-            application, categories.categories_table, category)
+            application, categories.table, category)
 
         params = {
             'headers': headers,
@@ -142,7 +142,7 @@ class TestCategoryResource(BaseHandlerTest):
 
         category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
-            application, categories.categories_table, category)
+            application, categories.table, category)
 
         another_owner = {'login': 'Sam', 'password': 'top_secret'}
         yield from self.create_owner(application, another_owner)
@@ -184,7 +184,7 @@ class TestCategoryResource(BaseHandlerTest):
 
         category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
-            application, categories.categories_table, category)
+            application, categories.table, category)
 
         params = {
             'headers': {
@@ -210,7 +210,7 @@ class TestCategoryResource(BaseHandlerTest):
 
         category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
-            application, categories.categories_table, category)
+            application, categories.table, category)
 
         params = {
             'data': {'name': 'Car'},
@@ -237,7 +237,7 @@ class TestCategoryResource(BaseHandlerTest):
 
         category = {'name': 'Food', 'owner_id': owner_id}
         category_id = yield from self.create_instance(
-            application, categories.categories_table, category)
+            application, categories.table, category)
 
         params = {
             'headers': {
@@ -250,7 +250,7 @@ class TestCategoryResource(BaseHandlerTest):
             assert response.status == 200
 
         with (yield from application['engine']) as conn:
-            query = categories.categories_table.count().where(
-                categories.categories_table.c.id == category_id)
+            query = categories.table.count().where(
+                categories.table.c.id == category_id)
             count = yield from conn.scalar(query)
             assert count == 0

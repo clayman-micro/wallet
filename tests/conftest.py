@@ -11,7 +11,7 @@ from alembic import command
 
 
 from wallet.app import create_app, create_config, destroy_app
-from wallet.utils import reverse_url
+from wallet.utils.handlers import reverse_url
 
 config = create_config()
 

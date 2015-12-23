@@ -9,7 +9,7 @@ from sqlalchemy import select, func
 
 from ..exceptions import ValidationError
 from ..storage import users
-from ..utils import Connection
+from ..utils.db import Connection
 from . import base
 
 

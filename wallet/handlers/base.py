@@ -2,14 +2,14 @@ import functools
 from typing import Dict
 
 from aiohttp import web
-from sqlalchemy import Table, select
+from sqlalchemy import select
 import ujson
 
 from ..exceptions import DatabaseError, ValidationError
 from ..storage.base import (serialize, CustomValidator,
                             create_instance, get_instance, remove_instance,
                             update_instance)
-from ..utils import Connection
+from ..utils.db import Connection
 
 
 def response(content: str, **kwargs) -> web.Response:
@@ -64,11 +64,10 @@ def handle_response(f):
             if isinstance(exc, (web.HTTPClientError, )):
                 raise
 
-            raise
-            # if request.app['sentry']:
-            #     # send error to sentry
-            #     request.app['sentry'].captureException()
-            # return internal_error
+            if request.app['sentry']:
+                # send error to sentry
+                request.app['sentry'].captureException()
+            return internal_error
 
         if isinstance(response, web.Response):
             return response

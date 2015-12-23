@@ -11,7 +11,8 @@ class Context(object):
     def __init__(self, config):
         self.loop = asyncio.get_event_loop()
         conf = create_config(config)
-        self.instance = self.loop.run_until_complete(create_app(conf, self.loop))
+        self.instance = self.loop.run_until_complete(create_app(conf,
+                                                                self.loop))
 
 
 @click.group()

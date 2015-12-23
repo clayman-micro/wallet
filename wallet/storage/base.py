@@ -8,7 +8,7 @@ from cerberus.errors import ERROR_BAD_TYPE
 from psycopg2 import ProgrammingError, IntegrityError
 
 from ..exceptions import DatabaseError, ValidationError
-from ..utils import Connection
+from ..utils.db import Connection
 
 
 metadata = sqlalchemy.MetaData()
@@ -37,6 +37,7 @@ def to_decimal(precision: int) -> Callable:
 
 
 class CustomValidator(Validator):
+
     def _validate_type_decimal(self, field, value):
         if not isinstance(value, Decimal):
             self._error(field, ERROR_BAD_TYPE.format('Decimal'))

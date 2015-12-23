@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytest
 
-from wallet.models.auth import users_table, encrypt_password
+from wallet.storage.users import table, encrypt_password
 
 from tests.conftest import async_test
 
@@ -39,7 +39,7 @@ class TestRegistrationHandler(object):
     @async_test(create_database=True)
     def test_fail_with_already_existed(self, application, server):
         with (yield from application['engine']) as conn:
-            uid = yield from conn.scalar(users_table.insert().values(
+            uid = yield from conn.scalar(table.insert().values(
                 login='John', password='top-secret',
                 created_on=datetime.now()))
 
@@ -62,7 +62,7 @@ class TestLoginHandler(object):
         now = datetime.now()
 
         with (yield from application['engine']) as conn:
-            uid = yield from conn.scalar(users_table.insert().values(
+            uid = yield from conn.scalar(table.insert().values(
                 login=user['login'],
                 password=encrypt_password(user['password']),
                 created_on=now

@@ -8,7 +8,7 @@ from typing import Dict
 
 from ..exceptions import ValidationError
 from ..storage import accounts, categories, transactions
-from ..utils import Connection
+from ..utils.db import Connection
 from . import base, auth
 
 
