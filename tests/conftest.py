@@ -1,9 +1,11 @@
 import asyncio
-from functools import wraps
+import gc
 import os
 import socket
 import ujson
-from aiohttp import request
+
+
+from aiohttp import ClientSession
 import pytest
 
 from alembic.config import Config as AlembicConfig
@@ -13,137 +15,170 @@ from alembic import command
 from wallet.app import create_app, create_config, destroy_app
 from wallet.utils.handlers import reverse_url
 
+
 config = create_config()
 
 
-@pytest.yield_fixture('function')
-def application(request):
+@pytest.yield_fixture
+def loop(request):
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    yield loop
+
+    if not loop._closed:
+        loop.stop()
+        loop.run_forever()
+        loop.close()
+    gc.collect()
     asyncio.set_event_loop(None)
 
-    app = loop.run_until_complete(create_app(config, loop=loop))
+
+@pytest.yield_fixture('function')
+def app(loop, request):
+    app = loop.run_until_complete(create_app(config, loop))
+
+    directory = app['config'].get('MIGRATIONS_ROOT')
+    db_uri = app['config'].get_sqlalchemy_dsn()
+
+    conf = AlembicConfig(os.path.join(directory, 'alembic.ini'))
+    conf.set_main_option('script_location', directory)
+    conf.set_main_option('sqlalchemy.url', db_uri)
+
+    command.upgrade(conf, revision='head')
 
     yield app
 
+    command.downgrade(conf, revision='base')
+
     loop.run_until_complete(destroy_app(app))
-    loop.run_until_complete(app.finish())
-    loop.close()
-
-
-class ResponseContextManager(object):
-    __slots__ = ('_response', )
-
-    def __init__(self, response):
-        self._response = response
-
-    def __enter__(self):
-        return self._response
-
-    def __exit__(self, *args):
-        try:
-            self._response.close()
-        finally:
-            self._response = None
 
 
 class Server(object):
 
     def __init__(self, app):
         self._app = app
-        self._domain = None
+        self._handler = None
+        self._srv = None
+        self._url = None
 
-    @property
-    def domain(self):
-        return self._domain
+    def _find_unused_port(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('127.0.0.1', 0))
+            return s.getsockname()[1]
 
-    @staticmethod
-    def _find_unused_port():
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(('127.0.0.1', 0))
-        port = s.getsockname()[1]
-        s.close()
-        return port
+    async def create(self):
+        self._handler = self._app.make_handler(debug=False, keep_alive=False)
 
-    @asyncio.coroutine
-    def create(self):
-        port = Server._find_unused_port()
-        srv = yield from self._app.loop.create_server(
-            self._app.make_handler(keep_alive=False), '127.0.0.1', port)
-        self._domain = 'http://127.0.0.1:{port}'.format(port=port)
-        return srv
+        port = self._find_unused_port()
+        self._srv = await self._app.loop.create_server(
+            self._handler, '127.0.0.1', port)
+        self._url = 'http://127.0.0.1:{port}'.format(port=port)
 
-    @asyncio.coroutine
-    def request(self, method, **kwargs):
+    async def finish(self):
+        await self._handler.finish_connections()
+        await self._app.finish()
+        self._srv.close()
+        await self._srv.wait_closed()
+
+    def reverse_url(self, route, parts=None):
+        return ''.join((self._url, reverse_url(self._app, route, parts)))
+
+
+@pytest.yield_fixture('function')
+def server(app, request):
+    server = Server(app)
+    app.loop.run_until_complete(server.create())
+    yield server
+    app.loop.run_until_complete(server.finish())
+
+
+class AsyncResponseContext:
+    __slots__ = ('_request', '_response')
+
+    def __init__(self, request):
+        self._request = request
+        self._response = None
+
+    async def __aenter__(self):
+        self._response = await self._request
+        return self._response
+
+    async def __aexit__(self, exc_type, exc, tb):
+        try:
+            self._response.close()
+        finally:
+            self._response = None
+            self._request = None
+
+
+class HTTPClient:
+    def __init__(self, session, app, url):
+        self._app = app
+        self._session = session
+        self._url = url
+
+    def reverse_url(self, route, parts=None):
+        return ''.join((self._url, reverse_url(self._app, route, parts)))
+
+    def request(self, method, endpoint, endpoint_params=None, **kwargs):
         if kwargs:
             if kwargs.pop('json', None):
                 headers = kwargs.pop('headers', {})
                 headers['content-type'] = 'application/json'
+
                 kwargs['headers'] = headers
                 kwargs['data'] = ujson.dumps(kwargs.pop('data', ''))
-        kwargs.setdefault('loop', self._app.loop)
-        return (yield from request(method, **kwargs))
 
-    def reverse_url(self, route, parts=None):
-        return ''.join((self._domain, reverse_url(self._app, route, parts)))
+        kwargs.setdefault('url', self.reverse_url(endpoint, endpoint_params))
+        return AsyncResponseContext(self._session.request(method, **kwargs))
 
-    @asyncio.coroutine
-    def get_auth_token(self, credentials):
+    async def get_auth_token(self, credentials, endpoint='auth.login'):
         params = {
             'json': True,
             'data': credentials,
-            'url': ''.join((self._domain,
-                            self._app.router['auth.login'].url()))
+            'endpoint': endpoint
         }
-        with (yield from self.response_ctx('POST', **params)) as response:
+
+        async with self.request('POST', **params) as response:
             assert response.status == 200
             token = response.headers.get('X-ACCESS-TOKEN', None)
             assert token
         return token
 
-    @asyncio.coroutine
-    def response_ctx(self, method, **kwargs):
-        response = yield from self.request(method, **kwargs)
-        return ResponseContextManager(response)
+    def close(self):
+        self._session.close()
 
 
 @pytest.yield_fixture('function')
-def server(application, request):
-    server = Server(application)
-    srv = application.loop.run_until_complete(server.create())
-
-    yield server
-
-    srv.close()
+def client(server, request):
+    client = HTTPClient(ClientSession(loop=server._app.loop), server._app,
+                        server._url)
+    yield client
+    client.close()
 
 
-def async_test(create_database=False):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            application = kwargs.get('application')
-            func = asyncio.coroutine(f)
+@pytest.mark.tryfirst
+def pytest_pycollect_makeitem(collector, name, obj):
+    if collector.funcnamefilter(name):
+        if not callable(obj):
+            return
+        item = pytest.Function(name, parent=collector)
+        if 'run_loop' in item.keywords:
+            return list(collector._genfunctions(name, obj))
 
-            config = None
-            if create_database:
-                directory = application['config'].get('MIGRATIONS_ROOT')
-                db_uri = application['config'].get_sqlalchemy_dsn()
 
-                config = AlembicConfig(os.path.join(directory, 'alembic.ini'))
-                config.set_main_option('script_location', directory)
-                config.set_main_option('sqlalchemy.url', db_uri)
+@pytest.mark.tryfirst
+def pytest_pyfunc_call(pyfuncitem):
+    if 'run_loop' in pyfuncitem.keywords:
+        funcargs = pyfuncitem.funcargs
+        loop = funcargs['loop']
+        testargs = {arg: funcargs[arg]
+                    for arg in pyfuncitem._fixtureinfo.argnames}
+        loop.run_until_complete(pyfuncitem.obj(**testargs))
+        return True
 
-                command.upgrade(config, revision='head')
 
-            try:
-                application.loop.run_until_complete(func(*args, **kwargs))
-            finally:
-                engine = application['engine']
-                engine.close()
-
-                application.loop.run_until_complete(engine.wait_closed())
-
-                if create_database:
-                    command.downgrade(config, revision='base')
-
-        return wrapper
-    return decorator
+def pytest_runtest_setup(item):
+    if 'run_loop' in item.keywords and 'loop' not in item.fixturenames:
+        item.fixturenames.append('loop')

@@ -1,111 +1,103 @@
 import pytest
 
 from wallet.storage import categories
+from wallet.utils.db import Connection
 
-from tests.conftest import async_test
-from . import BaseHandlerTest
+from . import create_owner, create_category
 
 
-class TestCategoriesCollection(BaseHandlerTest):
+class TestCategoriesCollection(object):
+    owner = {'login': 'John', 'password': 'top_secret'}
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
-    @async_test(create_database=True)
-    def test_get_unauthorized(self, application, headers, server):
-        params = {
-            'headers': headers,
-            'url': server.reverse_url('api.get_categories')
-        }
-        with (yield from server.response_ctx('GET', **params)) as response:
+    async def test_get_unauthorized(self, client, headers):
+        params = {'endpoint': 'api.get_categories', 'headers': headers}
+        async with client.request('GET', **params) as response:
             assert response.status == 401
 
-    @async_test(create_database=True)
-    def test_get_success(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
-        token = yield from server.get_auth_token(owner)
+    @pytest.mark.run_loop
+    async def test_get_success(self, app, client):
+        owner_id = await create_owner(app, self.owner)
 
         category = {'name': 'Food', 'owner_id': owner_id}
-        category_id = yield from self.create_instance(
-            application, categories.table, category)
+        category_id = await create_category(app, category)
 
         params = {
-            'headers': {'X-ACCESS-TOKEN': token},
-            'url': server.reverse_url('api.get_categories')
+            'headers': {
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
+            },
+            'endpoint': 'api.get_categories'
         }
-        with (yield from server.response_ctx('GET', **params)) as resp:
-            assert resp.status == 200
-
-            expected = {'id': category_id, 'name': 'Food',
-                        'owner_id': owner_id}
-
-            response = yield from resp.json()
-            assert 'categories' in response
-            assert [expected, ] == response['categories']
-
-    @async_test(create_database=True)
-    def test_get_success_only_for_owner(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
-
-        category = {'name': 'Food', 'owner_id': owner_id}
-        yield from self.create_instance(
-            application, categories.table, category)
-
-        another_owner = {'login': 'Paul', 'password': 'top_secret'}
-        yield from self.create_owner(application, another_owner)
-        token = yield from server.get_auth_token(another_owner)
-
-        params = {
-            'headers': {'X-ACCESS-TOKEN': token},
-            'url': server.reverse_url('api.get_categories')
-        }
-
-        with (yield from server.response_ctx('GET', **params)) as response:
+        async with client.request('GET', **params) as response:
             assert response.status == 200
 
-            data = yield from response.json()
+            expected = {'id': category_id, 'name': 'Food', 'owner_id': owner_id}
+
+            result = await response.json()
+            assert 'categories' in result
+            assert result['categories'] == [expected, ]
+
+    @pytest.mark.run_loop
+    async def test_get_success_only_for_owner(self, app, client):
+        owner = await create_owner(app, self.owner)
+
+        await create_category(app, {'name': 'Food', 'owner_id': owner})
+
+        another_owner = {'login': 'Paul', 'password': 'top_secret'}
+        await create_owner(app, another_owner)
+
+        token = await client.get_auth_token(another_owner)
+        params = {
+            'headers': {'X-ACCESS-TOKEN': token},
+            'endpoint': 'api.get_categories'
+        }
+
+        async with client.request('GET', **params) as response:
+            assert response.status == 200
+
+            data = await response.json()
             assert 'categories' in data
             assert data['categories'] == []
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
-    @async_test(create_database=True)
-    def test_create_unauthorized(self, application, headers, server):
-        owner = {'login': 'Paul', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
-
-        category = {'name': 'Food', 'owner_id': owner_id}
+    async def test_create_unauthorized(self, app, client, headers):
+        await create_owner(app, self.owner)
 
         params = {
-            'data': category,
+            'data': {'name': 'Food'},
             'headers': headers,
-            'url': server.reverse_url('api.create_category')
+            'endpoint': 'api.create_category'
         }
-        with (yield from server.response_ctx('POST', **params)) as response:
+        async with client.request('POST', **params) as response:
             assert response.status == 401
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('params', ({'json': False}, {'json': True}))
-    @async_test(create_database=True)
-    def test_create_success(self, application, params, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
-        token = yield from server.get_auth_token(owner)
+    async def test_create_success(self, app, client, params):
+        owner_id = await create_owner(app, self.owner)
 
-        params['headers'] = {'X-ACCESS-TOKEN': token}
+        params['headers'] = {
+            'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
+        }
         params['data'] = {'name': 'Food'}
-        params['url'] = server.reverse_url('api.create_category')
+        params['endpoint'] = 'api.create_category'
 
-        with (yield from server.response_ctx('POST', **params)) as response:
+        async with client.request('POST', **params) as response:
             assert response.status == 201
 
             expected = {'id': 1, 'name': 'Food', 'owner_id': owner_id}
 
-            response = yield from response.json()
-            assert 'category' in response
-            assert expected == response['category']
+            result = await response.json()
+            assert 'category' in result
+            assert result['category'] == expected
 
 
-class TestCategoryResource(BaseHandlerTest):
+class TestCategoryResource(object):
+    owner = {'login': 'John', 'password': 'top_secret'}
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('method,endpoint,headers', (
         ('GET', 'api.get_category', {}),
         ('GET', 'api.get_category', {'X-ACCESS-TOKEN': 'fake-token'}),
@@ -114,143 +106,130 @@ class TestCategoryResource(BaseHandlerTest):
         ('DELETE', 'api.remove_category', {}),
         ('DELETE', 'api.remove_category', {'X-ACCESS-TOKEN': 'fake-token'})
     ))
-    @async_test(create_database=True)
-    def test_unauthorized(self, application, method, endpoint, headers, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    async def test_unauthorized(self, app, client, method, endpoint, headers):
+        owner_id = await create_owner(app, self.owner)
 
-        category = {'name': 'Food', 'owner_id': owner_id}
-        category_id = yield from self.create_instance(
-            application, categories.table, category)
+        category_id = await create_category(
+            app, {'name': 'Food', 'owner_id': owner_id})
 
         params = {
             'headers': headers,
-            'url': server.reverse_url(endpoint, {'instance_id': category_id})
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': category_id}
         }
-        with (yield from server.response_ctx(method, **params)) as response:
+        async with client.request(method, **params) as response:
             assert response.status == 401
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('method,endpoint', (
             ('GET', 'api.get_account'),
             ('PUT', 'api.update_account'),
             ('DELETE', 'api.remove_account'),
     ))
-    @async_test(create_database=True)
-    def test_does_not_belong(self, application, method, endpoint, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    async def test_does_not_belong(self, app, client, method, endpoint):
+        owner_id = await create_owner(app, self.owner)
 
-        category = {'name': 'Food', 'owner_id': owner_id}
-        category_id = yield from self.create_instance(
-            application, categories.table, category)
+        category_id = await create_category(
+            app, {'name': 'Food', 'owner_id': owner_id})
 
         another_owner = {'login': 'Sam', 'password': 'top_secret'}
-        yield from self.create_owner(application, another_owner)
+        await create_owner(app, another_owner)
 
         params = {
             'headers': {
-                'X-ACCESS-TOKEN': (
-                    yield from server.get_auth_token(another_owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(another_owner)
             },
-            'url': server.reverse_url(endpoint,
-                                      {'instance_id': category_id})
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': category_id}
         }
-        with (yield from server.response_ctx(method, **params)) as response:
+        async with client.request(method, **params) as response:
             assert response.status == 404
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('method,endpoint', (
             ('GET', 'api.get_account'),
             ('PUT', 'api.update_account'),
             ('DELETE', 'api.remove_account')
     ))
-    @async_test(create_database=True)
-    def test_missing(self, application, method, endpoint, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        yield from self.create_owner(application, owner)
+    async def test_missing(self, app, client, method, endpoint):
+        await create_owner(app, self.owner)
 
         params = {
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url(endpoint, {'instance_id': 1})
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': 1}
         }
-        with (yield from server.response_ctx(method, **params)) as response:
+        async with client.request(method, **params) as response:
             assert response.status == 404
 
-    @async_test(create_database=True)
-    def test_get_success(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    @pytest.mark.run_loop
+    async def test_get_success(self, app, client):
+        owner_id = await create_owner(app, self.owner)
 
         category = {'name': 'Food', 'owner_id': owner_id}
-        category_id = yield from self.create_instance(
-            application, categories.table, category)
+        category_id = await create_category(app, category)
 
         params = {
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url('api.get_category',
-                                      {'instance_id': category_id})
+            'endpoint': 'api.get_category',
+            'endpoint_params': {'instance_id': category_id}
         }
-        with (yield from server.response_ctx('GET', **params)) as response:
+        async with client.request('GET', **params) as response:
             assert response.status == 200
 
             expected = {'id': 1, 'name': 'Food', 'owner_id': owner_id}
 
-            data = yield from response.json()
+            data = await response.json()
             assert 'category' in data
             assert expected == data['category']
 
-    @pytest.mark.handlers
-    @async_test(create_database=True)
-    def test_update_success(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    @pytest.mark.run_loop
+    async def test_update_success(self, app, client):
+        owner_id = await create_owner(app, self.owner)
 
         category = {'name': 'Food', 'owner_id': owner_id}
-        category_id = yield from self.create_instance(
-            application, categories.table, category)
+        category_id = await create_category(app, category)
 
         params = {
             'data': {'name': 'Car'},
             'json': True,
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url('api.update_category',
-                                      {'instance_id': category_id})
+            'endpoint': 'api.update_category',
+            'endpoint_params': {'instance_id': category_id}
         }
-
-        with (yield from server.response_ctx('PUT', **params)) as resp:
-            assert resp.status == 200
+        async with client.request('PUT', **params) as response:
+            assert response.status == 200
 
             expected = {'id': 1, 'name': 'Car', 'owner_id': owner_id}
 
-            response = yield from resp.json()
-            assert expected == response['category']
+            result = await response.json()
+            assert result['category'] == expected
 
-    @async_test(create_database=True)
-    def test_remove_success(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    @pytest.mark.run_loop
+    async def test_remove_success(self, app, client):
+        owner_id = await create_owner(app, self.owner)
 
         category = {'name': 'Food', 'owner_id': owner_id}
-        category_id = yield from self.create_instance(
-            application, categories.table, category)
+        category_id = await create_category(app, category)
 
         params = {
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url('api.remove_category',
-                                      {'instance_id': category_id})
+            'endpoint': 'api.remove_category',
+            'endpoint_params': {'instance_id': category_id}
         }
-        with (yield from server.response_ctx('DELETE', **params)) as response:
+        async with client.request('DELETE', **params) as response:
             assert response.status == 200
 
-        with (yield from application['engine']) as conn:
+        async with Connection(app['engine']) as conn:
             query = categories.table.count().where(
                 categories.table.c.id == category_id)
-            count = yield from conn.scalar(query)
+            count = await conn.scalar(query)
             assert count == 0

@@ -1,16 +1,12 @@
 import pytest
 
-from tests.conftest import async_test
-
 
 class TestCoreHandler(object):
 
-    @pytest.mark.core
-    @async_test()
-    def test_index(self, application, server):
-        url = server.reverse_url('core.index')
-        with (yield from server.response_ctx('GET', url=url)) as response:
+    @pytest.mark.run_loop
+    async def test_index(self, server, client):
+        async with client.request('GET', endpoint='core.index') as response:
             assert response.status == 200
 
-            result = yield from response.text()
+            result = await response.text()
             assert 'wallet' in result

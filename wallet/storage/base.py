@@ -64,7 +64,10 @@ async def create_instance(engine, table: sqlalchemy.Table, instance: Dict):
         except ProgrammingError as exc:
             raise DatabaseError
         except IntegrityError as exc:
-            raise DatabaseError
+            raise DatabaseError({'integrity_error': {
+                'primary': exc.diag.message_primary,
+                'detail': exc.diag.message_detail
+            }})
 
     return instance_id
 
@@ -89,7 +92,10 @@ async def update_instance(engine, table: sqlalchemy.Table, instance):
         try:
             result = await conn.execute(query)
         except IntegrityError as exc:
-            raise
+            raise DatabaseError({'integrity_error': {
+                'primary': exc.diag.message_primary,
+                'detail': exc.diag.message_detail
+            }})
         except ProgrammingError as exc:
             raise
 

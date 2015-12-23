@@ -1,117 +1,83 @@
-import asyncio
 from datetime import datetime
 
 import pytest
 
+from wallet.storage.base import create_instance
 from wallet.storage.users import table, encrypt_password
-
-from tests.conftest import async_test
 
 
 class TestRegistrationHandler(object):
-    endpoint = 'auth.registration'
 
-    @pytest.mark.auth
-    @pytest.mark.parametrize('params', [
-        {'json': False},
-        {'json': True}
-    ])
-    @async_test(create_database=True)
-    def test_success(self, application, server, params):
-        params.update(url=server.reverse_url('auth.registration'),
-                      data={'login': 'John', 'password': 'top-secret'})
-        with (yield from server.response_ctx('POST', **params)) as response:
-            print((yield from response.text()))
+    @pytest.mark.run_loop
+    @pytest.mark.parametrize('params', [{'json': False}, {'json': True}])
+    async def test_success(self, client, params):
+        params['data'] = {'login': 'John', 'password': 'top-secret'}
+        params['endpoint'] = 'auth.registration'
+
+        async with client.request('POST', **params) as response:
             assert response.status == 201
 
-    @pytest.mark.auth
-    @async_test(create_database=True)
-    def test_fail_without_password(self, application, server):
-        params = {
-            'url': server.reverse_url('auth.registration'),
-            'data': {'login': 'John'},
-            'json': True
-        }
-        with (yield from server.response_ctx('POST', **params)) as response:
+    @pytest.mark.run_loop
+    @pytest.mark.parametrize('params', [{'json': False}, {'json': True}])
+    async def test_fail_without_password(self, client, params):
+        params['data'] = {'login': 'John'}
+        params['endpoint'] = 'auth.registration'
+
+        async with client.request('POST', **params) as response:
             assert response.status == 400
 
-    @pytest.mark.auth
-    @async_test(create_database=True)
-    def test_fail_with_already_existed(self, application, server):
-        with (yield from application['engine']) as conn:
-            uid = yield from conn.scalar(table.insert().values(
-                login='John', password='top-secret',
-                created_on=datetime.now()))
+    @pytest.mark.run_loop
+    @pytest.mark.parametrize('params', [{'json': False}, {'json': True}])
+    async def test_fail_if_already_existed(self, app, client, params):
+        await create_instance(app['engine'], table, {
+            'login': 'John', 'password': 'top-secret',
+            'created_on': datetime.now()
+        })
 
-            assert uid == 1
+        params['data'] = {'login': 'John', 'password': 'weak-secret'}
+        params['endpoint'] = 'auth.registration'
 
-        params = {
-            'url': server.reverse_url('auth.registration'),
-            'data': {'login': 'John', 'password': 'top-secret'},
-            'json': True
-        }
-        with (yield from server.response_ctx('POST', **params)) as response:
+        async with client.request('POST', **params) as response:
             assert response.status == 400
 
 
 class TestLoginHandler(object):
-    endpoint = 'auth.login'
+    user = {'login': 'John', 'password': 'top-secret'}
 
-    @asyncio.coroutine
-    def prepare_user(self, application, user):
-        now = datetime.now()
+    async def create_user(self, engine):
+        return await create_instance(engine, table, {
+            'created_on': datetime.now(), 'login': self.user['login'],
+            'password': encrypt_password(self.user['password'])
+        })
 
-        with (yield from application['engine']) as conn:
-            uid = yield from conn.scalar(table.insert().values(
-                login=user['login'],
-                password=encrypt_password(user['password']),
-                created_on=now
-            ))
-        return uid
+    @pytest.mark.run_loop
+    @pytest.mark.parametrize('params', [{'json': False}, {'json': True}])
+    async def test_success(self, app, client, params):
+        await self.create_user(app['engine'])
 
-    @pytest.mark.auth
-    @pytest.mark.parametrize('params', [
-        {'json': False},
-        {'json': True}
-    ])
-    @async_test(create_database=True)
-    def test_success(self, application, server, params):
-        user = {'login': 'John', 'password': 'top-secret'}
-
-        uid = yield from self.prepare_user(application, user)
-        assert uid == 1
-
-        params.update(url=server.reverse_url('auth.login'), data=user)
-        with (yield from server.response_ctx('POST', **params)) as response:
+        params.update(data=self.user, endpoint='auth.login')
+        async with client.request('POST', **params) as response:
             assert response.status == 200
             assert 'X-ACCESS-TOKEN' in response.headers
 
-    @pytest.mark.auth
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('params', [
-        {'data': {'login': 'John', 'password': 'wrong-password'}},
-        {'data': {'login': 'John'}}
+        {'data': {'login': 'John', 'password': 'incorrect'}, 'json': True},
+        {'data': {'login': 'John'}, 'json': True}
     ])
-    @async_test(create_database=True)
-    def test_fail(self, application, server, params):
-        user = {'login': 'John', 'password': 'top-secret'}
+    async def test_fail(self, app, client, params):
+        await self.create_user(app['engine'])
 
-        uid = yield from self.prepare_user(application, user)
-        assert uid == 1
-
-        params.update(url=server.reverse_url('auth.login'), json=True)
-        with (yield from server.response_ctx('POST', **params)) as response:
+        params['endpoint'] = 'auth.login'
+        async with client.request('POST', **params) as response:
             assert response.status == 400
 
-    @pytest.mark.auth
-    @async_test(create_database=True)
-    def test_missing_user(self, application, server):
-        user = {'login': 'John', 'password': 'top-secret'}
+    @pytest.mark.run_loop
+    @pytest.mark.parametrize('params', [{'json': False}, {'json': True}])
+    async def test_missing_user(self, app, client, params):
+        await self.create_user(app['engine'])
 
-        uid = yield from self.prepare_user(application, user)
-        assert uid == 1
-
-        user['login'] = 'Patrick'
-        params = {'url': server.reverse_url('auth.login'), 'data': user,
-                  'json': True}
-        with (yield from server.response_ctx('POST', **params)) as response:
+        params['data'] = {'login': 'Patrick', 'password': 'weed-secret'}
+        params['endpoint'] = 'auth.login'
+        async with client.request('POST', **params) as response:
             assert response.status == 404

@@ -1,116 +1,108 @@
 import pytest
 
 from wallet.storage import accounts
+from wallet.utils.db import Connection
 
-from tests.conftest import async_test
-from . import BaseHandlerTest
+from . import create_owner, create_account
 
 
-class TestAccountCollection(BaseHandlerTest):
+class TestAccountCollection(object):
+    owner = {'login': 'John', 'password': 'top_secret'}
 
+    async def create_account(self, app, account):
+        owner_id = await create_owner(app, self.owner)
+        account.setdefault('owner_id', owner_id)
+        return await create_account(app, account)
+
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
-    @async_test(create_database=True)
-    def test_get_unauthorized(self, application, server, headers, **kwargs):
-        params = {
-            'headers': headers,
-            'url': server.reverse_url('api.get_accounts')
-        }
-        with (yield from server.response_ctx('GET', **params)) as response:
+    async def test_get_unauthorized(self, client, headers):
+        params = {'headers': headers, 'endpoint': 'api.get_accounts'}
+        async with client.request('GET', **params) as response:
             assert response.status == 401
 
-    @async_test(create_database=True)
-    def test_get_success(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
-        token = yield from server.get_auth_token(owner)
+    @pytest.mark.run_loop
+    async def test_get_success(self, app, client):
+        account_id = await self.create_account(app, {
+            'name': 'Credit card', 'original_amount': 30000.0
+        })
 
-        account = {'name': 'Credit card', 'original_amount': 30000.0,
-                   'current_amount': 0.0, 'owner_id': owner_id}
-        account_id = yield from self.create_account(application, account)
-
+        token = await client.get_auth_token(self.owner)
         params = {
             'headers': {'X-ACCESS-TOKEN': token},
-            'url': server.reverse_url('api.get_accounts')
+            'endpoint': 'api.get_accounts'
         }
-
-        with (yield from server.response_ctx('GET', **params)) as response:
+        async with client.request('GET', **params) as response:
             assert response.status == 200
 
             expected = {'id': account_id, 'name': 'Credit card',
-                        'original_amount': 30000.0, 'current_amount': 0.0}
+                        'original_amount': 30000.0, 'current_amount': 30000.0}
 
-            data = yield from response.json()
+            data = await response.json()
             assert 'accounts' in data
-            assert [expected, ] == data['accounts']
+            assert data['accounts'] == [expected, ]
 
-    @async_test(create_database=True)
-    def test_get_success_only_for_owner(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
-
-        account = {'name': 'Credit card', 'original_amount': 30000.0,
-                   'current_amount': 0.0, 'owner_id': owner_id}
-        yield from self.create_account(application, account)
+    @pytest.mark.run_loop
+    async def test_get_success_only_for_owner(self, app, client):
+        await self.create_account(app, {
+            'name': 'Credit card', 'original_amount': 30000.0
+        })
 
         another_owner = {'login': 'Paul', 'password': 'top_secret'}
-        yield from self.create_owner(application, another_owner)
-        token = yield from server.get_auth_token(another_owner)
+        await create_owner(app, another_owner)
 
+        token = await client.get_auth_token(another_owner)
         params = {
             'headers': {'X-ACCESS-TOKEN': token},
-            'url': server.reverse_url('api.get_accounts')
+            'endpoint': 'api.get_accounts'
         }
-
-        with (yield from server.response_ctx('GET', **params)) as response:
+        async with client.request('GET', **params) as response:
             assert response.status == 200
 
-            data = yield from response.json()
+            data = await response.json()
             assert 'accounts' in data
             assert data['accounts'] == []
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
-    @async_test(create_database=True)
-    def test_create_unauthorized(self, application, headers, server):
-        owner = {'login': 'Paul', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
-
+    async def test_create_unauthorized(self, app, server, client, headers):
+        await create_owner(app, self.owner)
         account = {'name': 'Credit card', 'original_amount': 30000.0,
-                   'current_amount': 0.0, 'owner_id': owner_id}
+                   'current_amount': 0.0}
 
         params = {
             'data': account,
             'headers': headers,
-            'url': server.reverse_url('api.create_account')
+            'endpoint': 'api.create_account'
         }
-        with (yield from server.response_ctx('POST', **params)) as response:
+        async with client.request('GET', **params) as response:
             assert response.status == 401
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('params', ({'json': False}, {'json': True}))
-    @async_test(create_database=True)
-    def test_create_success(self, application, params, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    async def test_create_success(self, app, client, params):
+        await create_owner(app, self.owner)
 
-        token = yield from server.get_auth_token({'login': 'John',
-                                                  'password': 'top_secret'})
-
+        token = await client.get_auth_token(self.owner)
         params['headers'] = {'X-ACCESS-TOKEN': token}
         params['data'] = {'name': 'Credit card', 'original_amount': 30000.0}
-        params['url'] = server.reverse_url('api.create_account')
+        params['endpoint'] = 'api.create_account'
 
-        with (yield from server.response_ctx('POST', **params)) as response:
+        async with client.request('POST', **params) as response:
             assert response.status == 201
 
             expected = {'id': 1, 'name': 'Credit card',
                         'original_amount': 30000.0, 'current_amount': 30000.0}
 
-            response = yield from response.json()
+            response = await response.json()
             assert 'account' in response
             assert expected == response['account']
 
 
-class TestAccountResource(BaseHandlerTest):
+class TestAccountResource(object):
+    owner = {'login': 'John', 'password': 'top_secret'}
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('method,endpoint,headers', (
         ('GET', 'api.get_account', {}),
         ('GET', 'api.get_account', {'X-ACCESS-TOKEN': 'fake-token'}),
@@ -119,162 +111,160 @@ class TestAccountResource(BaseHandlerTest):
         ('DELETE', 'api.remove_account', {}),
         ('DELETE', 'api.remove_account', {'X-ACCESS-TOKEN': 'fake-token'}),
     ))
-    @async_test(create_database=True)
-    def test_unauthorized(self, application, method, endpoint, headers, server):
+    async def test_unauthorized(self, app, client, method, endpoint, headers):
         owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+        owner_id = await create_owner(app, owner)
 
         account = {'name': 'Credit card', 'original_amount': 30000.0,
                    'current_amount': 0.0, 'owner_id': owner_id}
-        account_id = yield from self.create_account(application, account)
+        account_id = await create_account(app, account)
 
         params = {
             'headers': headers,
-            'url': server.reverse_url(endpoint, {'instance_id': account_id})
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': account_id}
         }
-        with (yield from server.response_ctx(method, **params)) as response:
+        async with client.request(method, **params) as response:
             assert response.status == 401
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('method,endpoint', (
         ('GET', 'api.get_account'),
         ('PUT', 'api.update_account'),
         ('DELETE', 'api.remove_account'),
     ))
-    @async_test(create_database=True)
-    def test_does_not_belong(self, application, method, endpoint, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
-
-        account = {'name': 'Credit card', 'original_amount': 30000.0,
-                   'current_amount': 0.0, 'owner_id': owner_id}
-        account_id = yield from self.create_account(application, account)
+    async def test_does_not_belong(self, app, client, method, endpoint):
+        owner_id = await create_owner(app, self.owner)
+        account_id = await create_account(app, {
+            'name': 'Credit card', 'original_amount': 30000.0,
+            'current_amount': 0.0,'owner_id': owner_id
+        })
 
         another_owner = {'login': 'Sam', 'password': 'top_secret'}
-        yield from self.create_owner(application, another_owner)
+        await create_owner(app, another_owner)
 
         params = {
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(another_owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(another_owner)
             },
-            'url': server.reverse_url(endpoint, {'instance_id': account_id})
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': account_id}
         }
-        with (yield from server.response_ctx(method, **params)) as response:
+        async with client.request(method, **params) as response:
             assert response.status == 404
 
+    @pytest.mark.run_loop
     @pytest.mark.parametrize('method,endpoint', (
         ('GET', 'api.get_account'),
         ('PUT', 'api.update_account'),
         ('DELETE', 'api.remove_account')
     ))
-    @async_test(create_database=True)
-    def test_missing(self, application, method, endpoint, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        yield from self.create_owner(application, owner)
+    async def test_missing(self, app, client, method, endpoint):
+        await create_owner(app, self.owner)
 
         params = {
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url(endpoint, {'instance_id': 1})
+            'endpoint': endpoint,
+            'endpoint_params': {'instance_id': 1}
         }
-        with (yield from server.response_ctx(method, **params)) as response:
+        async with client.request(method, **params) as response:
             assert response.status == 404
 
-    @async_test(create_database=True)
-    def test_get_success(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    @pytest.mark.run_loop
+    async def test_get_success(self, app, client):
+        owner_id = await create_owner(app, self.owner)
 
         account = {'name': 'Credit card', 'original_amount': 30000.0,
                    'current_amount': 0.0, 'owner_id': owner_id}
-        account_id = yield from self.create_account(application, account)
+        account_id = await create_account(app, account)
 
         params = {
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url('api.get_account',
-                                      {'instance_id': account_id})
+            'endpoint': 'api.get_account',
+            'endpoint_params': {'instance_id': account_id}
         }
-        with (yield from server.response_ctx('GET', **params)) as response:
+
+        async with client.request('GET', **params) as response:
             assert response.status == 200
 
             expected = {'id': 1, 'name': 'Credit card',
                         'original_amount': 30000.0, 'current_amount': 0.0}
 
-            data = yield from response.json()
+            data = await response.json()
             assert 'account' in data
             assert expected == data['account']
 
-    @async_test(create_database=True)
-    def test_update_success(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    @pytest.mark.run_loop
+    async def test_update_success(self, app, client):
+        owner_id = await create_owner(app, self.owner)
 
         account = {'name': 'Credit card', 'original_amount': 30000.0,
                    'current_amount': 0.0, 'owner_id': owner_id}
-        account_id = yield from self.create_account(application, account)
+        account_id = await create_account(app, account)
 
         params = {
             'data': {'name': 'Debit card'},
             'json': True,
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url('api.update_account',
-                                      {'instance_id': account_id})
+            'endpoint': 'api.update_account',
+            'endpoint_params': {'instance_id': account_id}
         }
-        with (yield from server.response_ctx('PUT', **params)) as resp:
-            assert resp.status == 200
+        async with client.request('PUT', **params) as response:
+            assert response.status == 200
 
             expected = {'id': 1, 'name': 'Debit card',
                         'original_amount': 30000.0, 'current_amount': 0.0}
 
-            response = yield from resp.json()
+            response = await response.json()
             assert expected == response['account']
 
-    @async_test(create_database=True)
-    def test_update_owner(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    @pytest.mark.run_loop
+    @pytest.mark.parametrize('data', ({'owner_id': 2}, {'current_amount': 10}))
+    async def test_update_readonly(self, app, client, data):
+        owner_id = await create_owner(app, self.owner)
 
         account = {'name': 'Credit card', 'original_amount': 30000.0,
                    'current_amount': 0.0, 'owner_id': owner_id}
-        account_id = yield from self.create_account(application, account)
+        account_id = await create_account(app, account)
 
         params = {
-            'data': {'owner_id': 2},
+            'data': data,
             'json': True,
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url('api.update_account',
-                                      {'instance_id': account_id})
+            'endpoint': 'api.update_account',
+            'endpoint_params': {'instance_id': account_id}
         }
-        with (yield from server.response_ctx('PUT', **params)) as resp:
-            assert resp.status == 400
+        async with client.request('PUT', **params) as response:
+            assert response.status == 400
 
-    @async_test(create_database=True)
-    def test_remove_success(self, application, server):
-        owner = {'login': 'John', 'password': 'top_secret'}
-        owner_id = yield from self.create_owner(application, owner)
+    @pytest.mark.run_loop
+    async def test_remove_success(self, app, client):
+        owner_id = await create_owner(app, self.owner)
 
         account = {'name': 'Credit card', 'original_amount': 30000.0,
                    'current_amount': 0.0, 'owner_id': owner_id}
-        account_id = yield from self.create_account(application, account)
+        account_id = await create_account(app, account)
 
         params = {
             'headers': {
-                'X-ACCESS-TOKEN': (yield from server.get_auth_token(owner))
+                'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)
             },
-            'url': server.reverse_url('api.remove_account',
-                                      {'instance_id': account_id})
+            'endpoint': 'api.remove_account',
+            'endpoint_params': {'instance_id': account_id}
         }
-        with (yield from server.response_ctx('DELETE', **params)) as response:
+        async with client.request('DELETE', **params) as response:
             assert response.status == 200
 
-        with (yield from application['engine']) as conn:
+        async with Connection(app['engine']) as conn:
             query = accounts.table.count().where(
                 accounts.table.c.id == account_id)
-            count = yield from conn.scalar(query)
+            count = await conn.scalar(query)
             assert count == 0
