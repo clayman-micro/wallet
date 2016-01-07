@@ -64,7 +64,7 @@ def handle_response(f):
             if isinstance(exc, (web.HTTPClientError, )):
                 raise
 
-            if request.app['sentry']:
+            if 'sentry' in request.app:
                 # send error to sentry
                 request.app['sentry'].captureException()
             return internal_error
@@ -181,7 +181,7 @@ class ResourceHandler(BaseHandler):
         }, status=201)
 
     async def after_update(self, resource, request: web.Request, **kwargs):
-        pass
+        return resource
 
     async def put(self, request: web.Request, **kwargs):
         instance = await self.get_resource(request, **kwargs)
@@ -202,8 +202,8 @@ class ResourceHandler(BaseHandler):
         except DatabaseError as exc:
             raise
 
-        await self.after_update(instance, request, before=before, **kwargs)
-
+        instance = await self.after_update(instance, request, before=before,
+                                           **kwargs)
         return {
             self.resource_name: self.serialize(instance)
         }

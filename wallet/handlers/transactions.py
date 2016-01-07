@@ -120,6 +120,8 @@ class TransactionResourceHandler(base.ResourceHandler):
                 current_amount=current_amount.quantize(Decimal('.01')))
             await conn.execute(query)
 
+        return resource
+
     async def after_remove(self, resource, request: web.Request, **kwargs):
         table = accounts.table
 

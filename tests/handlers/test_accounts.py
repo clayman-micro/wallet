@@ -1,9 +1,9 @@
 import pytest
 
-from wallet.storage import accounts
+from wallet.storage import accounts, transactions
 from wallet.utils.db import Connection
 
-from . import create_owner, create_account
+from . import create_owner, create_account, create_category
 
 
 class TestAccountCollection(object):
@@ -203,7 +203,7 @@ class TestAccountResource(object):
         owner_id = await create_owner(app, self.owner)
 
         account = {'name': 'Credit card', 'original_amount': 30000.0,
-                   'current_amount': 0.0, 'owner_id': owner_id}
+                   'current_amount': 2000.0, 'owner_id': owner_id}
         account_id = await create_account(app, account)
 
         params = {
@@ -219,10 +219,57 @@ class TestAccountResource(object):
             assert response.status == 200
 
             expected = {'id': 1, 'name': 'Debit card',
-                        'original_amount': 30000.0, 'current_amount': 0.0}
+                        'original_amount': 30000.0, 'current_amount': 2000.0}
 
             response = await response.json()
             assert expected == response['account']
+
+    @pytest.mark.run_loop
+    @pytest.mark.parametrize('json', (False, True))
+    async def test_update_current_amount(self, app, client, json):
+        owner_id = await create_owner(app, self.owner)
+        category_id = await create_category(
+            app, {'name': 'Food', 'owner_id': owner_id})
+        account = {'name': 'Credit card', 'original_amount': 30000.0,
+                   'current_amount': 10000.0, 'owner_id': owner_id}
+        account_id = await create_account(app, account)
+
+        headers = {'X-ACCESS-TOKEN': await client.get_auth_token(self.owner)}
+        items = [{
+            'description': 'Meal', 'amount': 1000.0,
+            'type': transactions.EXPENSE_TRANSACTION,
+            'account_id': account_id, 'category_id': category_id,
+            'created_on': '2015-08-20T00:00:00'
+        }, {
+            'description': 'Meal', 'amount': 10000.0,
+            'type': transactions.INCOME_TRANSACTION,
+            'account_id': account_id, 'category_id': category_id,
+            'created_on': '2015-08-20T00:00:00'
+        }]
+
+        for item in items:
+            params = {
+                'json': json, 'data': item, 'headers': headers,
+                'endpoint': 'api.create_transaction'
+            }
+            async with client.request('POST', **params) as response:
+                assert response.status == 201
+
+        params = {
+            'json': True,
+            'data': {'original_amount': 20000.0},
+            'headers': headers,
+            'endpoint': 'api.update_account',
+            'endpoint_params': {'instance_id': account_id}
+        }
+        async with client.request('PUT', **params) as response:
+            assert response.status == 200
+
+            expected = {'id': 1, 'name': 'Credit card',
+                        'original_amount': 20000.0, 'current_amount': 29000.0}
+
+            result = await response.json()
+            assert expected == result['account']
 
     @pytest.mark.run_loop
     @pytest.mark.parametrize('data', ({'owner_id': 2}, {'current_amount': 10}))

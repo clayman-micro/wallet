@@ -1,10 +1,12 @@
 from datetime import datetime
 
+import sqlalchemy
 from aiohttp import web
+from decimal import Decimal
 from sqlalchemy import and_, func, select
 
 from ..exceptions import ValidationError
-from ..storage import accounts
+from ..storage import accounts, transactions
 from ..utils.db import Connection
 from . import base, auth
 
@@ -68,5 +70,40 @@ class AccountResourceHandler(base.ResourceHandler):
         return document
 
     async def after_update(self, resource, request, **kwargs):
-        # TODO: update current amount when update original amount
-        pass
+        before = kwargs.get('before')
+
+        if resource['original_amount'] == before['original_amount']:
+            return resource
+
+        original = Decimal(resource['original_amount'])
+        table = transactions.table
+        join = sqlalchemy.join(table, self.table,
+                               self.table.c.id == table.c.account_id)
+        async with Connection(request.app['engine']) as conn:
+            expense_params = [
+                self.table.c.id == resource.get('id'),
+                table.c.type == transactions.EXPENSE_TRANSACTION
+            ]
+            query = select([func.sum(table.c.amount)]).select_from(
+                table).select_from(join).where(and_(*expense_params))
+            expenses = await conn.scalar(query)
+
+            income_params = [
+                self.table.c.id == resource.get('id'),
+                table.c.type == transactions.INCOME_TRANSACTION
+            ]
+            query = select([func.sum(table.c.amount)]).select_from(
+                table).select_from(join).where(and_(*income_params))
+            incomes = await conn.scalar(query)
+            if not incomes:
+                incomes = 0
+
+            current = original + incomes - expenses
+            current_amount = current.quantize(Decimal('.01'))
+            await conn.execute(self.table.update().where(
+                self.table.c.id == resource.get('id')).values(
+                current_amount=current_amount
+            ))
+
+        resource['current_amount'] = current_amount
+        return resource
