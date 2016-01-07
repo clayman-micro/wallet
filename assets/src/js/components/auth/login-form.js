@@ -47,7 +47,7 @@ class LoginForm extends Component {
         return (
             <div className="form__section">
                 <label htmlFor="username" className="form__label">Username</label>
-                <input type="text" ref="username" placeholder="Username" className={className} />
+                <input type="email" ref="username" placeholder="Username" className={className} />
             </div>
         );
     }

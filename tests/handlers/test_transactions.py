@@ -588,6 +588,7 @@ class TestTransactionDetailsResource(BaseTransactionTest):
 
         detail['id'] = detail_id
         detail['price_per_unit'] = 270.0
+        detail['total'] = 270.0
 
         async with client.request('PUT', **params) as response:
             assert response.status == 200

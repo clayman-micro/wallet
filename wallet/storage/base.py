@@ -27,10 +27,13 @@ def to_datetime(value: str) -> datetime:
 
 
 def to_decimal(precision: int) -> Callable:
+    quant = ''.join(('0.', ''.join(map(lambda x: '0',
+                                       range(precision - 1))), '1'))
+
     def wrapped(value: str) -> Decimal:
         try:
             value = float(value)
-            return Decimal(value).quantize(Decimal('0.01'))
+            return Decimal(value).quantize(Decimal(quant))
         except ValueError:
             return None
     return wrapped

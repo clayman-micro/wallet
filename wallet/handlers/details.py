@@ -1,6 +1,7 @@
 from aiohttp import web
 from functools import wraps
 import sqlalchemy
+from decimal import Decimal
 from sqlalchemy import and_, func, select
 from typing import Dict
 
@@ -84,6 +85,9 @@ class DetailResourceHandler(base.ResourceHandler):
     async def validate(self, document: Dict, request: web.Request, **kwargs):
         instance = kwargs.get('instance', None)
         transaction = kwargs.get('transaction')  # type: Dict
+
+        total = document['price_per_unit'] * document['count']
+        document['total'] = Decimal(total).quantize(Decimal('0.01'))
 
         if not instance:
             document.setdefault('transaction_id', transaction.get('id'))

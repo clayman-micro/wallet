@@ -128,7 +128,7 @@ class ManageForm extends BaseManageForm {
             <form className="form">
                 {this.getField('type', 'Type', 'select', 'Choose type', typeChoices)}
                 {this.getField('description', 'Description')}
-                {this.getField('amount', 'Amount')}
+                {this.getField('amount', 'Amount', 'number')}
                 {this.getField('account_id', 'Account', 'select', 'Choose account', accountChoices)}
                 {this.getField('category_id', 'Category', 'select', 'Choose category', categoryChoices)}
                 {this.getField('created_on', 'Date', 'datetime-local')}

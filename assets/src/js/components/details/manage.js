@@ -12,7 +12,7 @@ class ManageForm extends BaseManageForm {
         this.state = {
             name: '',
             count: 1,
-            price_per_unit: 0,
+            price_per_unit: null,
             errors: {}
         };
     }
@@ -69,8 +69,8 @@ class ManageForm extends BaseManageForm {
         return (
             <form className="form">
                 {this.getField('name', 'Name')}
-                {this.getField('price_per_unit', 'Price per unit')}
-                {this.getField('count', 'Count')}
+                {this.getField('price_per_unit', 'Price per unit', 'number')}
+                {this.getField('count', 'Count', 'number')}
                 {this.getSubmitButton()}
             </form>
         );

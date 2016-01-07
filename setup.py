@@ -54,10 +54,6 @@ setup(
 
     packages=find_packages(exclude=['tests', ]),
 
-    dependency_links=[
-        'http://github.com/clayman74/raven-aiohttp/tarball/master#egg=raven-aiohttp'
-    ],
-
     install_requires=[
         'Click==5.1',
         'aiohttp==0.19.0',
@@ -70,7 +66,7 @@ setup(
         'psycopg2==2.6.1',
         'pyjwt==1.4.0',
         'raven==5.8.1',
-        'raven-aiohttp',
+        'raven-aiohttp==0.2.0',
         'ujson==1.33'
     ],
 

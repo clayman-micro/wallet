@@ -62,7 +62,7 @@ class ManageForm extends BaseManageForm {
         return (
             <form className="form">
                 {this.getField('name', 'Name')}
-                {this.getField('original_amount', 'Original amount')}
+                {this.getField('original_amount', 'Original amount', 'number')}
                 <button type="submit" className="form__submit" onClick={this.handleSubmit.bind(this)}>Submit</button>
             </form>
         );

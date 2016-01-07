@@ -98,7 +98,7 @@ class AccountResourceHandler(base.ResourceHandler):
             if not incomes:
                 incomes = 0
 
-            current = original + incomes - expenses
+            current = original + incomes - expenses  # type: Decimal
             current_amount = current.quantize(Decimal('.01'))
             await conn.execute(self.table.update().where(
                 self.table.c.id == resource.get('id')).values(

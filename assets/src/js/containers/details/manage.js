@@ -34,8 +34,6 @@ class ManageDetail extends ManagePage {
     handleSubmit(instance, payload) {
         const transactionID = this.getTransactionID();
 
-        payload.total = payload.count * payload.price_per_unit;
-
         if (Object.keys(instance).length) {
             this.props.editAction(instance, payload);
         } else {

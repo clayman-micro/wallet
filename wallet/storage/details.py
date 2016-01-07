@@ -24,17 +24,16 @@ schema = {
     'price_per_unit': {
         'type': 'decimal',
         'coerce': to_decimal(2),
-        'empty': False
+        'required': True,
     },
     'count': {
         'type': 'decimal',
         'coerce': to_decimal(3),
-        'empty': False,
+        'required': True,
     },
     'total': {
         'type': 'decimal',
         'coerce': to_decimal(2),
-        'required': True,
     },
     'transaction_id': {
         'type': 'integer',
