@@ -30,7 +30,7 @@ class ManageForm extends BaseManageForm {
     componentWillMount() {
         const { transaction } = this.props;
         if (Object.keys(transaction).length) {
-            let created_on = moment(transaction.created_on, 'DD-MM-YYYY HH:mm:ss');
+            let created_on = moment(transaction.created_on, 'YYYY-MM-DDTHH:mm:ss');
 
             this.setState({
                 type: transaction.type,
@@ -47,7 +47,7 @@ class ManageForm extends BaseManageForm {
         const { transaction, transactions } = nextProps;
         const nextState = {};
         if (Object.keys(transaction).length && !isEqual(this.props.transaction, transaction)) {
-            let created_on = moment(transaction.created_on, 'DD-MM-YYYY HH:mm:ss');
+            let created_on = moment(transaction.created_on, 'YYYY-MM-DDTHH:mm:ss');
 
             nextState.type = transaction.type;
             nextState.description = transaction.description;
