@@ -78,47 +78,73 @@ class TransactionResourceHandler(base.ResourceHandler):
 
         return document
 
+    def apply(self, amount: Decimal, transaction: Dict):
+        if transaction['type'] == transactions.INCOME_TRANSACTION:
+            amount = amount + Decimal(transaction['amount'])
+        elif transaction['type'] == transactions.EXPENSE_TRANSACTION:
+            amount = amount - Decimal(transaction['amount'])
+
+        return amount
+
+    def rollback(self, amount: Decimal, transaction: Dict):
+        if transaction['type'] == transactions.INCOME_TRANSACTION:
+            amount = amount - Decimal(transaction['amount'])
+        elif transaction['type'] == transactions.EXPENSE_TRANSACTION:
+            amount = amount + Decimal(transaction['amount'])
+
+        return amount
+
     async def after_create(self, resource, request: web.Request, **kwargs):
-        # Update account after creation
         table = accounts.table
 
         async with Connection(request.app['engine']) as conn:
-            query = select([table.c.current_amount, ]).where(
-                table.c.id == resource['account_id'])
-            current_amount = await conn.scalar(query)
+            current_amount = await conn.scalar(
+                select([table.c.current_amount, ]).where(
+                    table.c.id == resource['account_id'])
+            )
 
-            if resource['type'] == transactions.INCOME_TRANSACTION:
-                current_amount = current_amount + Decimal(resource['amount'])
-            elif resource['type'] == transactions.EXPENSE_TRANSACTION:
-                current_amount = current_amount - Decimal(resource['amount'])
+            amount = self.apply(current_amount, resource)
 
             await conn.execute(table.update().where(
                 table.c.id == resource['account_id']).values(
-                    current_amount=current_amount.quantize(Decimal('.01'))))
+                    current_amount=amount.quantize(Decimal('.01'))))
 
     async def after_update(self, resource, request: web.Request, **kwargs):
         before = kwargs.get('before')
         table = accounts.table
 
         async with Connection(request.app['engine']) as conn:
-            query = select([table.c.current_amount, ]).where(
-                table.c.id == resource['account_id'])
-            current_amount = await conn.scalar(query)
+            if resource['account_id'] != before['account_id']:
+                current_amount = await conn.scalar(
+                    select([table.c.current_amount, ]).where(
+                        table.c.id == before['account_id']))
 
-            if before['type'] == transactions.INCOME_TRANSACTION:
-                current_amount = current_amount - before['amount']
-            elif before['type'] == transactions.EXPENSE_TRANSACTION:
-                current_amount = current_amount + before['amount']
+                amount = self.rollback(current_amount, before)
 
-            if resource['type'] == transactions.INCOME_TRANSACTION:
-                current_amount = current_amount + Decimal(resource['amount'])
-            elif resource['type'] == transactions.EXPENSE_TRANSACTION:
-                current_amount = current_amount - Decimal(resource['amount'])
+                await conn.execute(table.update().where(
+                    table.c.id == before['account_id']).values(
+                    current_amount=amount.quantize(Decimal('.01'))))
 
-            query = table.update().where(
-                table.c.id == resource['account_id']).values(
-                current_amount=current_amount.quantize(Decimal('.01')))
-            await conn.execute(query)
+                current_amount = await conn.scalar(
+                    select([table.c.current_amount, ]).where(
+                        table.c.id == resource['account_id']))
+
+                amount = self.apply(current_amount, resource)
+
+                await conn.execute(table.update().where(
+                    table.c.id == resource['account_id']).values(
+                    current_amount=amount.quantize(Decimal('.01'))))
+            else:
+                current_amount = await conn.scalar(
+                    select([table.c.current_amount, ]).where(
+                        table.c.id == resource['account_id']))
+
+                amount = self.rollback(current_amount, before)
+                amount = self.apply(amount, resource)
+
+                await conn.execute(table.update().where(
+                    table.c.id == resource['account_id']).values(
+                    current_amount=amount.quantize(Decimal('.01'))))
 
         return resource
 
@@ -130,12 +156,8 @@ class TransactionResourceHandler(base.ResourceHandler):
                 table.c.id == resource['account_id'])
             current_amount = await conn.scalar(query)
 
-            if resource['type'] == transactions.INCOME_TRANSACTION:
-                current_amount = current_amount - Decimal(resource['amount'])
-            elif resource['type'] == transactions.EXPENSE_TRANSACTION:
-                current_amount = current_amount + Decimal(resource['amount'])
+            amount = self.rollback(current_amount, resource)
 
-            query = table.update().where(
+            await conn.execute(table.update().where(
                 table.c.id == resource['account_id']).values(
-                current_amount=current_amount.quantize(Decimal('.01')))
-            await conn.execute(query)
+                current_amount=amount.quantize(Decimal('.01'))))

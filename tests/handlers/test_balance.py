@@ -128,3 +128,46 @@ class TestAccountBalance(object):
             account = await result.fetchone()
 
             assert account.current_amount == self.account['current_amount']
+
+    @pytest.mark.run_loop
+    async def test_transaction_change_account(self, app, client):
+        owner_id, account_id, category_id = await self.prepare_data(
+            app, self.account)
+
+        token = await client.get_auth_token(self.owner)
+
+        transaction_id = await self.create_transaction(client, token, {
+            'description': 'Meal', 'amount': 3000,
+            'type': transactions.EXPENSE_TRANSACTION,
+            'account_id': account_id, 'category_id': category_id,
+            'created_on': '2015-08-20T00:00:00'
+        })
+
+        another_account = {'name': 'Debit card', 'original_amount': 10000.0,
+                           'owner_id': owner_id}
+        another_id = await create_account(app, another_account)
+
+        params = {
+            'json': True,
+            'headers': {'X-ACCESS-TOKEN': token},
+            'data': {'account_id': another_id},
+            'endpoint': 'api.update_transaction',
+            'endpoint_params': {
+                'instance_id': transaction_id
+            }
+        }
+        async with client.request('PUT', **params) as response:
+            assert response.status == 200
+
+        async with Connection(app['engine']) as conn:
+            result = await conn.execute(accounts.table.select().where(
+                accounts.table.c.id == account_id))
+            account = await result.fetchone()
+
+            assert account['original_amount'] == account['current_amount']
+
+            result = await conn.execute(accounts.table.select().where(
+                accounts.table.c.id == another_id))
+            another = await result.fetchone()
+
+            assert another['current_amount'] == 7000.0
