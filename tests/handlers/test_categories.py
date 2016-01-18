@@ -1,7 +1,6 @@
 import pytest
 
 from wallet.storage import categories
-from wallet.utils.db import Connection
 
 from . import create_owner, create_category
 
@@ -228,7 +227,7 @@ class TestCategoryResource(object):
         async with client.request('DELETE', **params) as response:
             assert response.status == 200
 
-        async with Connection(app['engine']) as conn:
+        async with app['engine'].acquire() as conn:
             query = categories.table.count().where(
                 categories.table.c.id == category_id)
             count = await conn.scalar(query)

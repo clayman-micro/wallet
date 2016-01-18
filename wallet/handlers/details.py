@@ -7,7 +7,6 @@ from typing import Dict
 
 from ..handlers import auth, base
 from ..storage import accounts, details, transactions
-from ..utils.db import Connection
 
 
 def transaction_required(f):
@@ -28,7 +27,7 @@ def transaction_required(f):
                          table.c.id == transaction_id))
 
         transaction = {}
-        async with Connection(request.app['engine']) as conn:
+        async with request.app['engine'].acquire() as conn:
             result = await conn.execute(query)
 
             if result.returns_rows and result.rowcount == 1:

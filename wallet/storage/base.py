@@ -3,12 +3,12 @@ from decimal import Decimal
 from typing import Callable, Dict
 
 import sqlalchemy
+from aiopg.sa.engine import Engine
 from cerberus import Validator
 from cerberus.errors import ERROR_BAD_TYPE
 from psycopg2 import ProgrammingError, IntegrityError
 
 from ..exceptions import DatabaseError, ValidationError
-from ..utils.db import Connection
 
 
 metadata = sqlalchemy.MetaData()
@@ -61,7 +61,7 @@ async def create_instance(engine, table: sqlalchemy.Table, instance: Dict):
     query = table.insert().values(**instance)
 
     instance_id = None
-    async with Connection(engine) as conn:
+    async with engine.acquire() as conn:
         try:
             instance_id = await conn.scalar(query)
         except ProgrammingError as exc:
@@ -75,10 +75,10 @@ async def create_instance(engine, table: sqlalchemy.Table, instance: Dict):
     return instance_id
 
 
-async def get_instance(engine, query):
+async def get_instance(engine: Engine, query):
     instance = None
 
-    async with Connection(engine) as conn:
+    async with engine.acquire() as conn:
         result = await conn.execute(query)
         if result.returns_rows and result.rowcount == 1:
             row = await result.fetchone()
@@ -91,7 +91,7 @@ async def update_instance(engine, table: sqlalchemy.Table, instance):
     query = table.update().where(
         table.c.id == instance.get('id')).values(**instance)
 
-    async with Connection(engine) as conn:
+    async with engine.acquire() as conn:
         try:
             result = await conn.execute(query)
         except IntegrityError as exc:
@@ -108,7 +108,7 @@ async def update_instance(engine, table: sqlalchemy.Table, instance):
 async def remove_instance(engine, table: sqlalchemy.Table, instance: Dict):
     query = table.delete().where(table.c.id == instance.get('id'))
 
-    async with Connection(engine) as conn:
+    async with engine.acquire() as conn:
         try:
             result = await conn.execute(query)
         except IntegrityError as exc:

@@ -1,12 +1,12 @@
 import asyncio
 
 from aiohttp import web
-from aiopg.sa import create_engine
+from aiopg.sa import create_engine, Engine
 from raven import Client, os
 from raven_aiohttp import AioHttpTransport
 
 from .config import Config
-from .handlers import core, auth
+from .handlers import auth, index
 from .handlers.accounts import get_accounts, AccountResourceHandler
 from .handlers.categories import get_categories, CategoryResourceHandler
 from .handlers.transactions import get_transactions, TransactionResourceHandler
@@ -22,7 +22,7 @@ def create_app(config: Config, loop) -> web.Application:
 
     # create database engine
     app['engine'] = yield from create_engine(
-        config.get_sqlalchemy_dsn(), loop=loop)
+        config.get_sqlalchemy_dsn(), loop=loop)  # type: Engine
 
     # create sentry client
     sentry_dsn = config.get('SENTRY_DSN', None)
@@ -31,7 +31,7 @@ def create_app(config: Config, loop) -> web.Application:
 
     # Configure handlers
     with register_handler(app, name_prefix='core') as register:
-        register('GET', '/', core.index, 'index')
+        register('GET', '/', index, 'index')
 
     with register_handler(app, '/auth', 'auth') as register:
         register('POST', 'login', auth.login, 'login')

@@ -9,7 +9,6 @@ from ..exceptions import DatabaseError, ValidationError
 from ..storage.base import (serialize, CustomValidator,
                             create_instance, get_instance, remove_instance,
                             update_instance)
-from ..utils.db import Connection
 
 
 def response(content: str, **kwargs) -> web.Response:
@@ -86,7 +85,7 @@ def get_collection(name: str, serialize=serialize):
 
             collection = []
             total = 0
-            async with Connection(request.app['engine']) as conn:
+            async with request.app['engine'].acquire() as conn:
                 result = await conn.execute(query)
 
                 if result.returns_rows:

@@ -8,7 +8,6 @@ from typing import Dict
 
 from ..exceptions import ValidationError
 from ..storage import accounts, categories, transactions
-from ..utils.db import Connection
 from . import base, auth
 
 
@@ -57,7 +56,7 @@ class TransactionResourceHandler(base.ResourceHandler):
         owner = kwargs.get('owner')
         instance = kwargs.get('instance', None)
 
-        async with Connection(request.app['engine']) as conn:
+        async with request.app['engine'].acquire() as conn:
             query = select([func.count()]).select_from(accounts.table).where(and_(
                 accounts.table.c.id == document.get('account_id'),
                 accounts.table.c.owner_id == owner.get('id'),
@@ -97,7 +96,7 @@ class TransactionResourceHandler(base.ResourceHandler):
     async def after_create(self, resource, request: web.Request, **kwargs):
         table = accounts.table
 
-        async with Connection(request.app['engine']) as conn:
+        async with request.app['engine'].acquire() as conn:
             current_amount = await conn.scalar(
                 select([table.c.current_amount, ]).where(
                     table.c.id == resource['account_id'])
@@ -113,7 +112,7 @@ class TransactionResourceHandler(base.ResourceHandler):
         before = kwargs.get('before')
         table = accounts.table
 
-        async with Connection(request.app['engine']) as conn:
+        async with request.app['engine'].acquire() as conn:
             if resource['account_id'] != before['account_id']:
                 current_amount = await conn.scalar(
                     select([table.c.current_amount, ]).where(
@@ -151,7 +150,7 @@ class TransactionResourceHandler(base.ResourceHandler):
     async def after_remove(self, resource, request: web.Request, **kwargs):
         table = accounts.table
 
-        async with Connection(request.app['engine']) as conn:
+        async with request.app['engine'].acquire() as conn:
             query = select([table.c.current_amount, ]).where(
                 table.c.id == resource['account_id'])
             current_amount = await conn.scalar(query)

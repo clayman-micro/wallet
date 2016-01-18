@@ -7,7 +7,6 @@ from sqlalchemy import and_, func, select
 
 from ..exceptions import ValidationError
 from ..storage import accounts, transactions
-from ..utils.db import Connection
 from . import base, auth
 
 
@@ -57,7 +56,7 @@ class AccountResourceHandler(base.ResourceHandler):
         query = select([func.count()]).select_from(self.table).where(
             and_(*params))
 
-        async with Connection(request.app['engine']) as conn:
+        async with request.app['engine'].acquire() as conn:
             count = await conn.scalar(query)
             if count > 0:
                 raise ValidationError({'name': 'Already exists.'})
@@ -79,7 +78,7 @@ class AccountResourceHandler(base.ResourceHandler):
         table = transactions.table
         join = sqlalchemy.join(table, self.table,
                                self.table.c.id == table.c.account_id)
-        async with Connection(request.app['engine']) as conn:
+        async with request.app['engine'].acquire() as conn:
             expense_params = [
                 self.table.c.id == resource.get('id'),
                 table.c.type == transactions.EXPENSE_TRANSACTION

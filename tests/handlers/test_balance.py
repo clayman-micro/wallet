@@ -1,7 +1,6 @@
 import pytest
 
 from wallet.storage import accounts, transactions
-from wallet.utils.db import Connection
 
 from . import create_owner, create_account, create_category
 
@@ -52,7 +51,7 @@ class TestAccountBalance(object):
             'created_on': '2015-08-20T00:00:00'
         })
 
-        async with Connection(app['engine']) as conn:
+        async with app['engine'].acquire() as conn:
             query = accounts.table.select().where(
                 accounts.table.c.id == account_id)
             result = await conn.execute(query)
@@ -89,7 +88,7 @@ class TestAccountBalance(object):
         async with client.request('PUT', **params) as response:
             assert response.status == 200
 
-        async with Connection(app['engine']) as conn:
+        async with app['engine'].acquire() as conn:
             query = accounts.table.select().where(
                 accounts.table.c.id == account_id)
             result = await conn.execute(query)
@@ -121,7 +120,7 @@ class TestAccountBalance(object):
         async with client.request('DELETE', **params) as response:
             assert response.status == 200
 
-        async with Connection(app['engine']) as conn:
+        async with app['engine'].acquire() as conn:
             query = accounts.table.select().where(
                 accounts.table.c.id == account_id)
             result = await conn.execute(query)
@@ -159,7 +158,7 @@ class TestAccountBalance(object):
         async with client.request('PUT', **params) as response:
             assert response.status == 200
 
-        async with Connection(app['engine']) as conn:
+        async with app['engine'].acquire() as conn:
             result = await conn.execute(accounts.table.select().where(
                 accounts.table.c.id == account_id))
             account = await result.fetchone()

@@ -56,8 +56,8 @@ setup(
 
     install_requires=[
         'Click==5.1',
-        'aiohttp==0.19.0',
-        'aiopg==0.7.0',
+        'aiohttp==0.20.2',
+        'aiopg==0.9.0',
         'alembic==0.8.3',
         'aioredis==0.2.4',
         'cerberus==0.9.2',

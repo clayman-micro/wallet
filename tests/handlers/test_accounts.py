@@ -1,7 +1,6 @@
 import pytest
 
 from wallet.storage import accounts, transactions
-from wallet.utils.db import Connection
 
 from . import create_owner, create_account, create_category
 
@@ -310,7 +309,7 @@ class TestAccountResource(object):
         async with client.request('DELETE', **params) as response:
             assert response.status == 200
 
-        async with Connection(app['engine']) as conn:
+        async with app['engine'].acquire() as conn:
             query = accounts.table.count().where(
                 accounts.table.c.id == account_id)
             count = await conn.scalar(query)

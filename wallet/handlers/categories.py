@@ -5,7 +5,6 @@ from sqlalchemy import and_, func, select
 
 from ..exceptions import ValidationError
 from ..storage import categories
-from ..utils.db import Connection
 from . import base, auth
 
 
@@ -52,7 +51,7 @@ class CategoryResourceHandler(base.ResourceHandler):
         query = select([func.count()]).select_from(self.table).where(
             and_(*params))
 
-        async with Connection(request.app['engine']) as conn:
+        async with request.app['engine'].acquire() as conn:
             count = await conn.scalar(query)
             if count > 0:
                 raise ValidationError({'name': 'Already exists'})

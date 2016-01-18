@@ -9,7 +9,6 @@ from sqlalchemy import select, func
 
 from ..exceptions import ValidationError
 from ..storage import users
-from ..utils.db import Connection
 from . import base
 
 
@@ -32,7 +31,7 @@ def owner_required(f):
             raise web.HTTPUnauthorized(text='Bad token signature')
         else:
             user_id = data.get('id')
-            async with Connection(request.app['engine']) as conn:
+            async with request.app['engine'].acquire() as conn:
                 query = select([users.table]).where(users.table.c.id == user_id)
                 result = await conn.execute(query)
                 row = await result.fetchone()
@@ -58,7 +57,7 @@ async def register(request: web.Request) -> Dict:
     query = select([func.count()]).select_from(users.table).where(
         users.table.c.login == payload['login']
     )
-    async with Connection(request.app['engine']) as conn:
+    async with request.app['engine'].acquire() as conn:
         count = await conn.scalar(query)
 
         if count:
@@ -86,7 +85,7 @@ async def login(request: web.Request) -> Dict:
         raise ValidationError(validator.errors)
 
     query = select([users.table]).where(users.table.c.login == payload['login'])
-    async with Connection(request.app['engine']) as conn:
+    async with request.app['engine'].acquire() as conn:
         result = await conn.execute(query)
 
         user = await result.fetchone()

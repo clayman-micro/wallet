@@ -3,7 +3,6 @@ from datetime import datetime
 import pytest
 
 from wallet.storage import transactions, details
-from wallet.utils.db import Connection
 
 from . import (create_owner, create_account, create_category,
                create_transaction, create_detail)
@@ -313,7 +312,7 @@ class TestTransactionResource(BaseTransactionTest):
         async with client.request('DELETE', **params) as response:
             assert response.status == 200
 
-        async with Connection(app['engine']) as conn:
+        async with app['engine'].acquire() as conn:
             query = transactions.table.count().where(
                 transactions.table.c.id == transaction_id)
             count = await conn.scalar(query)
@@ -617,7 +616,7 @@ class TestTransactionDetailsResource(BaseTransactionTest):
         async with client.request('DELETE', **params) as resp:
             assert resp.status == 200
 
-        async with Connection(app['engine']) as conn:
+        async with app['engine'].acquire() as conn:
             query = details.table.count().where(
                 details.table.c.id == detail.get('id'))
             count = await conn.scalar(query)
