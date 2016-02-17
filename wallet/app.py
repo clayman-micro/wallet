@@ -1,6 +1,7 @@
 import asyncio
 
-from aiohttp import web
+import ujson
+from aiohttp import web, ClientSession
 from aiopg.sa import create_engine, Engine
 from raven import Client, os
 from raven_aiohttp import AioHttpTransport
@@ -76,6 +77,67 @@ def create_app(config: Config, loop) -> web.Application:
     return app
 
 
+async def init(config: Config, logger, loop):
+    app = web.Application(logger=logger, loop=loop)
+    app['config'] = config
+
+    # create database engine
+    app['engine'] = await create_engine(config.get_sqlalchemy_dsn(), loop=loop)
+
+    # create sentry client
+    sentry_dsn = config.get('SENTRY_DSN', None)
+    if sentry_dsn:
+        app['raven'] = Client(sentry_dsn, transport=AioHttpTransport)
+
+    async def close(app):
+        app.logger.info('Closing app')
+        await unregister_service(app)
+        app['engine'].close()
+
+    app.on_cleanup.append(close)
+
+    # Configure handlers
+    with register_handler(app, name_prefix='core') as register:
+        register('GET', '/', index, 'index')
+
+    return app
+
+async def register_service(app):
+    config = app['config']
+
+    service_id = 'wallet_%s' % config.get('APP_HOSTNAME')
+    payload = {
+        'ID': service_id,
+        'Name': 'wallet',
+        'Tags': [
+            'master', 'v1'
+        ],
+        'Address': config.get('APP_ADDRESS'),
+        'Port': config.get('APP_PORT')
+    }
+
+    url = 'http://%s:%s/v1/agent/service/register' % (
+        config.get('CONSUL_HOST'), config.get('CONSUL_PORT')
+    )
+    with ClientSession() as session:
+        async with session.put(url, data=ujson.dumps(payload)) as resp:
+            assert resp.status == 200
+    app.logger.info('Register service "%s"' % service_id)
+
+
+async def unregister_service(app):
+    config = app['config']
+
+    service_id = 'wallet_%s' % config.get('APP_HOSTNAME')
+    url = 'http://%s:%s/v1/agent/service/deregister/%s' % (
+        config.get('CONSUL_HOST'), config.get('CONSUL_PORT'), service_id
+    )
+    with ClientSession() as session:
+        async with session.get(url) as resp:
+            assert resp.status == 200
+    app.logger.info('Remove service "%s" from Consul' % service_id)
+
+
 def create_config(config=None) -> Config:
     app_root = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
 
@@ -96,13 +158,16 @@ def create_config(config=None) -> Config:
     })
 
     if config:
-        conf.from_json(config, silent=True)
+        conf.from_yaml(config, silent=True)
 
     for param in ('secret_key', 'token_expires'):
         conf.from_envvar(param.upper(), silent=True)
 
     for param in ('host', 'port', 'user', 'password', 'name'):
         conf.from_envvar('DB_%s' % param.upper(), silent=True)
+
+    for param in ('host', 'port'):
+        conf.from_envvar('CONSUL_%s' % param.upper(), silent=True)
 
     return conf
 

@@ -1,0 +1,69 @@
+version: '2'
+
+networks:
+  backend:
+    driver: bridge
+
+services:
+  consul:
+    image: progrium/consul
+    container_name: consul
+    networks:
+      - backend
+    ports:
+      - "8500:8500"
+      - "8600:53/udp"
+    command: -server -bootstrap
+    restart: always
+
+  web:
+    build: ./web/
+    links:
+      - consul
+    networks:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: always
+    volumes:
+      - ./web/conf/certs/:/etc/nginx/certs/wallet
+
+  postgres-data:
+    restart: 'no'
+    container_name: postgres-data
+    image: postgres:9.4
+    volumes:
+      - /var/lib/postgres
+    command: 'true'
+
+  postgresql:
+    container_name: postgresql
+    image: postgres:9.4
+    environment:
+      POSTGRES_DB: wallet
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: wallet
+    networks:
+      - backend
+    ports:
+      - "5432:5432"
+    restart: always
+    volumes_from:
+      - postgres-data
+
+  app:
+    build: ./
+    depends_on:
+      - consul
+      - web
+      - postgresql
+    environment:
+      DB_HOST: postgresql
+      DB_USER: wallet
+      DB_PASSWORD: wallet
+      DB_NAME: wallet
+    networks:
+      - backend
+    stop_signal: SIGINT
+    restart: 'no'

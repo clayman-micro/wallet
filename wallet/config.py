@@ -1,7 +1,8 @@
 from collections import abc
 import os
 import errno
-import ujson
+
+import yaml
 
 
 class Config(abc.MutableMapping):
@@ -41,18 +42,19 @@ class Config(abc.MutableMapping):
                                    'Set this variable.' % variable_name)
         self[variable_name] = rv
 
-    def from_json(self, filename, silent=False):
+    def from_object(self, obj):
+        for key in dir(obj):
+            if key.isupper():
+                self[key] = getattr(obj, key)
+
+    def from_yaml(self, filename, silent=False):
         if self.root_path:
             filename = os.path.join(self.root_path, filename)
 
         try:
-            with open(filename, 'rb') as fp:
+            with open(filename, 'r') as fp:
                 data = fp.read()
-                config = ujson.loads(data)
-        except ValueError as exc:
-            if silent:
-                return False
-            raise
+                config = yaml.load(data)
         except IOError as exc:
             if silent and exc.errno in (errno.ENOENT, errno.EISDIR):
                 return False
@@ -60,13 +62,18 @@ class Config(abc.MutableMapping):
                 exc.strerror,
             )
             raise
-        self.__dict__.update(**self._keys_to_upper(config))
-        return True
 
-    def from_object(self, obj):
-        for key in dir(obj):
-            if key.isupper():
-                self[key] = getattr(obj, key)
+        for key, value in iter(config.items()):
+            if key == 'logging':
+                self[key] = value
+                continue
+
+            if not isinstance(value, dict):
+                self[key.upper()] = value
+            else:
+                for var, val in iter(value.items()):
+                    variable_name = '%s_%s' % (key, var)
+                    self[variable_name.upper()] = val
 
     def get_sqlalchemy_dsn(self):
         password = self.get('DB_PASSWORD')

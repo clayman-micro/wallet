@@ -1,0 +1,43 @@
+secret_key: 'secret'
+token_expire: '3600'
+access_log: '%a %s %Tf %b "%{Referrer}i" "%{User-Agent}i"'
+
+consul:
+  host: 'consul'
+  port: '8500'
+
+postgres:
+  name: 'wallet'
+  user: 'wallet'
+  password: 'wallet'
+  host: 'postgresql'
+  port: '5432'
+
+redis:
+  host: 'redis'
+  port: '6379'
+
+sentry:
+  dsn: 'https://c7c23c0271d74a3eb40a43223e8575f9:8057db6c283646d1a7f69f261fa6f219@app.getsentry.com/60751?timeout=10'
+
+logging:
+  version: 1
+  formatters:
+    simple:
+      format: '%(asctime)s | %(levelname)s | %(name)s | %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: simple
+      level: INFO
+      stream: ext://sys.stdout
+  loggers:
+    aiohttp:
+      handlers:
+        - console
+      level: INFO
+    wallet:
+      handlers:
+        - console
+      level: INFO

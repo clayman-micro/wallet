@@ -56,7 +56,7 @@ setup(
 
     install_requires=[
         'Click==5.1',
-        'aiohttp==0.20.2',
+        'aiohttp==0.21.0',
         'aiopg==0.9.0',
         'alembic==0.8.3',
         'aioredis==0.2.4',
@@ -65,6 +65,7 @@ setup(
         'passlib==1.6.5',
         'psycopg2==2.6.1',
         'pyjwt==1.4.0',
+        'pyyaml==3.11',
         'raven==5.8.1',
         'raven-aiohttp==0.2.0',
         'ujson==1.33'

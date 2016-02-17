@@ -1,8 +1,3 @@
-.PHONY: run tests dist
-
-deps:
-	python setup.py install
-
 clean:
 	rm -rf dist
 	find . -name '*.egg' -exec rm -f {} \;
@@ -10,8 +5,9 @@ clean:
 	find . -name '*.pyo' -exec rm -f {} \;
 	find . -name '*~' -exec rm -f {} \;
 
-dist:
+build:
 	python setup.py sdist
+	docker-compose build app
 
 clean-web:
 	rm -rf assets/build
@@ -21,8 +17,12 @@ dist-web:
 	tar -czvf web.tar.gz assets/build/*
 	mv web.tar.gz dist
 
+prepare-remote:
+	docker-machine ssh $(machine) 'mkdir -p /etc/nginx/certs/wallet'
+	docker-machine scp -r web/conf/certs $(machine):/etc/nginx/certs/wallet
+
 run:
 	DB_PASSWORD=wallet DEBUG=True wallet run --host=$(host)
 
 tests:
-	py.test -vv --cov wallet --cov-report html --cov-report xml tests
+	DB_NAME=wallet_test DB_PASSWORD=wallet py.test -vv --cov wallet tests

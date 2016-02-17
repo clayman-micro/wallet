@@ -1,0 +1,6 @@
+assets
+playbooks
+tests
+wallet
+*.egg-info
+
