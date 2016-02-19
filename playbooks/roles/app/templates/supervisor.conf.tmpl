@@ -1,8 +1,0 @@
-[supervisord]
-nodaemon=true
-
-[program:app]
-command={{ project_name }} --config=/root/config.yml run --host=0.0.0.0 --port=5000
-
-[program:consul-template]
-command=consul-template -consul=consul:8500 -template "/etc/consul-templates/config.yml:/root/config.yml:supervisorct restart app"

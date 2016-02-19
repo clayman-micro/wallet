@@ -17,7 +17,8 @@ services:
     restart: always
 
   web:
-    build: ./web/
+    image: clayman74/nginx
+    container_name: web
     links:
       - consul
     networks:
@@ -27,7 +28,10 @@ services:
       - "443:443"
     restart: always
     volumes:
+      - ./web/conf/supervisor:/etc/supervisor/conf.d
+      - ./web/conf/consul-templates:/etc/consul-templates
       - ./web/conf/certs/:/etc/nginx/certs/wallet
+      - ./web/build/:/var/www/wallet
 
   postgres-data:
     restart: 'no'

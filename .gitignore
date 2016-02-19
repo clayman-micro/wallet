@@ -61,7 +61,8 @@ merge*
 *.cfg
 *.tar.gz
 
-web/conf/certs/*
+web/conf/certs/*.crt
+web/conf/certs/*.key
 develop.json
 
 playbooks/inventory

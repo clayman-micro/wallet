@@ -102,6 +102,7 @@ async def init(config: Config, logger, loop):
 
     return app
 
+
 async def register_service(app):
     config = app['config']
 
@@ -169,10 +170,7 @@ def create_config(config=None) -> Config:
     for param in ('host', 'port'):
         conf.from_envvar('CONSUL_%s' % param.upper(), silent=True)
 
+    for param in ('address', 'port'):
+        conf.from_envvar('APP_%s' % param.upper(), silent=True)
+
     return conf
-
-
-@asyncio.coroutine
-def destroy_app(app: web.Application):
-    if 'engine' in app and app['engine'] is not None:
-        app['engine'].close()

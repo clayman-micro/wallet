@@ -1,6 +1,5 @@
-assets
-playbooks
 tests
 wallet
+web
 *.egg-info
 

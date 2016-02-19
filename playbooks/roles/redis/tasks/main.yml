@@ -1,5 +1,0 @@
----
-
-- include: docker.yml
-  tags:
-    - docker-redis
