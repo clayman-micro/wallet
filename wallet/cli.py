@@ -56,13 +56,13 @@ def run(context, host, port):
     hostname = socket.gethostname()
     app['config']['APP_HOSTNAME'] = hostname
 
-    try:
-        ip_addr = socket.gethostbyname(hostname)
-    except socket.gaierror:
-        ip_addr = srv.sockets[0].getsockname()[0]
+    if 'APP_ADDRESS' not in app['config']:
+        try:
+            ip_addr = socket.gethostbyname(hostname)
+        except socket.gaierror:
+            ip_addr = srv.sockets[0].getsockname()[0]
 
-    # if not 'APP_ADDRESS' in app['config']:
-    #     app['config']['APP_ADDRESS'] = ip_addr
+        app['config']['APP_ADDRESS'] = ip_addr
 
     app['config']['APP_PORT'] = int(port)
 

@@ -16,19 +16,24 @@ from .handlers.details import get_details, DetailResourceHandler
 from .utils.handlers import register_handler
 
 
-@asyncio.coroutine
-def create_app(config: Config, loop) -> web.Application:
-    app = web.Application(loop=loop)
+async def init(config: Config, logger, loop) -> web.Application:
+    app = web.Application(logger=logger, loop=loop)
     app['config'] = config
 
     # create database engine
-    app['engine'] = yield from create_engine(
-        config.get_sqlalchemy_dsn(), loop=loop)  # type: Engine
+    app['engine'] = await create_engine(config.get_sqlalchemy_dsn(), loop=loop)
 
     # create sentry client
     sentry_dsn = config.get('SENTRY_DSN', None)
     if sentry_dsn:
         app['raven'] = Client(sentry_dsn, transport=AioHttpTransport)
+
+    async def close(app):
+        app.logger.info('Closing app')
+        await unregister_service(app)
+        app['engine'].close()
+
+    app.on_cleanup.append(close)
 
     # Configure handlers
     with register_handler(app, name_prefix='core') as register:
@@ -73,32 +78,6 @@ def create_app(config: Config, loop) -> web.Application:
         register('GET', '/{instance_id}', handler, 'get_detail')
         register('PUT', '/{instance_id}', handler, 'update_detail')
         register('DELETE', '/{instance_id}', handler, 'remove_detail')
-
-    return app
-
-
-async def init(config: Config, logger, loop):
-    app = web.Application(logger=logger, loop=loop)
-    app['config'] = config
-
-    # create database engine
-    app['engine'] = await create_engine(config.get_sqlalchemy_dsn(), loop=loop)
-
-    # create sentry client
-    sentry_dsn = config.get('SENTRY_DSN', None)
-    if sentry_dsn:
-        app['raven'] = Client(sentry_dsn, transport=AioHttpTransport)
-
-    async def close(app):
-        app.logger.info('Closing app')
-        await unregister_service(app)
-        app['engine'].close()
-
-    app.on_cleanup.append(close)
-
-    # Configure handlers
-    with register_handler(app, name_prefix='core') as register:
-        register('GET', '/', index, 'index')
 
     return app
 
