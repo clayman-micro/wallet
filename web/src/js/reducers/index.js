@@ -1,5 +1,5 @@
 import { combineReducers } from 'redux';
-import { routerStateReducer } from 'redux-router';
+import { routeReducer } from 'react-router-redux';
 
 import session from './session';
 import accounts from './accounts';
@@ -9,7 +9,7 @@ import details from './details';
 
 
 const rootReducer = combineReducers({
-    router: routerStateReducer, session, accounts, categories, transactions, details
+    router: routeReducer, session, accounts, categories, transactions, details
 });
 
 export default rootReducer;

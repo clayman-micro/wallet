@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { pushState } from 'redux-router';
+import { push } from 'react-router-redux';
 
 import { getAccountsIfNeeded, createAccount, editAccount, removeAccount } from '../../actions/accounts';
 
@@ -66,7 +66,7 @@ function mapStateToProps(state) {
 }
 
 const mapDispatchToProps = {
-    pushState,
+    pushState: push,
     getAccountsIfNeeded,
     createAction: createAccount,
     editAction: editAccount,

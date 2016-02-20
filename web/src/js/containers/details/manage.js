@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { connect } from 'react-redux';
-import { pushState } from 'redux-router';
+import { push } from 'react-router-redux';
 
 import { createDetail, getDetail, editDetail, removeDetail } from '../../actions/details';
 
@@ -90,7 +90,7 @@ function mapStateToProps(state) {
 }
 
 const mapDispatchToProps = {
-    pushState: pushState,
+    pushState: push,
     createAction: createDetail,
     getAction: getDetail,
     editAction: editDetail,

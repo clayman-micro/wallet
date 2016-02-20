@@ -1,5 +1,6 @@
 /* eslint no-var: 0 no-process-env: 0 */
 
+var autoprefixer = require('autoprefixer');
 var path = require('path');
 var webpack = require('webpack');
 var ExtractTextPlugin = require('extract-text-webpack-plugin');
@@ -9,7 +10,7 @@ var NODE_ENV = process.env.NODE_ENV;
 var config = {
     entry: {
         vendor: ['react', 'react-dom', 'react-mixin',
-                 'react-router', 'react-redux', 'redux', 'redux-router', 'redux-thunk',
+                 'react-router', 'react-redux', 'redux', 'redux-thunk',
                  'history', 'keymirror'],
         app: './src/js/index.js',
         index: './src/htdocs/index.html'
@@ -38,7 +39,7 @@ var config = {
         loaders: [{
             test: /\.less$/,
             loader: ExtractTextPlugin.extract('style-loader',
-                'css-loader?sourceMap!autoprefixer?browsers=last 2 version!less-loader?sourceMap')
+                'css-loader!postcss-loader!less-loader?sourceMap')
         }, {
             test: /\.css$/,
             loader: ExtractTextPlugin.extract('style-loader', 'css-loader')
@@ -53,6 +54,9 @@ var config = {
             loaders: ['babel-loader'],
             exclude: /node_modules/
         }]
+    },
+    postcss: function () {
+        return [autoprefixer({ browsers: ['last 2 versions'] })];
     }
 };
 

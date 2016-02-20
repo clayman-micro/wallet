@@ -1,7 +1,7 @@
 /* eslint camelcase: 0, no-underscore-dangle: 0 */
 
 import React from 'react';
-import isEqual from 'lodash/lang/isEqual';
+import isEqual from 'lodash/isEqual';
 import classNames from 'classnames';
 import moment from 'moment';
 

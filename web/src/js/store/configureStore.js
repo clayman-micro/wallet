@@ -1,17 +1,19 @@
 /* global DEBUG */
 
 import { applyMiddleware, createStore, compose } from 'redux';
-import { reduxReactRouter } from 'redux-router';
+
+import { browserHistory } from 'react-router';
+import { syncHistory } from 'react-router-redux';
+
 import thunkMiddleware from 'redux-thunk';
 import createLogger from 'redux-logger';
-
-import createHistory from 'history/lib/createBrowserHistory';
 
 import rootReducer from '../reducers/index';
 import authMiddleware from '../middleware/auth';
 
 
-const middleware = [thunkMiddleware, authMiddleware];
+const reduxRouterMiddleware = syncHistory(browserHistory);
+const middleware = [thunkMiddleware, authMiddleware, reduxRouterMiddleware];
 
 if (DEBUG) {
     const logger = createLogger();
@@ -20,8 +22,7 @@ if (DEBUG) {
 
 export default function configureStore(initialState) {
     const store = compose(
-        applyMiddleware(...middleware),
-        reduxReactRouter({ createHistory })
+        applyMiddleware(...middleware)
     )(createStore)(rootReducer, initialState);
 
     if (module.hot) {

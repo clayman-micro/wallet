@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router';
 import { connect } from 'react-redux';
-import { pushState } from 'redux-router';
+import { push } from 'react-router-redux';
 import Icon from 'react-fa';
 
 import { getAccountsIfNeeded } from '../../actions/accounts';
@@ -136,7 +136,7 @@ function mapStateToProps(state) {
 }
 
 const mapDispatchToProps = {
-    pushState,
+    pushState: push,
     getAccountsIfNeeded,
     getCategoriesIfNeeded,
     getTransaction, createTransaction, editTransaction, removeTransaction

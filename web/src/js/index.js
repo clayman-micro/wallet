@@ -1,11 +1,10 @@
-import 'babel-core/polyfill';
+import 'babel-polyfill';
 import 'less/app.less';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
-import { IndexRoute, Route } from 'react-router';
-import { ReduxRouter } from 'redux-router';
+import { IndexRoute, Route, Router, browserHistory } from 'react-router';
 import configureStore from './store/configureStore';
 
 import AppRoot from './containers/root';
@@ -27,10 +26,13 @@ import ManageDetail from './containers/details/manage';
 
 const store = configureStore();
 
-function requireAuth(nextState, redirect) {
+function requireAuth(nextState, replace) {
     const session = store.getState().session;
     if (!session.accessToken.value) {
-        redirect({}, '/login', { next: nextState.location.pathname });
+        replace({
+            pathname: '/login',
+            state: { nextPathname: nextState.location.pathname }
+        });
     }
 }
 
@@ -45,7 +47,7 @@ function anonymousOnly(nextState, redirect) {
 function Root() {
     return (
         <Provider store={store}>
-            <ReduxRouter>
+            <Router history={browserHistory}>
                 <Route path="/" component={AppRoot} onEnter={requireAuth}>
                     <IndexRoute component={HomePage} />
                     <Route path="accounts" component={Wrapper}>
@@ -70,7 +72,7 @@ function Root() {
                     </Route>
                 </Route>
                 <Route path="/login" component={LoginPage} onEnter={anonymousOnly} />
-            </ReduxRouter>
+            </Router>
         </Provider>
     );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { pushState } from 'redux-router';
+import { push } from 'react-router-redux';
 import Icon from 'react-fa';
 
 import { getCategoriesIfNeeded, createCategory, editCategory, removeCategory } from '../../actions/categories';
@@ -70,7 +70,7 @@ function mapStateToProps(state) {
 }
 
 const mapDispatchToProps = {
-    pushState,
+    pushState: push,
     getCategoriesIfNeeded,
     createAction: createCategory,
     editAction: editCategory,

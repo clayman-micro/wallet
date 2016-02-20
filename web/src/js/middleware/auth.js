@@ -1,4 +1,4 @@
-import { pushState } from 'redux-router';
+import { push } from 'react-router-redux';
 
 import { ActionTypes } from '../constants/session';
 
@@ -8,7 +8,7 @@ export default store => next => action => {
         if (action.accessToken && action.accessToken.expire > Date.now()) {
             let redirectTo = store.getState().router.location.query.next;
             next(action);
-            return next(pushState({}, redirectTo));
+            return next(push(redirectTo));
         }
     }
     return next(action);

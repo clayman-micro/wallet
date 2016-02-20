@@ -1,4 +1,4 @@
-import { pushState } from 'redux-router';
+import { push } from 'react-router-redux';
 
 import { handleError } from './base';
 
@@ -12,7 +12,10 @@ export function authRequired(dispatch, getState, wrapped, failed) {
                 if (error.status === 400) {
                     dispatch(failed(error.data));
                 } else if (error.status === 401) {
-                    dispatch(pushState({}, '/login', { next: router.location.pathname }));
+                    dispatch(push({
+                        pathname: '/login',
+                        state: { nextPathname: router.location.pathname }
+                    }));
                 } else {
                     dispatch(failed({}));
                     handleError(error);
