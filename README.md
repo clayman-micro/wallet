@@ -4,13 +4,14 @@ Wallet
 [![Circle CI](https://circleci.com/gh/clayman74/wallet/tree/master.svg?style=svg)](https://circleci.com/gh/clayman74/wallet/tree/master) [![Coverage Status](https://coveralls.io/repos/clayman74/wallet/badge.svg?branch=master&service=github)](https://coveralls.io/github/clayman74/wallet?branch=master)
 
 Experimental project to learn how to use `asyncio`, `aiohttp` and some other stuffs.
+Local development and production uses [Docker Toolbox](https://docs.docker.com/engine/installation/mac/)
 
 Development
 -----------
 
 ### Prepare virtual machine
 
-    $ vagrant up
+    $ docker-machine create -d virtualbox default
 
 ### Prepare enviromnents
 Create python virtual enviromnent and install dependencies
@@ -24,49 +25,149 @@ Before start develop, create `config.yml` in the root folder
 
     ---
 
-    project_name: <project_name>
-    project_domain: <project_domain>
+    secret_key: 'secret'
+    token_expire: '3600'
+    access_log: '%a %s %Tf %b "%{Referrer}i" "%{User-Agent}i"'
 
-    secret_key: 'top-secret'
-    token_expires: 3600
+    consul:
+      host: 'consul'
+      port: '8500'
 
-    sqlalchemy_dsn: 'postgres://<user>:<password>@<host>:<port>/<name>'
+    postgres:
+      name: 'wallet'
+      user: 'wallet'
+      password: 'wallet'
+      host: 'postgresql'
+      port: '5432'
 
-Similar `testing.yml` config should be created before running tests
+    sentry:
+      dsn: ''
+
+    logging:
+      version: 1
+      formatters:
+        simple:
+          format: '%(asctime)s | %(levelname)s | %(name)s | %(message)s'
+          datefmt: '%Y-%m-%d %H:%M:%S'
+      handlers:
+        console:
+          class: logging.StreamHandler
+          formatter: simple
+          level: INFO
+          stream: ext://sys.stdout
+      loggers:
+        aiohttp:
+          handlers:
+            - console
+          level: INFO
+        wallet:
+          handlers:
+            - console
+          level: INFO
+
+### Generate development ssl certificate
+
+    $ cd web/conf/certs/develop && openssl req -newkey rsa:2048 -nodes -keyout wallet.key -x509 -days 365 -out wallet.crt -subj "/C=/ST=/L=/O=/CN=wallet.clayman.pro"
 
 ### Run app
 
-    (env) $ wallet --config=config.yml run
+    (env) $ APP_ADDRESS=<host address> CONSUL_HOST=<machine address> DB_HOST=<machine address> wallet --config=config.yml run --host=0.0.0.0
 
 ### Apply database migrations
 
-    (env) $ wallet --config=config.yml db upgrade head
+    (env) $ DB_HOST=<machine address> wallet --config=config.yml db upgrade head
 
 ### Run tests
 
-    (env) $ python setup.py test -a "-vv tests"
+    (env) $ DB_HOST=<machine address> DB_NAME=wallet_tests python setup.py test -a "-vv tests"
 
 Deploy
 ------
-Create inventory file for ansible `playbooks/inventory` before deploy to production
+Before deploy, create `docker-compose.production.yml` in the root folder like this:
 
-    [wallet]
-    wallet ansible_ssh_host=clayman.pro ansible_ssh_user=clayman
+    version: '2'
 
-    [wallet:vars]
-    common_user=clayman
-    common_user_password=<common user password>
+    networks:
+      backend:
+        driver: bridge
 
-    project_branch=master
-    project_user=clayman
-    project_socket=127.0.0.1:5000
+    services:
+      consul:
+        image: progrium/consul
+        container_name: consul
+        networks:
+          - backend
+        command: -server -bootstrap
+        restart: always
 
-    project_db_password='<top secret password>'
+      web:
+        image: clayman74/nginx
+        container_name: web
+        links:
+          - consul
+        networks:
+          - backend
+        ports:
+          - "80:80"
+          - "443:443"
+        restart: 'no'
+        volumes:
+          - /etc/supervisor/conf.d:/etc/supervisor/conf.d
+          - /etc/consul-templates:/etc/consul-templates
+          - /etc/nginx/certs:/etc/nginx/certs
+          - /var/www/:/var/www/
 
-    secret_key='<top secret key>'
+      postgres-data:
+        restart: 'no'
+        container_name: postgres-data
+        image: postgres:9.4
+        volumes:
+          - /var/lib/postgres
+        command: 'true'
 
-    cluster_environment=False
+      postgresql:
+        container_name: postgresql
+        image: postgres:9.4
+        environment:
+          POSTGRES_DB: wallet
+          POSTGRES_USER: wallet
+          POSTGRES_PASSWORD: 230101
+          PGPASSWORD: 230101
+        networks:
+          - backend
+        restart: always
+        volumes_from:
+          - postgres-data
 
-After that, execute
+      app:
+        build: ./
+        depends_on:
+          - consul
+          - web
+          - postgresql
+        environment:
+          DB_HOST: postgresql
+          DB_USER: wallet
+          DB_PASSWORD: 230101
+          DB_NAME: wallet
+        networks:
+          - backend
+        stop_signal: SIGINT
+        restart: 'no'
 
-    ansible-playbook -i playbooks/inventory playbooks/bootstrap.yml --ask-sudo
+Put production ssl certificate and key into `web/conf/certs/production`
+Then create remote machine and configure
+
+    $ docker-machine create -d digitalocean --digitalocean-access-token=$DO_TOKEN production
+    $ make prepare-remote machine=production
+    $ make bootstrap
+    $ make deploy-web machine=production
+
+To deploy new application version
+
+    $ make deploy
+
+To backup database
+
+    $ make backup
+

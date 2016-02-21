@@ -61,8 +61,9 @@ merge*
 *.cfg
 *.tar.gz
 
-web/conf/certs/*.crt
-web/conf/certs/*.key
+web/conf/certs/**/*.crt
+web/conf/certs/**/*.key
+*.production.yml
 develop.json
 
 playbooks/inventory

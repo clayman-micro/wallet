@@ -8,21 +8,40 @@ clean:
 build:
 	python setup.py sdist
 	docker-compose build app
+	rm -rf dist
 
-clean-web:
-	rm -rf assets/build
-
-dist-web:
-	cd assets && NODE_ENV=production webpack -p
-	tar -czvf web.tar.gz assets/build/*
-	mv web.tar.gz dist
-
-prepare-remote:
-	docker-machine ssh $(machine) 'mkdir -p /etc/nginx/certs/wallet'
-	docker-machine scp -r web/conf/certs $(machine):/etc/nginx/certs/wallet
+build-web:
+	cd web && rm -R build && npm run-script build
 
 run:
 	DB_PASSWORD=wallet DEBUG=True wallet run --host=$(host)
 
 tests:
 	DB_NAME=wallet_test DB_PASSWORD=wallet py.test -vv --cov wallet tests
+
+prepare-remote:
+	docker-machine ssh $(machine) 'mkdir -p /etc/supervisor/conf.d'
+	docker-machine scp web/conf/supervisor/wallet.conf $(machine):/etc/supervisor/conf.d
+
+	docker-machine ssh $(machine) 'mkdir -p /etc/consul-templates'
+	docker-machine scp web/conf/consul-templates/wallet.conf $(machine):/etc/consul-templates
+
+	docker-machine ssh $(machine) 'mkdir -p /etc/nginx/certs/wallet'
+	docker-machine scp web/conf/certs/production/wallet.crt $(machine):/etc/nginx/certs/wallet
+	docker-machine scp web/conf/certs/production/wallet.key $(machine):/etc/nginx/certs/wallet
+
+	docker-machine ssh $(machine) 'mkdir -p /var/www/wallet'
+
+bootstrap:
+	docker-compose -f docker-compose.production.yml up -d consul web postgresql
+	docker-compose -f docker-compose.production.yml up -d app
+	docker-compose -f docker-compose.production.yml run --rm app db upgrade head
+
+deploy:
+	docker-compose -f docker-compose.production.yml up -d --force-recreate --no-deps app
+
+deploy-web:
+	docker-machine scp -r web/build/ $(machine):/var/www/wallet
+
+backup:
+	docker-compose -f docker-compose.production.yml run --rm postgresql pg_dump -h postgresql -d wallet -U wallet | gzip > backups/`date +"%m-%d-%y"`.gz

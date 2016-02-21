@@ -26,12 +26,12 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    restart: always
+    restart: 'no'
     volumes:
       - ./web/conf/supervisor:/etc/supervisor/conf.d
       - ./web/conf/consul-templates:/etc/consul-templates
-      - ./web/conf/certs/:/etc/nginx/certs/wallet
-      - ./web/build/:/var/www/wallet
+      - ./web/conf/certs/develop/:/etc/nginx/certs/wallet
+      - ./web/build/:/var/www/wallet/build
 
   postgres-data:
     restart: 'no'
