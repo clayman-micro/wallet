@@ -85,9 +85,9 @@ async def init(config: Config, logger, loop) -> web.Application:
 async def register_service(app):
     config = app['config']
 
-    service_id = 'wallet_%s' % config.get('APP_HOSTNAME')
+    app['config']['CONSUL_SERVICE'] = 'wallet_%s' % config.get('APP_HOSTNAME')
     payload = {
-        'ID': service_id,
+        'ID': app['config']['CONSUL_SERVICE'],
         'Name': 'wallet',
         'Tags': [
             'master', 'v1'
@@ -102,20 +102,21 @@ async def register_service(app):
     with ClientSession() as session:
         async with session.put(url, data=ujson.dumps(payload)) as resp:
             assert resp.status == 200
-    app.logger.info('Register service "%s"' % service_id)
+    app.logger.info('Register service "%s"' % app['config']['CONSUL_SERVICE'])
 
 
 async def unregister_service(app):
     config = app['config']
 
-    service_id = 'wallet_%s' % config.get('APP_HOSTNAME')
-    url = 'http://%s:%s/v1/agent/service/deregister/%s' % (
-        config.get('CONSUL_HOST'), config.get('CONSUL_PORT'), service_id
-    )
-    with ClientSession() as session:
-        async with session.get(url) as resp:
-            assert resp.status == 200
-    app.logger.info('Remove service "%s" from Consul' % service_id)
+    if 'CONSUL_SERVICE' in app['config']:
+        service_id = app['config']['CONSUL_SERVICE']
+        url = 'http://%s:%s/v1/agent/service/deregister/%s' % (
+            config.get('CONSUL_HOST'), config.get('CONSUL_PORT'), service_id
+        )
+        with ClientSession() as session:
+            async with session.get(url) as resp:
+                assert resp.status == 200
+        app.logger.info('Remove service "%s" from Consul' % service_id)
 
 
 def create_config(config=None) -> Config:

@@ -42,8 +42,9 @@ def cli(context, config):
 @cli.command()
 @click.option('--host', default='127.0.0.1', help='Specify application host.')
 @click.option('--port', default='5000', help='Specify application port.')
+@click.option('--no-consul', is_flag=True, default=False)
 @click.pass_obj
-def run(context, host, port):
+def run(context, host, port, no_consul):
     """ Run application instance. """
 
     app = context.instance
@@ -69,7 +70,8 @@ def run(context, host, port):
     app.logger.info('Application serving on %s:%s' % (
         app['config']['APP_ADDRESS'], app['config']['APP_PORT']))
 
-    loop.run_until_complete(register_service(app))
+    if not no_consul:
+        loop.run_until_complete(register_service(app))
 
     for signame in ('SIGINT', 'SIGTERM'):
         loop.add_signal_handler(getattr(signal, signame),
