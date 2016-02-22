@@ -21,14 +21,14 @@ tests:
 
 prepare-remote:
 	docker-machine ssh $(machine) 'mkdir -p /etc/supervisor/conf.d'
-	docker-machine scp web/conf/supervisor/wallet.conf $(machine):/etc/supervisor/conf.d
+	docker-machine scp conf/supervisor/wallet.conf $(machine):/etc/supervisor/conf.d
 
 	docker-machine ssh $(machine) 'mkdir -p /etc/consul-templates'
-	docker-machine scp web/conf/consul-templates/wallet.conf $(machine):/etc/consul-templates
+	docker-machine scp conf/consul-templates/wallet.conf $(machine):/etc/consul-templates
 
 	docker-machine ssh $(machine) 'mkdir -p /etc/nginx/certs/wallet'
-	docker-machine scp web/conf/certs/production/wallet.crt $(machine):/etc/nginx/certs/wallet
-	docker-machine scp web/conf/certs/production/wallet.key $(machine):/etc/nginx/certs/wallet
+	docker-machine scp conf/certs/production/wallet.crt $(machine):/etc/nginx/certs/wallet
+	docker-machine scp conf/certs/production/wallet.key $(machine):/etc/nginx/certs/wallet
 
 	docker-machine ssh $(machine) 'mkdir -p /var/www/wallet'
 

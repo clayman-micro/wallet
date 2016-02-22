@@ -46,28 +46,11 @@ nosetests.xml
 .project
 .pydevproject
 .idea
-.config
-.vagrant
-.env
-*.sublime-project
-*.sublime-workspace
-run
-env
-venv
-log
-logs
-media
-merge*
 *.cfg
 *.tar.gz
 
-web/conf/certs/**/*.crt
-web/conf/certs/**/*.key
+conf/certs/**/*.crt
+conf/certs/**/*.key
 *.production.yml
-develop.json
-
-playbooks/inventory
-playbooks/host_vars
-playbooks/certs
 
 backups
