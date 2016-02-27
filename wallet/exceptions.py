@@ -18,3 +18,11 @@ class ValidationError(Error):
 
 class SerializationError(Error):
     pass
+
+
+class ResourceNotFound(Exception):
+    pass
+
+
+class MultipleResourcesFound(Exception):
+    pass

@@ -5,6 +5,7 @@ from logging.config import fileConfig
 
 from wallet.storage.base import metadata
 from wallet.storage.accounts import table as accounts_table
+from wallet.storage.balance import table as balance_table
 from wallet.storage.categories import table as categories_table
 from wallet.storage.transactions import table as transactions_table
 from wallet.storage.details import table as details_table

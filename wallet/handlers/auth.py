@@ -7,6 +7,7 @@ from cerberus import Validator
 import jwt
 from sqlalchemy import select, func
 
+from wallet.utils.handlers import register_handler
 from ..exceptions import ValidationError
 from ..storage import users
 from . import base
@@ -116,3 +117,9 @@ async def login(request: web.Request) -> Dict:
         'X-ACCESS-TOKEN': token.decode('utf-8'),
         'X-ACCESS-TOKEN-EXPIRE': str(int(expire.timestamp() * 1000))
     })
+
+
+def register(app):
+    with register_handler(app, '/auth', 'auth') as register:
+        register('POST', 'login', login, 'login')
+        register('POST', 'register', register, 'registration')

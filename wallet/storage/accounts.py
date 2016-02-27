@@ -1,54 +1,93 @@
-import sqlalchemy as alchemy
+from datetime import datetime
+from decimal import Decimal
+from typing import Dict, List
 
-from .base import create_table, to_decimal
+import sqlalchemy
+from aiopg.sa import Engine
+from sqlalchemy.orm import Query
+
+from .base import create_table, get_instance
+from .balance import table as balance_table
 
 
 table = create_table('accounts', (
-    alchemy.Column('name', alchemy.String(255), nullable=False),
-    alchemy.Column('original_amount', alchemy.Numeric(20, 2)),
-    alchemy.Column('current_amount', alchemy.Numeric(20, 2)),
-    alchemy.Column('owner_id', alchemy.Integer,
-                   alchemy.ForeignKey('users.id')),
-    alchemy.Column('created_on', alchemy.DateTime(), nullable=False)
+    sqlalchemy.Column('name', sqlalchemy.String(255), nullable=False),
+    sqlalchemy.Column('original_amount', sqlalchemy.Numeric(20, 2)),
+    sqlalchemy.Column('owner_id', sqlalchemy.Integer,
+                      sqlalchemy.ForeignKey('users.id')),
+    sqlalchemy.Column('created_on', sqlalchemy.DateTime(), nullable=False)
 ))
 
-schema = {
-    'id': {
-        'type': 'integer',
-    },
-    'name': {
-        'type': 'string',
-        'maxlength': 255,
-        'required': True,
-        'empty': False
-    },
-    'original_amount': {
-        'type': 'decimal',
-        'coerce': to_decimal(2),
-        'empty': True
-    },
-    'current_amount': {
-        'type': 'decimal',
-        'coerce': to_decimal(2),
-        'readonly': True,
-        'empty': True
-    },
-    'created_on': {
-        'type': 'datetime',
-        'empty': True
-    },
-    'owner_id': {
-        'type': 'integer',
-        'coerce': int,
-        'readonly': True
-    }
-}
+
+def get_account_query(params) -> Query:
+    return sqlalchemy.select([
+        table,
+        sqlalchemy.func.max(balance_table.c.date),
+        balance_table.c.income,
+        balance_table.c.expense,
+        balance_table.c.remain
+    ]).select_from(sqlalchemy.join(
+        table, balance_table,
+        table.c.id == balance_table.c.account_id)
+    ).where(params).group_by(table.c.id, balance_table.c.income,
+                              balance_table.c.expense, balance_table.c.remain)
 
 
-def serialize(value):
-    return {
-        'id': value['id'],
-        'name': value['name'],
-        'original_amount': float(value['original_amount']),
-        'current_amount': float(value['current_amount'])
-    }
+async def get_account(instance_id, owner: Dict, engine: Engine) -> Dict:
+    account = await get_instance(get_account_query(sqlalchemy.and_(
+        table.c.id == instance_id,
+        table.c.owner_id == owner.get('id')
+    )), engine=engine)
+
+    balance = {}
+    for key in ['income', 'expense', 'remain']:
+        balance[key] = account.pop(key)
+    del account['max_1']
+
+    account['balance'] = balance
+    return account
+
+
+async def calculate_balance(account: Dict, engine: Engine) -> List:
+    query = '''
+        SELECT
+          SUM(transactions.amount),
+          transactions.type,
+          to_char(transactions.created_on, 'MM-YYYY') as date
+        FROM transactions
+        WHERE (
+          transactions.account_id = {account_id}
+        )
+        GROUP BY transactions.type, date
+        ORDER BY date ASC;
+    '''.format(account_id=account.get('id'))
+
+    total_by_month = {}
+    async with engine.acquire() as conn:
+        async for item in conn.execute(query):
+            date = datetime.strptime(item.date, '%m-%Y')
+            if date in total_by_month:
+                total_by_month[date][item.type] = item.sum
+            else:
+                total_by_month[date] = {item.type: item.sum}
+
+    if not total_by_month:
+        today = datetime.today()
+        total_by_month[today] = {'income': 0, 'expense': 0}
+
+    balance = []
+    remain = account.get('original_amount', 0)
+    for key, items in sorted(total_by_month.items(), key=lambda k: k[0]):
+        expense = items.get('expense', Decimal(0))
+        income = items.get('income', Decimal(0))
+
+        balance.append({
+            'expense': expense,
+            'income': income,
+            'remain': remain,
+            'date': key
+        })
+
+        remain = remain + income - expense
+
+    return balance

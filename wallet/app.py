@@ -1,17 +1,11 @@
-import asyncio
-
 import ujson
 from aiohttp import web, ClientSession
-from aiopg.sa import create_engine, Engine
+from aiopg.sa import create_engine
 from raven import Client, os
 from raven_aiohttp import AioHttpTransport
 
 from .config import Config
-from .handlers import auth, index
-from .handlers.accounts import get_accounts, AccountResourceHandler
-from .handlers.categories import get_categories, CategoryResourceHandler
-from .handlers.transactions import get_transactions, TransactionResourceHandler
-from .handlers.details import get_details, DetailResourceHandler
+from .handlers import auth, index, accounts
 
 from .utils.handlers import register_handler
 
@@ -39,45 +33,8 @@ async def init(config: Config, logger, loop) -> web.Application:
     with register_handler(app, name_prefix='core') as register:
         register('GET', '/', index, 'index')
 
-    with register_handler(app, '/auth', 'auth') as register:
-        register('POST', 'login', auth.login, 'login')
-        register('POST', 'register', auth.register, 'registration')
-
-    with register_handler(app, '/api', 'api') as register:
-        register('GET', '/accounts', get_accounts, 'get_accounts')
-        register('GET', '/categories', get_categories, 'get_categories')
-        register('GET', '/transactions', get_transactions, 'get_transactions')
-        register('GET', '/transactions/{transaction_id}/details', get_details,
-                 'get_details')
-
-    with register_handler(app, '/api/accounts', 'api') as register:
-        handler = AccountResourceHandler()
-        register('POST', '', handler, 'create_account')
-        register('GET', '/{instance_id}', handler, 'get_account')
-        register('PUT', '/{instance_id}', handler, 'update_account')
-        register('DELETE', '/{instance_id}', handler, 'remove_account')
-
-    with register_handler(app, '/api/categories', 'api') as register:
-        handler = CategoryResourceHandler()
-        register('POST', '', handler, 'create_category')
-        register('GET', '/{instance_id}', handler, 'get_category')
-        register('PUT', '/{instance_id}', handler, 'update_category')
-        register('DELETE', '/{instance_id}', handler, 'remove_category')
-
-    with register_handler(app, '/api/transactions', 'api') as register:
-        handler = TransactionResourceHandler()
-        register('POST', '', handler, 'create_transaction')
-        register('GET', '/{instance_id}', handler, 'get_transaction')
-        register('PUT', '/{instance_id}', handler, 'update_transaction')
-        register('DELETE', '/{instance_id}', handler, 'remove_transaction')
-
-    prefix = '/api/transactions/{transaction_id}/details'
-    with register_handler(app, prefix, 'api') as register:
-        handler = DetailResourceHandler()
-        register('POST', '', handler, 'create_detail')
-        register('GET', '/{instance_id}', handler, 'get_detail')
-        register('PUT', '/{instance_id}', handler, 'update_detail')
-        register('DELETE', '/{instance_id}', handler, 'remove_detail')
+    auth.register(app)
+    accounts.register(app)
 
     return app
 

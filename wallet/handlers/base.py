@@ -5,10 +5,10 @@ from aiohttp import web
 from sqlalchemy import select
 import ujson
 
-from ..exceptions import DatabaseError, ValidationError
+from .. import exceptions
 from ..storage.base import (serialize, CustomValidator,
                             create_instance, get_instance, remove_instance,
-                            update_instance)
+                            update_instance, Storage)
 
 
 def response(content: str, **kwargs) -> web.Response:
@@ -33,7 +33,7 @@ def get_instance_id(request, key='instance_id'):
     return instance_id
 
 
-async def get_payload(request: web.Request) -> dict:
+async def get_payload(request: web.Request) -> Dict:
     """
     Extract payload from request by Content-Type in headers.
 
@@ -44,6 +44,14 @@ async def get_payload(request: web.Request) -> dict:
     else:
         payload = await request.post()
     return dict(payload)
+
+
+def validate_payload(payload: Dict, schema: Dict, update: bool=False) -> Dict:
+    validator = CustomValidator(schema=schema, allow_unknown=update)
+    if not validator.validate(payload, update=update):
+        raise exceptions.ValidationError(validator.errors)
+
+    return validator.document
 
 
 def handle_response(f):
@@ -57,8 +65,10 @@ def handle_response(f):
 
         try:
             response = await f(*args, **kwargs)
-        except ValidationError as exc:
+        except exceptions.ValidationError as exc:
             return json_response({'errors': exc.errors}, status=400)
+        except exceptions.ResourceNotFound as exc:
+            raise web.HTTPNotFound
         except Exception as exc:
             if isinstance(exc, (web.HTTPClientError, )):
                 raise
@@ -75,6 +85,34 @@ def handle_response(f):
     return wrapper
 
 
+async def create_resource(request, table, schema, validate, **kwargs):
+    payload = await get_payload(request)
+    document = validate_payload(payload, schema)
+
+    if callable(validate):
+        document = await validate(document, request, **kwargs)
+
+    return await create_instance(document, table, engine=request.app['engine'])
+
+
+def create_handler(resource_name, table, schema, validate, serialize):
+    def decorator(f):
+        @functools.wraps(f)
+        @handle_response
+        async def handler(*args, **kwargs):
+            request = args[0]
+
+            resource = await create_resource(request, table, schema, validate,
+                                             **kwargs)
+
+            if callable(f):
+                resource = await f(resource, *args, **kwargs)
+
+            return json_response({
+                resource_name: serialize(resource)
+            }, status=201)
+        return handler
+    return decorator
 def get_collection(name: str, serialize=serialize):
     def decorator(f):
         @functools.wraps(f)
