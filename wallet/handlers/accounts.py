@@ -101,7 +101,7 @@ async def get_accounts(request: web.Request, owner: Dict) -> Dict:
         )
 
     return {
-        'accounts': list(map(serialize, collection)),
+        'accounts': collection,
         'meta': {
             'count': len(collection),
             'total': total

@@ -53,8 +53,13 @@ def validate(payload: Dict, schema: Dict) -> Dict:
     return validator.document
 
 
-def serialize(value):
-    return {key: value for key, value in iter(value.items())}
+def serialize(value, exclude=None):
+    if exclude and isinstance(exclude, (list, tuple, set)):
+        result = {key: value for key, value in iter(value.items())
+                  if key not in exclude}
+    else:
+        result = {key: value for key, value in iter(value.items())}
+    return result
 
 
 async def create_instance(document: Dict, table: sqlalchemy.Table, engine):

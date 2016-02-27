@@ -8,7 +8,7 @@ import ujson
 from .. import exceptions
 from ..storage.base import (serialize, CustomValidator,
                             create_instance, get_instance, remove_instance,
-                            update_instance, Storage)
+                            update_instance)
 
 
 def response(content: str, **kwargs) -> web.Response:
