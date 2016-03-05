@@ -1,8 +1,10 @@
-from datetime import datetime
+from typing import Dict
 
 import sqlalchemy
+from aiopg.sa import Engine
 
-from .base import create_table, to_datetime, to_decimal
+from .base import create_table, get_instance
+from .accounts import table as accounts_table
 
 
 INCOME_TRANSACTION = 'income'
@@ -22,55 +24,16 @@ table = create_table('transactions', (
     sqlalchemy.Column('created_on', sqlalchemy.DateTime(), nullable=False)
 ))
 
-schema = {
-    'id': {
-        'type': 'integer'
-    },
-    'type': {
-        'type': 'string',
-        'maxlength': 20,
-        'required': True,
-        'empty': False,
-        'allowed': TRANSACTION_TYPES
-    },
-    'description': {
-        'type': 'string',
-        'maxlength': 255,
-        'empty': True
-    },
-    'amount': {
-        'type': 'decimal',
-        'coerce': to_decimal(2),
-        'required': True,
-        'empty': False
-    },
-    'account_id': {
-        'type': 'integer',
-        'coerce': int,
-        'required': True,
-        'empty': False
-    },
-    'category_id': {
-        'type': 'integer',
-        'coerce': int,
-        'required': True,
-        'empty': False
-    },
-    'created_on': {
-        'type': 'datetime',
-        'coerce': to_datetime,
-        'empty': True
-    }
-}
 
+async def get_transaction(instance_id, owner: Dict, engine: Engine) -> Dict:
+    join = sqlalchemy.join(table, accounts_table,
+                           accounts_table.c.id == table.c.account_id)
+    transaction = await get_instance(
+        sqlalchemy.select([table]).select_from(join).where(sqlalchemy.and_(
+            table.c.id == instance_id,
+            accounts_table.c.owner_id == owner.get('id')
+        )),
+        engine
+    )
 
-def serialize(value):
-    return {
-        'id': value['id'],
-        'type': value['type'],
-        'description': value['description'],
-        'amount': float(value['amount']),
-        'account_id': value['account_id'],
-        'category_id': value['category_id'],
-        'created_on': datetime.strftime(value['created_on'], '%Y-%m-%dT%H:%M:%S')
-    }
+    return transaction

@@ -81,7 +81,12 @@ def serialize(resource):
 async def get_accounts(request: web.Request, owner: Dict) -> Dict:
     collection = []
 
-    params = accounts.table.c.owner_id == owner.get('id')
+    today = datetime.today()
+    params = sqlalchemy.and_(
+        accounts.table.c.owner_id == owner.get('id'),
+        sqlalchemy.extract('year', balance_storage.table.c.date) == today.year,
+        sqlalchemy.extract('month', balance_storage.table.c.date) == today.month
+    )
     async with request.app['engine'].acquire() as conn:
         async for account in conn.execute(accounts.get_account_query(params)):
             collection.append({
@@ -123,7 +128,8 @@ async def create_account(account, request: web.Request, owner: Dict) -> Dict:
 @base.handle_response
 async def get_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
-    account = await accounts.get_account(instance_id, owner,
+    today = datetime.today()
+    account = await accounts.get_account(instance_id, today, owner,
                                          engine=request.app['engine'])
     return {'account': serialize(account)}
 
@@ -134,7 +140,8 @@ async def update_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
 
     # Get resource
-    account = await accounts.get_account(instance_id, owner,
+    today = datetime.today()
+    account = await accounts.get_account(instance_id, today, owner,
                                          engine=request.app['engine'])
 
     # Validate payload
@@ -168,7 +175,8 @@ async def remove_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
     engine = request.app['engine']
 
-    account = await accounts.get_account(instance_id, owner, engine=engine)
+    today = datetime.today()
+    account = await accounts.get_account(instance_id, today, owner, engine)
     await base.remove_instance(account, accounts.table, engine=engine)
 
     return {'account': 'removed'}

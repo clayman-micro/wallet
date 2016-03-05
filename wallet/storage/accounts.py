@@ -22,7 +22,6 @@ table = create_table('accounts', (
 def get_account_query(params) -> Query:
     return sqlalchemy.select([
         table,
-        sqlalchemy.func.max(balance_table.c.date),
         balance_table.c.income,
         balance_table.c.expense,
         balance_table.c.remain
@@ -30,13 +29,15 @@ def get_account_query(params) -> Query:
         table, balance_table,
         table.c.id == balance_table.c.account_id)
     ).where(params).group_by(table.c.id, balance_table.c.income,
-                              balance_table.c.expense, balance_table.c.remain)
+                             balance_table.c.expense, balance_table.c.remain)
 
 
-async def get_account(instance_id, owner: Dict, engine: Engine) -> Dict:
+async def get_account(instance_id, date, owner: Dict, engine: Engine) -> Dict:
     account = await get_instance(get_account_query(sqlalchemy.and_(
         table.c.id == instance_id,
-        table.c.owner_id == owner.get('id')
+        table.c.owner_id == owner.get('id'),
+        sqlalchemy.extract('year', balance_table.c.date) == date.year,
+        sqlalchemy.extract('month', balance_table.c.date) == date.month
     )), engine=engine)
 
     balance = {}

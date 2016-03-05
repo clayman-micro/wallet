@@ -1,162 +1,209 @@
 from datetime import datetime
-from decimal import Decimal
-
-from aiohttp import web
-import sqlalchemy
-from sqlalchemy import and_, func, select
 from typing import Dict
 
+import sqlalchemy
+from aiohttp import web
+
+from wallet.utils.handlers import register_handler
 from ..exceptions import ValidationError
-from ..storage import accounts, categories, transactions
+from ..storage import accounts, balance as balance_storage, categories, transactions
+from ..storage.base import to_decimal, to_datetime
 from . import base, auth
 
 
-@auth.owner_required
-@base.get_collection('transactions', serialize=transactions.serialize)
-async def get_transactions(request: web.Request, **kwargs) -> tuple:
-    owner = kwargs.get('owner')
-    table = transactions.table
+schema = {
+    'id': {
+        'type': 'integer'
+    },
+    'type': {
+        'type': 'string',
+        'maxlength': 20,
+        'required': True,
+        'empty': False,
+        'allowed': transactions.TRANSACTION_TYPES
+    },
+    'description': {
+        'type': 'string',
+        'maxlength': 255,
+        'empty': True
+    },
+    'amount': {
+        'type': 'decimal',
+        'coerce': to_decimal(2),
+        'required': True,
+        'empty': False
+    },
+    'account_id': {
+        'type': 'integer',
+        'coerce': int,
+        'required': True,
+        'empty': False
+    },
+    'category_id': {
+        'type': 'integer',
+        'coerce': int,
+        'required': True,
+        'empty': False
+    },
+    'created_on': {
+        'type': 'datetime',
+        'coerce': to_datetime,
+        'empty': True
+    }
+}
 
+
+async def validate(document, request, owner, resource=None):
+    async with request.app['engine'].acquire() as conn:
+        count = await conn.scalar(
+            sqlalchemy.select([sqlalchemy.func.count()])
+                .select_from(accounts.table)
+                .where(sqlalchemy.and_(
+                    accounts.table.c.id == document.get('account_id'),
+                    accounts.table.c.owner_id == owner.get('id'),
+                )))
+        if not count:
+            raise ValidationError({'account_id': 'Account does not exists'})
+
+        count = await conn.scalar(
+            sqlalchemy.select([sqlalchemy.func.count()])
+                .select_from(categories.table)
+                .where(
+                    categories.table.c.id == document.get('category_id')
+                ))
+        if not count:
+            raise ValidationError({'category_id': 'Category does not exists'})
+
+    if not resource:
+        document.setdefault('created_on', datetime.now())
+
+    return document
+
+
+def serialize(value):
+    return {
+        'id': value['id'],
+        'type': value['type'],
+        'description': value['description'],
+        'amount': float(value['amount']),
+        'account_id': value['account_id'],
+        'category_id': value['category_id'],
+        'created_on': datetime.strftime(value['created_on'], '%Y-%m-%dT%H:%M:%S')
+    }
+
+
+async def update_balance(account_id, owner_id, engine):
+    account = await base.get_instance(
+        sqlalchemy.select([accounts.table])
+            .where(sqlalchemy.and_(
+                accounts.table.c.id == account_id,
+                accounts.table.c.owner_id == owner_id
+            )),
+        engine
+    )
+    balance = await accounts.calculate_balance(account, engine)
+    await balance_storage.update_balance(balance, account, engine=engine)
+
+
+@auth.owner_required
+@base.handle_response
+async def get_transactions(request: web.Request, owner: Dict) -> Dict:
+    collection = []
+
+    table = transactions.table
     join = sqlalchemy.join(table, accounts.table,
                            accounts.table.c.id == table.c.account_id)
-    params = (accounts.table.c.owner_id == owner.get('id'), )
+    params = accounts.table.c.owner_id == owner.get('id')
+    query = sqlalchemy.select([table]).select_from(join).where(
+        params).order_by(table.c.created_on.desc())
 
-    query = select([table]).select_from(join).where(
-        *params).order_by(table.c.created_on.desc())
-    total_query = select([func.count()]).select_from(table).select_from(
-        join).where(*params)
+    async with request.app['engine'].acquire() as conn:
+        async for transaction in conn.execute(query):
+            collection.append(transaction)
 
-    return query, total_query
+        total = await conn.scalar(
+            sqlalchemy.select([sqlalchemy.func.count()])
+                .select_from(table)
+                .select_from(join)
+                .where(params)
+        )
+
+    return {
+        'transactions': list(map(serialize, collection)),
+        'meta': {
+            'count': len(collection),
+            'total': total
+        }
+    }
 
 
-class TransactionResourceHandler(base.ResourceHandler):
-    decorators = (auth.owner_required, base.handle_response)
+@auth.owner_required
+@base.create_handler('transaction', transactions.table, schema, validate, serialize)
+async def create_transaction(transaction, request: web.Request, owner: Dict):
+    await update_balance(transaction.get('account_id'), owner.get('id'),
+                         request.app['engine'])
+    return transaction
 
-    resource_name = 'transaction'
 
-    table = transactions.table
-    schema = transactions.schema
+@auth.owner_required
+@base.handle_response
+async def get_transaction(request: web.Request, owner: Dict) -> Dict:
+    instance_id = base.get_instance_id(request)
+    transaction = await transactions.get_transaction(instance_id, owner,
+                                                     request.app['engine'])
+    return {'transaction': serialize(transaction)}
 
-    def serialize(self, resource):
-        return transactions.serialize(resource)
 
-    def get_resource_query(self, request: web.Request, **kwargs):
-        owner = kwargs.get('owner')
+@auth.owner_required
+@base.handle_response
+async def update_transaction(request: web.Request, owner: Dict) -> Dict:
+    instance_id = base.get_instance_id(request)
+    engine = request.app['engine']
 
-        instance_id = base.get_instance_id(request)
+    # Get resource
+    transaction = await transactions.get_transaction(instance_id, owner, engine)
 
-        join = sqlalchemy.join(self.table, accounts.table,
-                               accounts.table.c.id == self.table.c.account_id)
-        return select([self.table]).select_from(join).where(and_(
-            self.table.c.id == instance_id,
-            accounts.table.c.owner_id == owner.get('id')
-        ))
+    # Validate payload
+    payload = await base.get_payload(request)
+    document = base.validate_payload(payload, schema, update=True)
 
-    async def validate(self, document: Dict, request: web.Request, **kwargs):
-        owner = kwargs.get('owner')
-        instance = kwargs.get('instance', None)
+    # Validate resource after update
+    before = transaction.copy()
+    transaction.update(document)
+    resource = await validate(transaction, request, owner, resource=transaction)
 
-        async with request.app['engine'].acquire() as conn:
-            query = select([func.count()]).select_from(accounts.table).where(and_(
-                accounts.table.c.id == document.get('account_id'),
-                accounts.table.c.owner_id == owner.get('id'),
-            ))
-            count = await conn.scalar(query)
-            if not count:
-                raise ValidationError({'account_id': 'Account does not exists'})
+    # Update resource
+    after = await base.update_instance(resource, transactions.table, engine)
 
-            query = select([func.count()]).select_from(categories.table).where(
-                categories.table.c.id == document.get('category_id')
-            )
-            count = await conn.scalar(query)
-            if not count:
-                raise ValidationError({'category_id': 'Category does not exists'})
+    # Update account balance if needed
+    if before['amount'] != after['amount'] or before['type'] != after['type']:
+        await update_balance(transaction.get('account_id'), owner.get('id'),
+                             engine)
 
-        if not instance:
-            document.setdefault('created_on', datetime.now())
+    return {'transaction': serialize(after)}
 
-        return document
 
-    def apply(self, amount: Decimal, transaction: Dict):
-        if transaction['type'] == transactions.INCOME_TRANSACTION:
-            amount = amount + Decimal(transaction['amount'])
-        elif transaction['type'] == transactions.EXPENSE_TRANSACTION:
-            amount = amount - Decimal(transaction['amount'])
+@auth.owner_required
+@base.handle_response
+async def remove_transaction(request: web.Request, owner: Dict) -> Dict:
+    instance_id = base.get_instance_id(request)
+    engine = request.app['engine']
 
-        return amount
+    transaction = await transactions.get_transaction(instance_id, owner, engine)
+    await base.remove_instance(transaction, transactions.table, engine=engine)
 
-    def rollback(self, amount: Decimal, transaction: Dict):
-        if transaction['type'] == transactions.INCOME_TRANSACTION:
-            amount = amount - Decimal(transaction['amount'])
-        elif transaction['type'] == transactions.EXPENSE_TRANSACTION:
-            amount = amount + Decimal(transaction['amount'])
+    # Update account balance
+    await update_balance(transaction.get('account_id'), owner.get('id'), engine)
 
-        return amount
+    return {'transaction': 'removed'}
 
-    async def after_create(self, resource, request: web.Request, **kwargs):
-        table = accounts.table
 
-        async with request.app['engine'].acquire() as conn:
-            current_amount = await conn.scalar(
-                select([table.c.current_amount, ]).where(
-                    table.c.id == resource['account_id'])
-            )
-
-            amount = self.apply(current_amount, resource)
-
-            await conn.execute(table.update().where(
-                table.c.id == resource['account_id']).values(
-                    current_amount=amount.quantize(Decimal('.01'))))
-
-    async def after_update(self, resource, request: web.Request, **kwargs):
-        before = kwargs.get('before')
-        table = accounts.table
-
-        async with request.app['engine'].acquire() as conn:
-            if resource['account_id'] != before['account_id']:
-                current_amount = await conn.scalar(
-                    select([table.c.current_amount, ]).where(
-                        table.c.id == before['account_id']))
-
-                amount = self.rollback(current_amount, before)
-
-                await conn.execute(table.update().where(
-                    table.c.id == before['account_id']).values(
-                    current_amount=amount.quantize(Decimal('.01'))))
-
-                current_amount = await conn.scalar(
-                    select([table.c.current_amount, ]).where(
-                        table.c.id == resource['account_id']))
-
-                amount = self.apply(current_amount, resource)
-
-                await conn.execute(table.update().where(
-                    table.c.id == resource['account_id']).values(
-                    current_amount=amount.quantize(Decimal('.01'))))
-            else:
-                current_amount = await conn.scalar(
-                    select([table.c.current_amount, ]).where(
-                        table.c.id == resource['account_id']))
-
-                amount = self.rollback(current_amount, before)
-                amount = self.apply(amount, resource)
-
-                await conn.execute(table.update().where(
-                    table.c.id == resource['account_id']).values(
-                    current_amount=amount.quantize(Decimal('.01'))))
-
-        return resource
-
-    async def after_remove(self, resource, request: web.Request, **kwargs):
-        table = accounts.table
-
-        async with request.app['engine'].acquire() as conn:
-            query = select([table.c.current_amount, ]).where(
-                table.c.id == resource['account_id'])
-            current_amount = await conn.scalar(query)
-
-            amount = self.rollback(current_amount, resource)
-
-            await conn.execute(table.update().where(
-                table.c.id == resource['account_id']).values(
-                current_amount=amount.quantize(Decimal('.01'))))
+def register(app, url_prefix, name_prefix):
+    with register_handler(app, url_prefix, name_prefix) as register:
+        register('GET', '', get_transactions, 'get_transactions')
+        register('POST', '', create_transaction, 'create_transaction')
+        register('GET', '{instance_id}', get_transaction, 'get_transaction')
+        register('PUT', '{instance_id}', update_transaction,
+                 'update_transaction')
+        register('DELETE', '{instance_id}', remove_transaction,
+                 'remove_transaction')

@@ -5,7 +5,7 @@ from raven import Client, os
 from raven_aiohttp import AioHttpTransport
 
 from .config import Config
-from .handlers import auth, index, accounts, categories
+from .handlers import auth, index, accounts, categories, transactions
 
 from .utils.handlers import register_handler
 
@@ -36,6 +36,7 @@ async def init(config: Config, logger, loop) -> web.Application:
     auth.register(app)
     accounts.register(app)
     categories.register(app, '/api/categories', 'api')
+    transactions.register(app, '/api/transactions', 'api')
 
     return app
 
