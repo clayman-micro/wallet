@@ -63,50 +63,38 @@ async def validate(document, request, owner, resource=None):
 
 
 def serialize(resource):
-    balance = resource.get('balance')  # type: Dict
-
-    return {
+    result = {
         'id': resource['id'],
         'name': resource['name'],
-        'balance': {
+    }
+    balance = resource.get('balance')  # type: Dict
+    if balance:
+        result['balance'] = {
             'income': float(balance['income']),
             'expense': float(balance['expense']),
             'remain': float(balance['remain']),
         }
-    }
+
+    return result
 
 
 @auth.owner_required
 @base.handle_response
 async def get_accounts(request: web.Request, owner: Dict) -> Dict:
-    collection = []
+    collection, total = await accounts.get_accounts(owner, request.app['engine'])
 
-    today = datetime.today()
-    params = sqlalchemy.and_(
-        accounts.table.c.owner_id == owner.get('id'),
-        sqlalchemy.extract('year', balance_storage.table.c.date) == today.year,
-        sqlalchemy.extract('month', balance_storage.table.c.date) == today.month
-    )
-    async with request.app['engine'].acquire() as conn:
-        async for account in conn.execute(accounts.get_account_query(params)):
-            collection.append({
-                'id': account.id,
-                'name': account.name,
-                'balance': {
-                    'income': account.income,
-                    'expense': account.expense,
-                    'remain': account.remain
-                }
-            })
-
-        total = await conn.scalar(
-            sqlalchemy.select([sqlalchemy.func.count()])
-                .select_from(accounts.table)
-                .where(params)
-        )
+    for key in iter(collection.keys()):
+        try:
+            collection[key]['balance'] = collection[key]['balance'][0]
+        except (IndexError, KeyError):
+            collection[key]['balance'] = {
+                'income': 0,
+                'expense': 0,
+                'remain': collection[key]['original_amount']
+            }
 
     return {
-        'accounts': collection,
+        'accounts': list(map(serialize, collection.values())),
         'meta': {
             'count': len(collection),
             'total': total
@@ -128,8 +116,7 @@ async def create_account(account, request: web.Request, owner: Dict) -> Dict:
 @base.handle_response
 async def get_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
-    today = datetime.today()
-    account = await accounts.get_account(instance_id, today, owner,
+    account = await accounts.get_account(instance_id, owner,
                                          engine=request.app['engine'])
     return {'account': serialize(account)}
 
@@ -140,8 +127,7 @@ async def update_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
 
     # Get resource
-    today = datetime.today()
-    account = await accounts.get_account(instance_id, today, owner,
+    account = await accounts.get_account(instance_id, owner,
                                          engine=request.app['engine'])
 
     # Validate payload
@@ -175,15 +161,14 @@ async def remove_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
     engine = request.app['engine']
 
-    today = datetime.today()
-    account = await accounts.get_account(instance_id, today, owner, engine)
+    account = await accounts.get_account(instance_id, owner, engine)
     await base.remove_instance(account, accounts.table, engine=engine)
 
     return {'account': 'removed'}
 
 
-def register(app):
-    with register_handler(app, '/api/accounts', 'api') as register:
+def register(app, url_prefix, name_prefix):
+    with register_handler(app, url_prefix, name_prefix) as register:
         register('GET', '', get_accounts, 'get_accounts')
         register('POST', '', create_account, 'create_account')
         register('GET', '{instance_id}', get_account, 'get_account')

@@ -48,6 +48,7 @@ services:
       POSTGRES_DB: wallet
       POSTGRES_USER: wallet
       POSTGRES_PASSWORD: wallet
+      PGPASSWORD: wallet
     networks:
       - backend
     ports:

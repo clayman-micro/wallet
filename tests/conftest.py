@@ -1,5 +1,6 @@
 import asyncio
 import gc
+import logging
 import os
 import socket
 import ujson
@@ -12,7 +13,7 @@ from alembic.config import Config as AlembicConfig
 from alembic import command
 
 
-from wallet.app import create_app, create_config, destroy_app
+from wallet.app import init, create_config
 from wallet.utils.handlers import reverse_url
 
 
@@ -36,7 +37,8 @@ def loop(request):
 
 @pytest.yield_fixture('function')
 def app(loop, request):
-    app = loop.run_until_complete(create_app(config, loop))
+    logger = logging.getLogger('wallet')
+    app = loop.run_until_complete(init(config, logger, loop=loop))
 
     directory = app['config'].get('MIGRATIONS_ROOT')
     db_uri = app['config'].get_sqlalchemy_dsn()
@@ -51,7 +53,7 @@ def app(loop, request):
 
     command.downgrade(conf, revision='base')
 
-    loop.run_until_complete(destroy_app(app))
+    loop.run_until_complete(app.cleanup())
 
 
 class Server(object):

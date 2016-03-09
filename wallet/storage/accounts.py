@@ -1,12 +1,13 @@
 from datetime import datetime
 from decimal import Decimal
+from itertools import groupby
 from typing import Dict, List
 
 import sqlalchemy
 from aiopg.sa import Engine
-from sqlalchemy.orm import Query
 
-from .base import create_table, get_instance
+from wallet import exceptions
+from .base import create_table
 from .balance import table as balance_table
 
 
@@ -19,33 +20,65 @@ table = create_table('accounts', (
 ))
 
 
-def get_account_query(params) -> Query:
-    return sqlalchemy.select([
-        table,
-        balance_table.c.income,
-        balance_table.c.expense,
-        balance_table.c.remain
-    ]).select_from(sqlalchemy.join(
-        table, balance_table,
-        table.c.id == balance_table.c.account_id)
-    ).where(params).group_by(table.c.id, balance_table.c.income,
-                             balance_table.c.expense, balance_table.c.remain)
+async def get_accounts(owner: Dict, engine: Engine) -> Dict:
+    accounts = {}
+
+    params = table.c.owner_id == owner.get('id')
+    async with engine.acquire() as conn:
+        query = sqlalchemy.select([table]).where(params)
+        async for row in conn.execute(query):
+            account = dict(zip(row.keys(), row.values()))
+            accounts[account['id']] = account
+
+        total = await conn.scalar(
+            sqlalchemy.select([sqlalchemy.func.count()])
+                .select_from(table)
+                .where(params)
+        )
+
+        balance = []
+        query = sqlalchemy.select([balance_table]).where(
+            balance_table.c.account_id.in_(accounts.keys())).order_by(
+            balance_table.c.date.desc())
+        async for row in conn.execute(query):
+            item = dict(zip(row.keys(), row.values()))
+            balance.append(item)
+
+        for key, group in groupby(balance, lambda item: item.get('account_id')):
+            accounts[key]['balance'] = list(group)
+
+    return accounts, total
 
 
-async def get_account(instance_id, date, owner: Dict, engine: Engine) -> Dict:
-    account = await get_instance(get_account_query(sqlalchemy.and_(
-        table.c.id == instance_id,
-        table.c.owner_id == owner.get('id'),
-        sqlalchemy.extract('year', balance_table.c.date) == date.year,
-        sqlalchemy.extract('month', balance_table.c.date) == date.month
-    )), engine=engine)
+async def get_account(instance_id, owner: Dict, engine: Engine) -> Dict:
+    async with engine.acquire() as conn:
+        query = sqlalchemy.select([table]).where(sqlalchemy.and_(
+            table.c.id == instance_id,
+            table.c.owner_id == owner.get('id')
+        ))
+        result = await conn.execute(query)
+        if not result.returns_rows:
+            raise exceptions.ResourceNotFound
+        row = await result.fetchone()
 
-    balance = {}
-    for key in ['income', 'expense', 'remain']:
-        balance[key] = account.pop(key)
-    del account['max_1']
+        account = dict(zip(row.keys(), row.values()))
+        balance = {'income': 0, 'expense': 0,
+                   'remain': account.get('original_amount')}
 
-    account['balance'] = balance
+        query = sqlalchemy.select([balance_table]).where(
+            balance_table.c.account_id == account.get('id')
+        ).order_by(balance_table.c.date.desc())
+
+        result = await conn.execute(query)
+        if result.returns_rows and result.rowcount:
+            row = await result.fetchone()
+            balance = {
+                'income': row.income,
+                'expense': row.expense,
+                'remain': row.remain
+            }
+
+        account['balance'] = balance
     return account
 
 
