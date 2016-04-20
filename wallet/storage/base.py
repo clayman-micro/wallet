@@ -3,9 +3,8 @@ from decimal import Decimal
 from typing import Callable, Dict
 
 import sqlalchemy
-from aiopg.sa.engine import Engine
-from cerberus import Validator
-from cerberus.errors import ERROR_BAD_TYPE
+from aiopg.sa import SAConnection
+from cerberus import Validator, errors
 from psycopg2 import ProgrammingError, IntegrityError
 
 from .. import exceptions
@@ -43,7 +42,7 @@ class CustomValidator(Validator):
 
     def _validate_type_decimal(self, field, value):
         if not isinstance(value, Decimal):
-            self._error(field, ERROR_BAD_TYPE.format('Decimal'))
+            self._error(field, errors.ERROR_BAD_TYPE.format('Decimal'))
 
 
 def validate(payload: Dict, schema: Dict) -> Dict:
@@ -62,66 +61,65 @@ def serialize(value, exclude=None):
     return result
 
 
-async def create_instance(document: Dict, table: sqlalchemy.Table, engine):
-    async with engine.acquire() as conn:
-        try:
-            instance_id = await conn.scalar(
-                sqlalchemy.insert(table, values=document))
-            return {'id': instance_id, **document}
-        except ProgrammingError as exc:
-            raise exceptions.DatabaseError
-        except IntegrityError as exc:
-            raise exceptions.DatabaseError({'integrity_error': {
-                'primary': exc.diag.message_primary,
-                'detail': exc.diag.message_detail
-            }})
+async def create_instance(document: Dict, table: sqlalchemy.Table, conn) -> Dict:
+    try:
+        instance_id = await conn.scalar(sqlalchemy.insert(table, document))
+    except ProgrammingError as exc:
+        raise exceptions.DatabaseError({'integrity_error': {
+            'primary': exc.diag.message_primary,
+            'detail': exc.diag.message_detail
+        }})
+    except IntegrityError as exc:
+        raise exceptions.DatabaseError({'integrity_error': {
+            'primary': exc.diag.message_primary,
+            'detail': exc.diag.message_detail
+        }})
+    else:
+        return {'id': instance_id, **document}
 
 
-async def get_instance(query, engine: Engine):
-    async with engine.acquire() as conn:
-        result = await conn.execute(query)
-        if result.returns_rows:
-            if result.rowcount == 1:
-                row = await result.fetchone()
-                return dict(zip(row.keys(), row.values()))
-            elif result.rowcount > 1:
-                raise exceptions.MultipleResourcesFound
-        raise exceptions.ResourceNotFound
-
-
-async def update_instance(instance, table: sqlalchemy.Table, engine):
-    async with engine.acquire() as conn:
-        try:
-            result = await conn.execute(
-                table.update()
-                    .returning(*table.c)
-                    .where(table.c.id == instance.get('id'))
-                    .values(**instance)
-            )
+async def get_instance(query, conn: SAConnection):
+    result = await conn.execute(query)
+    if result.returns_rows:
+        if result.rowcount == 1:
             row = await result.fetchone()
             return dict(zip(row.keys(), row.values()))
-        except IntegrityError as exc:
-            raise exceptions.DatabaseError({'integrity_error': {
-                'primary': exc.diag.message_primary,
-                'detail': exc.diag.message_detail
-            }})
-        except ProgrammingError:
-            raise exceptions.DatabaseError
+        elif result.rowcount > 1:
+            raise exceptions.MultipleResourcesFound
+    raise exceptions.ResourceNotFound
 
 
-async def remove_instance(instance: Dict, table: sqlalchemy.Table, engine):
-    async with engine.acquire() as conn:
-        try:
-            result = await conn.execute(
-                table
-                    .delete()
-                    .where(table.c.id == instance.get('id'))
-            )
-            return bool(result.rowcount)
-        except IntegrityError as exc:
-            raise exceptions.DatabaseError({'integrity_error': {
-                'primary': exc.diag.message_primary,
-                'detail': exc.diag.message_detail
-            }})
-        except ProgrammingError as exc:
-            raise
+async def update_instance(instance, table: sqlalchemy.Table, conn: SAConnection):
+    try:
+        result = await conn.execute(
+            table.update().returning(*table.c).where(
+                table.c.id == instance.get('id')).values(**instance)
+        )
+        row = await result.fetchone()
+    except IntegrityError as exc:
+        raise exceptions.DatabaseError({'integrity_error': {
+            'primary': exc.diag.message_primary,
+            'detail': exc.diag.message_detail
+        }})
+    except ProgrammingError:
+        raise exceptions.DatabaseError
+    else:
+        return dict(zip(row.keys(), row.values()))
+
+
+async def remove_instance(instance: Dict, table: sqlalchemy.Table, conn):
+    try:
+        result = await conn.execute(table.delete().where(
+            table.c.id == instance.get('id')))
+    except IntegrityError as exc:
+        raise exceptions.DatabaseError({'integrity_error': {
+            'primary': exc.diag.message_primary,
+            'detail': exc.diag.message_detail
+        }})
+    except ProgrammingError as exc:
+        raise exceptions.DatabaseError({'integrity_error': {
+            'primary': exc.diag.message_primary,
+            'detail': exc.diag.message_detail
+        }})
+    else:
+        return bool(result.rowcount)

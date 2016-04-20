@@ -81,7 +81,8 @@ def serialize(resource):
 @auth.owner_required
 @base.handle_response
 async def get_accounts(request: web.Request, owner: Dict) -> Dict:
-    collection, total = await accounts.get_accounts(owner, request.app['engine'])
+    async with request.app['engine'].acquire() as conn:
+        collection, total = await accounts.get_accounts(owner, conn=conn)
 
     for key in iter(collection.keys()):
         try:
@@ -105,9 +106,10 @@ async def get_accounts(request: web.Request, owner: Dict) -> Dict:
 @auth.owner_required
 @base.create_handler('account', accounts.table, schema, validate, serialize)
 async def create_account(account, request: web.Request, owner: Dict) -> Dict:
-    engine = request.app['engine']
-    balance = await accounts.calculate_balance(account, engine)
-    await balance_storage.update_balance(balance, account, engine=engine)
+    async with request.app['engine'].acquire() as conn:
+        today = datetime.today()
+        balance = await accounts.calculate_balance(account, today, conn=conn)
+        await balance_storage.update_balance(balance, account, conn=conn)
     account['balance'] = balance[-1]
     return account
 
@@ -116,8 +118,8 @@ async def create_account(account, request: web.Request, owner: Dict) -> Dict:
 @base.handle_response
 async def get_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
-    account = await accounts.get_account(instance_id, owner,
-                                         engine=request.app['engine'])
+    async with request.app['engine'].acquire() as conn:
+        account = await accounts.get_account(instance_id, owner, conn)
     return {'account': serialize(account)}
 
 
@@ -127,30 +129,29 @@ async def update_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
 
     # Get resource
-    account = await accounts.get_account(instance_id, owner,
-                                         engine=request.app['engine'])
+    async with request.app['engine'].acquire() as conn:
+        account = await accounts.get_account(instance_id, owner, conn)
 
-    # Validate payload
-    payload = await base.get_payload(request)
-    document = base.validate_payload(payload, schema, update=True)
+        # Validate payload
+        payload = await base.get_payload(request)
+        document = base.validate_payload(payload, schema, update=True)
 
-    # Validate resource after update
-    before = account.copy()
-    account.update(document)
-    resource = await validate(account, request, owner, resource=account)
+        # Validate resource after update
+        before = account.copy()
+        account.update(document)
+        resource = await validate(account, request, owner, resource=account)
 
-    # Update resource
-    balance = resource.pop('balance')
-    after = await base.update_instance(resource, accounts.table,
-                                       request.app['engine'])
-    after['balance'] = balance
+        # Update resource
+        balance = resource.pop('balance')
+        after = await base.update_instance(resource, accounts.table, conn)
+        after['balance'] = balance
 
-    # Update balance
-    if before['original_amount'] != after['original_amount']:
-        engine = request.app['engine']
-        balance = await accounts.calculate_balance(after, engine=engine)
-        await balance_storage.update_balance(balance, after, engine=engine)
-        after['balance'] = balance[-1]
+        # Update balance
+        if before['original_amount'] != after['original_amount']:
+            today = datetime.today()
+            balance = await accounts.calculate_balance(after, today, conn)
+            await balance_storage.update_balance(balance, after, conn)
+            after['balance'] = balance[-1]
 
     return {'account': serialize(after)}
 
@@ -159,10 +160,10 @@ async def update_account(request: web.Request, owner: Dict) -> Dict:
 @base.handle_response
 async def remove_account(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
-    engine = request.app['engine']
 
-    account = await accounts.get_account(instance_id, owner, engine)
-    await base.remove_instance(account, accounts.table, engine=engine)
+    async with request.app['engine'].acquire() as conn:
+        account = await accounts.get_account(instance_id, owner, conn)
+        await base.remove_instance(account, accounts.table, conn)
 
     return {'account': 'removed'}
 

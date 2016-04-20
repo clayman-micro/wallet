@@ -94,9 +94,10 @@ async def create_category(request: web.Request, owner: Dict) -> Dict:
 @auth.owner_required
 @base.handle_response
 async def get_category(request: web.Request, owner: Dict) -> Dict:
-    instance_id = base.get_instance_id(request)
-    category = await categories.get_category(instance_id, owner,
-                                             request.app['engine'])
+    async with request.app['engine'].acquire() as conn:
+        category = await categories.get_category(
+            base.get_instance_id(request), owner, conn
+        )
     return {'category': serialize(category)}
 
 
@@ -105,21 +106,21 @@ async def get_category(request: web.Request, owner: Dict) -> Dict:
 async def update_category(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
 
-    # Get resource
-    engine = request.app['engine']
-    category = await categories.get_category(instance_id, owner, engine)
+    async with request.app['engine'].acquire() as conn:
+        # Get resource
+        category = await categories.get_category(instance_id, owner, conn)
 
-    # Validate payload
-    payload = await base.get_payload(request)
-    document = base.validate_payload(payload, schema, update=True)
+        # Validate payload
+        payload = await base.get_payload(request)
+        document = base.validate_payload(payload, schema, update=True)
 
-    # Validate resource after update
-    before = category.copy()
-    category.update(document)
-    resource = await validate(category, request, owner, resource=category)
+        # Validate resource after update
+        before = category.copy()
+        category.update(document)
+        resource = await validate(category, request, owner, resource=category)
 
-    # Update resource
-    after = await base.update_instance(resource, categories.table, engine)
+        # Update resource
+        after = await base.update_instance(resource, categories.table, conn)
 
     return {'category': serialize(after)}
 
@@ -128,10 +129,11 @@ async def update_category(request: web.Request, owner: Dict) -> Dict:
 @base.handle_response
 async def remove_category(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
-    engine = request.app['engine']
 
-    category = await categories.get_category(instance_id, owner, engine=engine)
-    await base.remove_instance(category, categories.table, engine=engine)
+    async with request.app['engine'].acquire() as conn:
+        category = await categories.get_category(instance_id, owner, conn)
+        await base.remove_instance(category, categories.table, conn)
+
     return {'category': 'removed'}
 
 

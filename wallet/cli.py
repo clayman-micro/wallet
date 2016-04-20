@@ -9,6 +9,7 @@ import click
 
 from wallet.app import create_config, init, register_service
 from wallet.management.db import db
+from wallet.management.accounts import accounts
 
 
 class Context(object):
@@ -91,3 +92,4 @@ def run(context, host, port, no_consul):
 
 
 cli.add_command(db, name='db')
+cli.add_command(accounts, name='accounts')

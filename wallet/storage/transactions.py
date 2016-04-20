@@ -1,7 +1,7 @@
 from typing import Dict
 
 import sqlalchemy
-from aiopg.sa import Engine
+from aiopg.sa import SAConnection
 
 from .base import create_table, get_instance
 from .accounts import table as accounts_table
@@ -25,15 +25,13 @@ table = create_table('transactions', (
 ))
 
 
-async def get_transaction(instance_id, owner: Dict, engine: Engine) -> Dict:
+async def get_transaction(instance_id, owner: Dict, conn: SAConnection) -> Dict:
     join = sqlalchemy.join(table, accounts_table,
                            accounts_table.c.id == table.c.account_id)
-    transaction = await get_instance(
-        sqlalchemy.select([table]).select_from(join).where(sqlalchemy.and_(
-            table.c.id == instance_id,
-            accounts_table.c.owner_id == owner.get('id')
-        )),
-        engine
-    )
+    query = sqlalchemy.select([table]).select_from(join).where(sqlalchemy.and_(
+        table.c.id == instance_id,
+        accounts_table.c.owner_id == owner.get('id')
+    ))
+    transaction = await get_instance(query, conn=conn)
 
     return transaction

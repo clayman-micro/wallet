@@ -42,7 +42,7 @@ class ManageDetail extends ManagePage {
     }
 
     getTransactionID() {
-        const { transactionID } = this.props.routerState.params;
+        const { transactionID } = this.props.routeParams;
         return typeof transactionID !== 'undefined' ? parseInt(transactionID, 10) : 0;
     }
 

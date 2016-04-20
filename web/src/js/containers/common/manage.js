@@ -42,7 +42,7 @@ class ManagePage extends React.Component {
     }
 
     getInstanceID() {
-        const { instanceID } = this.props.routerState.params;
+        const { instanceID } = this.props.routeParams;
         return typeof instanceID !== 'undefined' ? parseInt(instanceID, 10) : 0;
     }
 

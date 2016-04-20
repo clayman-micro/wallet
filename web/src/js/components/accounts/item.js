@@ -13,10 +13,11 @@ export default function AccountItem(props) {
                     <div className="account__info">
                         <div className="account__name">{props.item.name}</div>
                         <div className="account__original">
-                            {props.item.original_amount}&nbsp;<Icon name="rub" />
+                            <span>{props.item.balance.expense}&nbsp;<Icon name="rub" /></span>
+                            <span>{props.item.balance.income}&nbsp;<Icon name="rub" /></span>
                         </div>
                     </div>
-                    <div className="account__amount">{props.item.current_amount}&nbsp;<Icon name="rub" /></div>
+                    <div className="account__amount">{props.item.balance.remain}&nbsp;<Icon name="rub" /></div>
                 </div>
             </Link>
         </li>

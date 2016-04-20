@@ -23,7 +23,7 @@ class DetailsList extends List {
 
     getTransactionID() {
         if (!this.transactionID) {
-            const { transactionID } = this.props.routerState.params;
+            const { transactionID } = this.props.routeParams;
             this.transactionID = typeof transactionID !== 'undefined' ? parseInt(transactionID, 10) : 0;
         }
 
@@ -32,7 +32,7 @@ class DetailsList extends List {
 
     getInstanceID() {
         if (!this.instanceID) {
-            const { instanceID } = this.props.routerState.params;
+            const { instanceID } = this.props.routeParams;
             this.instanceID = typeof instanceID !== 'undefined' ? parseInt(instanceID, 10) : 0;
         }
 

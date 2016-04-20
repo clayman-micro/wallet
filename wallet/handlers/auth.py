@@ -5,11 +5,12 @@ from typing import Dict
 from aiohttp import web
 from cerberus import Validator
 import jwt
-from sqlalchemy import select, func
+import sqlalchemy
 
 from wallet.utils.handlers import register_handler
 from ..exceptions import ValidationError
 from ..storage import users
+from ..storage.base import create_instance, get_instance
 from . import base
 
 
@@ -33,47 +34,42 @@ def owner_required(f):
         else:
             user_id = data.get('id')
             async with request.app['engine'].acquire() as conn:
-                query = select([users.table]).where(users.table.c.id == user_id)
-                result = await conn.execute(query)
-                row = await result.fetchone()
-
-            if row:
-                owner = dict(zip(row.keys(), row.values()))
+                query = sqlalchemy.select([users.table]).where(users.table.c.id == user_id)
+                owner = await get_instance(query, conn)
                 kwargs['owner'] = owner
-                return await f(*args, **kwargs)
-            else:
-                raise web.HTTPNotFound(text='owner not found')
+
+        return await f(*args, **kwargs)
     return wrapped
 
 
 @base.handle_response
-async def register(request: web.Request) -> Dict:
+async def registration(request: web.Request) -> Dict:
     payload = await base.get_payload(request)
 
     validator = Validator(schema=users.schema)
     if not validator.validate(payload):
         raise ValidationError(validator.errors)
 
-    uid = 0
-    query = select([func.count()]).select_from(users.table).where(
-        users.table.c.login == payload['login']
-    )
     async with request.app['engine'].acquire() as conn:
-        count = await conn.scalar(query)
+        count = await conn.scalar(
+            sqlalchemy.select([sqlalchemy.func.count()])
+                .select_from(users.table)
+                .where(users.table.c.login == payload['login'])
+        )
 
         if count:
             raise ValidationError({'login': 'Already exists'})
 
-        query = users.table.insert().values(
-            login=payload['login'],
-            password=users.encrypt_password(payload['password']),
-            created_on=datetime.now()
-        )
-        uid = await conn.scalar(query)
+        user = {
+            'login': payload['login'],
+            'password': users.encrypt_password(payload['password']),
+            'created_on': datetime.now()
+        }
+        user = await create_instance(user, users.table, conn)
 
     return base.json_response({
-        'id': uid,
-        'login': payload['login']
+        'id': user['id'],
+        'login': user['login']
     }, status=201)
 
 
@@ -85,9 +81,11 @@ async def login(request: web.Request) -> Dict:
     if not validator.validate(payload):
         raise ValidationError(validator.errors)
 
-    query = select([users.table]).where(users.table.c.login == payload['login'])
     async with request.app['engine'].acquire() as conn:
-        result = await conn.execute(query)
+        result = await conn.execute(
+            sqlalchemy.select([users.table]).where(
+                users.table.c.login == payload['login'])
+        )
 
         user = await result.fetchone()
         if not user:
@@ -122,4 +120,4 @@ async def login(request: web.Request) -> Dict:
 def register(app):
     with register_handler(app, '/auth', 'auth') as register:
         register('POST', 'login', login, 'login')
-        register('POST', 'register', register, 'registration')
+        register('POST', 'register', registration, 'registration')

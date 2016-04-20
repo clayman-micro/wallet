@@ -29,10 +29,11 @@ class TestRegistrationHandler(object):
     @pytest.mark.run_loop
     @pytest.mark.parametrize('params', [{'json': False}, {'json': True}])
     async def test_fail_if_already_existed(self, app, client, params):
-        await create_instance(app['engine'], table, {
-            'login': 'John', 'password': 'top-secret',
-            'created_on': datetime.now()
-        })
+        async with app['engine'].acquire() as conn:
+            await create_instance({
+                'login': 'John', 'password': 'top-secret',
+                'created_on': datetime.now()
+            }, table, conn)
 
         params['data'] = {'login': 'John', 'password': 'weak-secret'}
         params['endpoint'] = 'auth.registration'
@@ -45,10 +46,11 @@ class TestLoginHandler(object):
     user = {'login': 'John', 'password': 'top-secret'}
 
     async def create_user(self, engine):
-        return await create_instance(engine, table, {
-            'created_on': datetime.now(), 'login': self.user['login'],
-            'password': encrypt_password(self.user['password'])
-        })
+        async with engine.acquire() as conn:
+            return await create_instance({
+                'created_on': datetime.now(), 'login': self.user['login'],
+                'password': encrypt_password(self.user['password'])
+            }, table, conn)
 
     @pytest.mark.run_loop
     @pytest.mark.parametrize('params', [{'json': False}, {'json': True}])

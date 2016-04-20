@@ -4,7 +4,7 @@ import logging
 import os
 import socket
 import ujson
-
+from typing import Dict
 
 from aiohttp import ClientSession
 import pytest
@@ -12,6 +12,8 @@ import pytest
 from alembic.config import Config as AlembicConfig
 from alembic import command
 
+from .handlers import create_owner, create_account, create_category, \
+    create_transaction
 
 from wallet.app import init, create_config
 from wallet.utils.handlers import reverse_url
@@ -95,6 +97,58 @@ def server(app, request):
     app.loop.run_until_complete(server.finish())
 
 
+@pytest.yield_fixture('function')
+def owner(app, request):
+    credentials = {'login': 'John', 'password': 'top_secret'}
+    owner = app.loop.run_until_complete(create_owner(credentials, app))
+    owner['credentials'] = credentials
+    yield owner
+
+
+@pytest.yield_fixture('function')
+def stranger(app, request):
+    credentials = {'login': 'Smoker', 'password': 'evil'}
+    stranger = app.loop.run_until_complete(create_owner(credentials, app))
+    stranger['credentials'] = credentials
+    yield stranger
+
+
+@pytest.yield_fixture('function')
+def account(owner: Dict, app, request):
+    yield app.loop.run_until_complete(create_account({
+        'name': 'Card', 'original_amount': 12345.67, 'owner_id': owner['id']
+    }, app))
+
+
+@pytest.yield_fixture('function')
+def category(owner: Dict, app, request):
+    yield app.loop.run_until_complete(create_category({
+        'name': 'Food', 'owner_id': owner['id']
+    }, app))
+
+
+@pytest.yield_fixture('function')
+def transaction(owner, app, request):
+    account = app.loop.run_until_complete(create_account({
+        'name': 'Card', 'original_amount': 12345.67, 'owner_id': owner['id']
+    }, app))
+
+    category = app.loop.run_until_complete(create_category({
+        'name': 'Food', 'owner_id': owner['id']
+    }, app))
+
+    transaction = app.loop.run_until_complete(create_transaction({
+        'type': 'expense', 'description': 'Meal', 'amount': 270.0,
+        'account_id': account['id'], 'category_id': category['id'],
+    }, app))
+
+    transaction['account'] = account
+    transaction['category'] = category
+    transaction['owner'] = owner
+
+    yield transaction
+
+
 class AsyncResponseContext:
     __slots__ = ('_request', '_response')
 
@@ -134,6 +188,22 @@ class HTTPClient:
 
         kwargs.setdefault('url', self.reverse_url(endpoint, endpoint_params))
         return AsyncResponseContext(self._session.request(method, **kwargs))
+
+    async def get_params(self, endpoint: str, credentials: Dict=None,
+                         instance_id: int=None) -> Dict:
+        params = {
+            'endpoint': endpoint
+        }
+
+        if instance_id:
+            params['endpoint_params'] = {'instance_id': instance_id}
+
+        if credentials:
+            params['headers'] = {
+                'X-ACCESS-TOKEN': await self.get_auth_token(credentials)
+            }
+
+        return params
 
     async def get_auth_token(self, credentials, endpoint='auth.login'):
         params = {

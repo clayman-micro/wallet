@@ -20,13 +20,14 @@ def account_required(f):
         owner = kwargs.get('owner')  # type: Dict
 
         account_id = base.get_instance_id(request, 'account_id')
-        try:
-            account = await accounts.get_account(account_id, owner,
-                                                 engine=request.app['engine'])
-        except ResourceNotFound:
-            raise web.HTTPNotFound(text='Account not found')
+        async with request.app['engine'].acquire() as conn:
+            try:
+                account = await accounts.get_account(account_id, owner, conn)
+            except ResourceNotFound:
+                raise web.HTTPNotFound(text='Account not found')
+            else:
+                kwargs['account'] = account
 
-        kwargs['account'] = account
         return await f(*args, **kwargs)
     return wrapper
 
@@ -67,9 +68,10 @@ async def get_balance(request: web.Request, account: Dict, owner: Dict) -> Dict:
 @account_required
 @base.handle_response
 async def update_balance(request: web.Request, account: Dict, owner: Dict):
-    engine = request.app['engine']
-    account_balance = await accounts.calculate_balance(account, engine=engine)
-    await balance.update_balance(account_balance, account, engine=engine)
+    async with request.app['engine'].aqcuire() as conn:
+        today = datetime.today()
+        account_balance = await accounts.calculate_balance(account, today, conn)
+        await balance.update_balance(account_balance, account, conn)
 
     return {
         'balance': list(map(serialize, account_balance)),

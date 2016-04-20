@@ -19,7 +19,7 @@ class ManageTransaction extends React.Component {
         this.props.getAccountsIfNeeded();
         this.props.getCategoriesIfNeeded();
 
-        const { instanceID } = this.props.routerState.params;
+        const { instanceID } = this.props.routeParams;
         if (typeof instanceID !== 'undefined') {
             this.props.getTransaction({ id: instanceID });
         }
@@ -48,7 +48,7 @@ class ManageTransaction extends React.Component {
     }
 
     getInstanceID() {
-        const { instanceID } = this.props.routerState.params;
+        const { instanceID } = this.props.routeParams;
         return typeof instanceID !== 'undefined' ? parseInt(instanceID, 10) : 0;
     }
 

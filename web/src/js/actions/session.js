@@ -50,7 +50,8 @@ export function loginUser(username, password) {
                         errors[error.response.status] = error.response.statusText;
                     }
                 } else {
-                    errors[error.name] = error.message;
+                    throw error;
+                    // errors[error.name] = error.message;
                 }
 
                 return dispatch(loginUserErrors(errors));

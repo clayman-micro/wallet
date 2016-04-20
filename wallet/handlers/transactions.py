@@ -3,6 +3,7 @@ from typing import Dict
 
 import sqlalchemy
 from aiohttp import web
+from aiopg.sa import SAConnection
 
 from wallet.utils.handlers import register_handler
 from ..exceptions import ValidationError
@@ -68,9 +69,10 @@ async def validate(document, request, owner, resource=None):
         count = await conn.scalar(
             sqlalchemy.select([sqlalchemy.func.count()])
                 .select_from(categories.table)
-                .where(
-                    categories.table.c.id == document.get('category_id')
-                ))
+                .where(sqlalchemy.and_(
+                    categories.table.c.id == document.get('category_id'),
+                    categories.table.c.owner_id == owner.get('id')
+                )))
         if not count:
             raise ValidationError({'category_id': 'Category does not exists'})
 
@@ -92,17 +94,16 @@ def serialize(value):
     }
 
 
-async def update_balance(account_id, owner_id, engine):
-    account = await base.get_instance(
-        sqlalchemy.select([accounts.table])
-            .where(sqlalchemy.and_(
-                accounts.table.c.id == account_id,
-                accounts.table.c.owner_id == owner_id
-            )),
-        engine
-    )
-    balance = await accounts.calculate_balance(account, engine)
-    await balance_storage.update_balance(balance, account, engine=engine)
+async def update_balance(account_id: int, owner_id: int, conn: SAConnection):
+    query = sqlalchemy.select([accounts.table]).where(sqlalchemy.and_(
+        accounts.table.c.id == account_id,
+        accounts.table.c.owner_id == owner_id
+    ))
+    account = await base.get_instance(query, conn=conn)
+    today = datetime.today()
+
+    balance = await accounts.calculate_balance(account, today, conn=conn)
+    await balance_storage.update_balance(balance, account, conn=conn)
 
 
 @auth.owner_required
@@ -140,8 +141,9 @@ async def get_transactions(request: web.Request, owner: Dict) -> Dict:
 @auth.owner_required
 @base.create_handler('transaction', transactions.table, schema, validate, serialize)
 async def create_transaction(transaction, request: web.Request, owner: Dict):
-    await update_balance(transaction.get('account_id'), owner.get('id'),
-                         request.app['engine'])
+    async with request.app['engine'].acquire() as conn:
+        await update_balance(transaction.get('account_id'), owner.get('id'),
+                             conn)
     return transaction
 
 
@@ -149,8 +151,8 @@ async def create_transaction(transaction, request: web.Request, owner: Dict):
 @base.handle_response
 async def get_transaction(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
-    transaction = await transactions.get_transaction(instance_id, owner,
-                                                     request.app['engine'])
+    async with request.app['engine'].acquire() as conn:
+        transaction = await transactions.get_transaction(instance_id, owner, conn)
     return {'transaction': serialize(transaction)}
 
 
@@ -158,27 +160,28 @@ async def get_transaction(request: web.Request, owner: Dict) -> Dict:
 @base.handle_response
 async def update_transaction(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
-    engine = request.app['engine']
 
-    # Get resource
-    transaction = await transactions.get_transaction(instance_id, owner, engine)
+    async with request.app['engine'].acquire() as conn:
+        # Get resource
+        transaction = await transactions.get_transaction(instance_id, owner,
+                                                         conn=conn)
 
-    # Validate payload
-    payload = await base.get_payload(request)
-    document = base.validate_payload(payload, schema, update=True)
+        # Validate payload
+        payload = await base.get_payload(request)
+        document = base.validate_payload(payload, schema, update=True)
 
-    # Validate resource after update
-    before = transaction.copy()
-    transaction.update(document)
-    resource = await validate(transaction, request, owner, resource=transaction)
+        # Validate resource after update
+        before = transaction.copy()
+        transaction.update(document)
+        resource = await validate(transaction, request, owner, transaction)
 
-    # Update resource
-    after = await base.update_instance(resource, transactions.table, engine)
+        # Update resource
+        after = await base.update_instance(resource, transactions.table, conn)
 
-    # Update account balance if needed
-    if before['amount'] != after['amount'] or before['type'] != after['type']:
-        await update_balance(transaction.get('account_id'), owner.get('id'),
-                             engine)
+        # Update account balance if needed
+        if before['amount'] != after['amount'] or before['type'] != after['type']:
+            await update_balance(transaction.get('account_id'), owner.get('id'),
+                                 conn)
 
     return {'transaction': serialize(after)}
 
@@ -187,13 +190,13 @@ async def update_transaction(request: web.Request, owner: Dict) -> Dict:
 @base.handle_response
 async def remove_transaction(request: web.Request, owner: Dict) -> Dict:
     instance_id = base.get_instance_id(request)
-    engine = request.app['engine']
 
-    transaction = await transactions.get_transaction(instance_id, owner, engine)
-    await base.remove_instance(transaction, transactions.table, engine=engine)
+    async with request.app['engine'].acquire() as conn:
+        transaction = await transactions.get_transaction(instance_id, owner, conn)
+        await base.remove_instance(transaction, transactions.table, conn)
 
-    # Update account balance
-    await update_balance(transaction.get('account_id'), owner.get('id'), engine)
+        # Update account balance
+        await update_balance(transaction.get('account_id'), owner.get('id'), conn)
 
     return {'transaction': 'removed'}
 

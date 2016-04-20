@@ -1,6 +1,10 @@
-import sqlalchemy
+from typing import Dict
 
-from .base import create_table, to_decimal
+import sqlalchemy
+from aiopg.sa import SAConnection
+
+from .base import create_table, get_instance
+from .transactions import table as transactions_table
 
 
 table = create_table('transaction_details', (
@@ -12,42 +16,14 @@ table = create_table('transaction_details', (
                       sqlalchemy.ForeignKey('transactions.id'), nullable=False)
 ))
 
-schema = {
-    'id': {
-        'type': 'integer'
-    },
-    'name': {
-        'type': 'string',
-        'maxlength': 255,
-        'required': True
-    },
-    'price_per_unit': {
-        'type': 'decimal',
-        'coerce': to_decimal(2),
-        'required': True,
-    },
-    'count': {
-        'type': 'decimal',
-        'coerce': to_decimal(3),
-        'required': True,
-    },
-    'total': {
-        'type': 'decimal',
-        'coerce': to_decimal(2),
-    },
-    'transaction_id': {
-        'type': 'integer',
-        'coerce': int
-    }
-}
 
-
-def serialize(value):
-    return {
-        'id': value['id'],
-        'name': value['name'],
-        'price_per_unit': round(float(value['price_per_unit']), 2),
-        'count': round(float(value['count']), 3),
-        'total': round(float(value['total']), 2),
-        'transaction_id': value['transaction_id']
-    }
+async def get_detail(instance_id, transaction: Dict, conn: SAConnection):
+    join = sqlalchemy.join(transactions_table, table,
+                           table.c.id == table.c.transaction_id)
+    query = sqlalchemy.select([table]).select_from(join).where(
+        sqlalchemy.and_(
+            transactions_table.c.id == transaction.get('id'),
+            table.c.id == instance_id
+        )
+    )
+    return await get_instance(query, conn=conn)
