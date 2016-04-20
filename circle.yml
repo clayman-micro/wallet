@@ -14,7 +14,7 @@ test:
     - DB_USER=ubuntu DB_NAME=circle_test coverage run --source=wallet setup.py test -a "tests -vv"
     - coveralls
     - deactivate
-    - cd assets && npm install && npm install -g webpack && npm test
+    - cd web && npm install && npm install -g webpack && npm test
 
 general:
   artifacts:

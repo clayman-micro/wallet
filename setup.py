@@ -61,6 +61,7 @@ setup(
         'alembic==0.8.3',
         'aioredis==0.2.4',
         'cerberus==0.9.2',
+        'dateutils == 0.6.6',
         'marshmallow==2.2.1',
         'passlib==1.6.5',
         'psycopg2==2.6.1',
