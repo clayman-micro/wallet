@@ -33,10 +33,10 @@ class Page extends React.Component {
     }
 
     getHeaderHeight() {
-        const header = document.getElementById('header');
+        const header = document.getElementsByClassName('header');
         let headerHeight = 0;
-        if (header) {
-            headerHeight = header.clientHeight;
+        if (header.length) {
+            headerHeight = header[0].clientHeight;
         }
         return headerHeight;
     }
