@@ -84,7 +84,7 @@ class LoginForm extends Component {
         return (
             <div className="login">
                 <div className="login__wrapper">
-                    <div className="login__header">wallet</div>
+                    <div className="login__header">Wallet</div>
                     <div className="login__content">
                         <form role="form" className="form form_mod_login">
                             {this.getErrorList()}

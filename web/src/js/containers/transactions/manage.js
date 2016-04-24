@@ -29,7 +29,7 @@ class ManageTransaction extends React.Component {
         const { status } = nextProps.transactions;
         if (status === StatusChoices.CREATE_DONE || status === StatusChoices.REMOVE_DONE) {
             setTimeout(() => {
-                this.props.pushState('', '/transactions');
+                this.props.pushState('/transactions');
             }, 250);
         }
     }

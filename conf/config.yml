@@ -1,6 +1,6 @@
 secret_key: 'secret'
 token_expire: '3600'
-access_log: '%a %s %Tf %b "%{Referrer}i" "%{User-Agent}i"'
+access_log: '%r %s %Tf %b %a "%{Referrer}i" "%{User-Agent}i"'
 
 consul:
   host: 'consul'

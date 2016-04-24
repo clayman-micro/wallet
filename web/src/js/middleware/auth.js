@@ -9,9 +9,9 @@ export default store => next => action => {
             let redirectTo = '/';
 
             if (store.getState().router.location.query.next) {
-                redirectTo(store.getState().router.location.query.next)
+                redirectTo = store.getState().router.location.query.next;
             }
-            
+
             next(action);
             return next(push(redirectTo));
         }

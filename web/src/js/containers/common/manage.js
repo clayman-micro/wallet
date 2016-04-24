@@ -23,7 +23,7 @@ class ManagePage extends React.Component {
 
         if (doneStatuses.indexOf(status) !== -1) {
             setTimeout(() => {
-                this.props.pushState('', this.doneRedirect);
+                this.props.pushState(this.doneRedirect);
             }, 150);
         }
     }

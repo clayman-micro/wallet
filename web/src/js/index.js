@@ -26,15 +26,18 @@ import ManageDetail from './containers/details/manage';
 
 const store = configureStore();
 
+
 function requireAuth(nextState, replace) {
     const session = store.getState().session;
     if (!session.accessToken.value) {
         replace({
             pathname: '/login',
+            query: { next: nextState.location.pathname },
             state: { nextPathname: nextState.location.pathname }
         });
     }
 }
+
 
 function anonymousOnly(nextState, redirect) {
     const session = store.getState().session;

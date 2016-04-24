@@ -68,7 +68,7 @@ async def get_balance(request: web.Request, account: Dict, owner: Dict) -> Dict:
 @account_required
 @base.handle_response
 async def update_balance(request: web.Request, account: Dict, owner: Dict):
-    async with request.app['engine'].aqcuire() as conn:
+    async with request.app['engine'].acquire() as conn:
         today = datetime.today()
         account_balance = await accounts.calculate_balance(account, today, conn)
         await balance.update_balance(account_balance, account, conn)

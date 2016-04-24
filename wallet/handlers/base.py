@@ -73,11 +73,10 @@ def handle_response(f):
             if isinstance(exc, (web.HTTPClientError, )):
                 raise
 
-            raise
-            # if 'raven' in request.app:
-            #     # send error to sentry
-            #     request.app['raven'].captureException()
-            # return internal_error
+            if 'raven' in request.app:
+                # send error to sentry
+                request.app['raven'].captureException()
+            return internal_error
 
         if isinstance(response, web.Response):
             return response
