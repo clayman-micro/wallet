@@ -1,5 +1,6 @@
 import 'babel-polyfill';
 import 'less/app.less';
+import 'htdocs/index.html';
 
 import React from 'react';
 import ReactDOM from 'react-dom';

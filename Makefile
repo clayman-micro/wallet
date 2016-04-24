@@ -41,6 +41,7 @@ deploy:
 	docker-compose -f docker-compose.production.yml up -d --force-recreate --no-deps app
 
 deploy-web:
+	docker-machine ssh $(machine) 'rm -R /var/www/wallet/build'
 	docker-machine scp -r web/build/ $(machine):/var/www/wallet
 
 backup:

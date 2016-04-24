@@ -18,8 +18,8 @@ table = create_table('transaction_details', (
 
 
 async def get_detail(instance_id, transaction: Dict, conn: SAConnection):
-    join = sqlalchemy.join(transactions_table, table,
-                           table.c.id == table.c.transaction_id)
+    join = sqlalchemy.join(table, transactions_table,
+                           table.c.transaction_id == transactions_table.c.id)
     query = sqlalchemy.select([table]).select_from(join).where(
         sqlalchemy.and_(
             transactions_table.c.id == transaction.get('id'),

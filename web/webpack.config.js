@@ -9,11 +9,7 @@ var NODE_ENV = process.env.NODE_ENV;
 
 var config = {
     entry: {
-        vendor: ['react', 'react-dom', 'react-mixin',
-                 'react-router', 'react-redux', 'redux', 'redux-thunk',
-                 'history', 'keymirror'],
-        app: './src/js/index.js',
-        index: './src/htdocs/index.html'
+        app: './src/js/index.js'
     },
     output: {
         path: path.join(__dirname, 'build'),
@@ -21,7 +17,7 @@ var config = {
         publicPath: '/'
     },
     plugins: [
-        new webpack.optimize.CommonsChunkPlugin('vendor', 'vendor.bundle.js'),
+        // new webpack.optimize.CommonsChunkPlugin('vendor', 'vendor.bundle.js'),
         new ExtractTextPlugin('[name].bundle.css', { allChunks: true }),
         new webpack.HotModuleReplacementPlugin(),
         new webpack.NoErrorsPlugin(),
@@ -75,9 +71,17 @@ if (typeof process.env.NODE_ENV !== 'undefined' && process.env.NODE_ENV === 'pro
     };
 
     config.plugins = config.plugins.concat([
+        new webpack.DefinePlugin({
+            'process.env': {
+                'NODE_ENV': JSON.stringify('production')
+            }
+        }),
         new webpack.optimize.OccurenceOrderPlugin(true),
         new webpack.optimize.DedupePlugin(),
-        new webpack.optimize.UglifyJsPlugin({ output: { comments: false } })
+        new webpack.optimize.UglifyJsPlugin({
+            output: { comments: false },
+            compress: { warnings: true }
+        })
     ]);
 } else {
     // Development config
