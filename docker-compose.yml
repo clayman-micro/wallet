@@ -7,18 +7,16 @@ networks:
 services:
   consul:
     image: progrium/consul
-    container_name: consul
     networks:
       - backend
     ports:
       - "8500:8500"
       - "8600:53/udp"
     command: -server -bootstrap
-    restart: always
+    restart: 'no'
 
   web:
     image: clayman74/nginx
-    container_name: web
     links:
       - consul
     networks:
@@ -28,22 +26,20 @@ services:
       - "443:443"
     restart: 'no'
     volumes:
-      - ./web/conf/supervisor:/etc/supervisor/conf.d
-      - ./web/conf/consul-templates:/etc/consul-templates
-      - ./web/conf/certs/develop/:/etc/nginx/certs/wallet
+      - ./conf/supervisor:/etc/supervisor/conf.d
+      - ./conf/consul-templates:/etc/consul-templates
+      - ./conf/certs/develop/:/etc/nginx/certs/wallet
       - ./web/build/:/var/www/wallet/build
 
   postgres-data:
     restart: 'no'
-    container_name: postgres-data
-    image: postgres:9.4
+    image: postgres:9.5
     volumes:
       - /var/lib/postgres
     command: 'true'
 
   postgresql:
-    container_name: postgresql
-    image: postgres:9.4
+    image: postgres:9.5
     environment:
       POSTGRES_DB: wallet
       POSTGRES_USER: wallet
@@ -53,7 +49,7 @@ services:
       - backend
     ports:
       - "5432:5432"
-    restart: always
+    restart: 'no'
     volumes_from:
       - postgres-data
 

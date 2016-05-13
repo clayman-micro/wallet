@@ -46,7 +46,7 @@ setup(
     url='',
     license='MIT',
     author='Kirill Sumorokov',
-    author_email='clayman74@gmail.com',
+    author_email='sumorokov.k@gmail.com',
     description='Aiohttp boilerplate project',
 
     zip_safe=True,

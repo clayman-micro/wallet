@@ -5,8 +5,8 @@ from raven import Client, os
 from raven_aiohttp import AioHttpTransport
 
 from .config import Config
-from .handlers import (auth, index, accounts, balance, categories, transactions,
-                       details)
+from .handlers import (auth, index, accounts, balance, categories,
+                       transactions, details)
 
 from .utils.handlers import register_handler
 
