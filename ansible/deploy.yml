@@ -1,0 +1,66 @@
+---
+
+- hosts: locals
+  vars:
+    app_root_folder: "{{ inventory_dir }}"
+    app_dist_folder: "{{ inventory_dir }}/dist"
+    app_web_folder: "{{ inventory_dir }}/web"
+
+  pre_tasks:
+    - name: Get current distribution version
+      shell: docker run --rm -v {{ app_root_folder }}:/code {{ app_base_image }} /bin/sh -c 'cd code && python setup.py --version'
+      args:
+        chdir: "{{ app_root_folder }}"
+      register: output
+
+    - name: Set image name
+      set_fact:
+        app_version: "{{ output.stdout }}"
+        app_image: "{{ app_maintainer }}/{{ app_name }}:{{ output.stdout }}"
+
+  roles:
+    - role: clayman74.digitalocean-provision
+      digitalocean_provision_token: "{{ lookup('env', 'DO_TOKEN') }}"
+      digitalocean_provision_inventory_group: "{{ groups['cloud'] }}"
+      digitalocean_provision_ssh_key: "{{ inventory_hostname }}"
+
+
+- hosts: cloud
+  vars:
+    app_root_folder: "{{ inventory_dir }}"
+    app_dist_folder: "{{ inventory_dir }}/dist"
+    app_web_folder: "{{ inventory_dir }}/web"
+
+  tasks:
+    - name: Pull app image from registry
+      docker_image:
+        name: "{{ hostvars[groups['locals'][0]]['app_image'] }}"
+        force: yes
+
+    - name: Apply migrations
+      shell: docker run --rm --net {{ app_network }} -v /opt/projects/{{ app_name }}:/root/ {{ hostvars[groups['locals'][0]]['app_image'] }} {{ app_name }} --config=/root/config.yml db upgrade head
+
+    - name: Start app container
+      docker_container:
+        name: "{{ app_name }}_{{ item }}"
+        image: "{{ hostvars[groups['locals'][0]]['app_image'] }}"
+        command: "{{ app_name }} --config=/root/config.yml run --host=0.0.0.0 --port={{ app_server_port }}"
+        recreate: yes
+        networks:
+          - name: "{{ app_network }}"
+        stop_signal: "SIGINT"
+        volumes:
+          - "/opt/projects/{{ app_name }}:/root/"
+      with_sequence: count={{ app_containers_count }}
+
+    - name: Cleanup remote assets folder
+      file: state=absent path="/var/www/{{ app_name }}/build"
+      tags:
+        - assets
+
+    - name: Upload web assets
+      copy:
+        src: "{{ app_dist_folder }}/web/"
+        dest: "/var/www/{{ app_name }}"
+      tags:
+        - assets

@@ -1,0 +1,47 @@
+upstream {{ app_name }}_cluster {
+    least_conn;
+    {% raw %}{{ range service {% endraw %}"v1.{{ app_name }}"{% raw %} }}server {{.Address}}:{{.Port}} max_fails=3 fail_timeout=60 weight=1;
+    {{ else }}server 127.0.0.1:65535; # force a 502 {{end}}
+    {% endraw %}
+}
+
+server {
+    listen 80 http2;
+    server_name {{ app_domain }};
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name {{ app_domain }};
+
+    charset utf-8;
+
+    ssl_certificate /etc/letsencrypt/live/{{ app_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ app_domain }}/privkey.pem;
+    ssl_verify_depth 3;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+
+    index index.html;
+
+    set $project_root /var/www/{{ app_name }}/build;
+
+    location ~* ^/(api|auth)(?:.*)$ {
+        proxy_pass http://{{ app_name }}_cluster;
+
+        proxy_set_header   Host $http_host;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Host $server_name;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   X-Real-IP $remote_addr;
+    }
+
+    location ~* ^/((?:.*)\.(?:eot|ttf|woff|png|js|css))$ {
+        root $project_root;
+    }
+
+    location / {
+        root $project_root;
+        rewrite ^ /index.html break;
+    }
+}

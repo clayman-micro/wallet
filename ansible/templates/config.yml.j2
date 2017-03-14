@@ -1,0 +1,39 @@
+secret_key: '{{ app_secret_key }}'
+token_expire: '{{ app_token_expire|default(86400) }}'
+access_log: '%r %s %Tf %b %a "%{Referrer}i" "%{User-Agent}i"'
+
+consul:
+  host: '{{ app_consul_host|default(consul) }}'
+  port: '{{ app_consul_port|default(8500) }}'
+
+db:
+  name: '{{ app_postgresql_database }}'
+  user: '{{ app_postgresql_user }}'
+  password: '{{ app_postgresql_password }}'
+  host: '{{ app_postgresql_host }}'
+  port: {{ app_postgresql_port }}
+
+sentry:
+  dsn: '{{ app_sentry_dsn }}'
+
+logging:
+  version: 1
+  formatters:
+    simple:
+      format: '%(asctime)s | %(levelname)s | %(name)s | %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: simple
+      level: INFO
+      stream: ext://sys.stdout
+  loggers:
+    aiohttp:
+      handlers:
+        - console
+      level: INFO
+    {{ app_name }}:
+      handlers:
+        - console
+      level: INFO

@@ -1,0 +1,84 @@
+---
+
+- hosts: locals
+  roles:
+    - role: clayman74.digitalocean-provision
+      digitalocean_provision_token: "{{ lookup('env', 'DO_TOKEN') }}"
+      digitalocean_provision_inventory_group: "{{ groups['cloud'] }}"
+      digitalocean_provision_ssh_key: "{{ inventory_hostname }}"
+
+
+- hosts: cloud
+
+  vars:
+    credentials_path: "{{ lookup('env','HOME') }}/.credentials"
+
+  handlers:
+    - name: 'restart loadbalancer'
+      shell: docker restart {{ loadbalancer_container_name }}
+      listen: "restart loadbalancer"
+
+  pre_tasks:
+    - name: Generate required passwords
+      set_fact:
+        postgresql_password: "{{ lookup('password', '{{ credentials_path }}/{{ inventory_hostname }}/postgresql/password length=20') }}"
+
+        app_secret_key: "{{ lookup('password', '{{ credentials_path }}/{{ inventory_hostname }}/{{ app_name }}/secret_key length=20') }}"
+        app_postgresql_password: "{{ lookup('password', '{{ credentials_path }}/{{ inventory_hostname }}/{{ app_name }}/postgres_password length=20') }}"
+
+  roles:
+    - role: clayman74.consul
+
+    - role: clayman74.loadbalancer
+      loadbalancer_networks:
+        - name: "{{ network }}"
+
+    - role: clayman74.postgresql
+
+  post_tasks:
+    - name: Create app folder
+      file: path="{{ item }}" state=directory
+      with_items:
+        - '/etc/service/{{ app_name }}_consul_template'
+        - '/opt/projects/{{ app_name }}'
+
+    - name: Assemble app config
+      template:
+        src: "templates/config.yml.j2"
+        dest: "/opt/projects/{{ app_name }}/config.yml"
+
+    - name: Assemble consul-template config
+      template:
+        src: "templates/nginx.consul-template.conf.j2"
+        dest: "/etc/consul-templates/{{ app_name }}.conf"
+
+    - name: Assemble consul-template service file
+      template:
+        src: "templates/consul-template.service.j2"
+        dest: "/etc/service/{{ app_name }}_consul_template/run"
+        mode: "a+x"
+      notify: "restart loadbalancer"
+
+    - name: Check app db user exist
+      shell: "docker run --rm -e PGPASSWORD=\'{{ postgresql_password }}\' --net={{ postgresql_network }} {{ postgresql_image }} psql -h {{ postgresql_container_name }} -d {{ postgresql_database }} -U {{ postgresql_user }} -tAc \"SELECT 1 FROM pg_roles WHERE rolname=\'{{ app_postgresql_user }}\';\""
+      register: output
+
+    - name: Create app db user
+      shell: "docker run --rm -e PGPASSWORD=\'{{ postgresql_password }}\' --net={{ postgresql_network }} {{ postgresql_image }} psql -h {{ postgresql_container_name }} -d {{ postgresql_database }} -U {{ postgresql_user }} -c \"CREATE USER {{ app_postgresql_user }} WITH CREATEDB NOSUPERUSER PASSWORD '{{ app_postgresql_password }}';\""
+      when: output.stdout.find('1') == -1
+
+    - name: Check app db exist
+      shell: "docker run --rm -e PGPASSWORD=\'{{ postgresql_password }}\' --net={{ postgresql_network }} {{ postgresql_image }} psql -h {{ postgresql_container_name }} -d {{ postgresql_database }} -U {{ postgresql_user }} -tAc \"SELECT 1 FROM pg_database WHERE datname=\'{{ app_postgresql_database }}\';\""
+      register: output
+
+    - name: Create app db
+      shell: "docker run --rm -e PGPASSWORD=\'{{ postgresql_password }}\' --net={{ postgresql_network }} {{ postgresql_image }} psql -h {{ postgresql_container_name }} -d {{ postgresql_database }} -U {{ postgresql_user }} -c \"CREATE DATABASE {{ app_postgresql_database }} WITH OWNER {{ app_postgresql_user }};\""
+      when: output.stdout.find('1') == -1
+
+    - name: Create app network
+      docker_network:
+        name: "{{ app_network }}"
+        connected:
+          - "{{ app_consul_container_name }}"
+          - "{{ app_postgresql_container_name }}"
+        appends: yes

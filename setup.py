@@ -42,7 +42,7 @@ class PyTest(TestCommand):
 
 setup(
     name=project,
-    version='0.0.1',
+    version='0.1.0',
     url='',
     license='MIT',
     author='Kirill Sumorokov',
