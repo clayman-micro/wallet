@@ -46,11 +46,11 @@ nosetests.xml
 .project
 .pydevproject
 .idea
-*.cfg
 *.tar.gz
 
 conf/certs/**/*.crt
 conf/certs/**/*.key
-*.production.yml
+
+ansible/*.retry
 
 backups
