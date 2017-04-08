@@ -11,7 +11,7 @@
 - hosts: cloud
 
   vars:
-    credentials_path: "{{ lookup('env','HOME') }}/.credentials"
+    credentials_path: "{{ lookup('env','HOME') }}/.credentials/{{ inventory_hostname }}"
 
   handlers:
     - name: 'restart loadbalancer'
@@ -21,10 +21,16 @@
   pre_tasks:
     - name: Generate required passwords
       set_fact:
-        postgresql_password: "{{ lookup('password', '{{ credentials_path }}/{{ inventory_hostname }}/postgresql/password length=20') }}"
+        postgresql_password: "{{ lookup('password', '{{ credentials_path }}/postgresql/password length=20') }}"
 
-        app_secret_key: "{{ lookup('password', '{{ credentials_path }}/{{ inventory_hostname }}/{{ app_name }}/secret_key length=20') }}"
-        app_postgresql_password: "{{ lookup('password', '{{ credentials_path }}/{{ inventory_hostname }}/{{ app_name }}/postgres_password length=20') }}"
+        app_secret_key: "{{ lookup('password', '{{ credentials_path }}/{{ app_name }}/secret_key length=20') }}"
+        app_postgresql_password: "{{ lookup('password', '{{ credentials_path }}/{{ app_name }}/postgres_password length=20') }}"
+
+    - name: Install required packages
+      apt: name="{{ item }}"
+      with_items:
+        - tmux
+        - python-psycopg2
 
   roles:
     - role: clayman74.consul
@@ -46,11 +52,13 @@
       template:
         src: "templates/config.yml.j2"
         dest: "/opt/projects/{{ app_name }}/config.yml"
+      notify: "restart loadbalancer"
 
     - name: Assemble consul-template config
       template:
         src: "templates/nginx.consul-template.conf.j2"
         dest: "/etc/consul-templates/{{ app_name }}.conf"
+      notify: "restart loadbalancer"
 
     - name: Assemble consul-template service file
       template:
@@ -59,21 +67,25 @@
         mode: "a+x"
       notify: "restart loadbalancer"
 
-    - name: Check app db user exist
-      shell: "docker run --rm -e PGPASSWORD=\'{{ postgresql_password }}\' --net={{ postgresql_network }} {{ postgresql_image }} psql -h {{ postgresql_container_name }} -d {{ postgresql_database }} -U {{ postgresql_user }} -tAc \"SELECT 1 FROM pg_roles WHERE rolname=\'{{ app_postgresql_user }}\';\""
-      register: output
+    - name: Inspect postgresql container ip address
+      shell: "docker inspect --format '{''{ .NetworkSettings.IPAddress }''}' {{ postgresql_container_name }}"
+      register: postgresql_container_host
 
-    - name: Create app db user
-      shell: "docker run --rm -e PGPASSWORD=\'{{ postgresql_password }}\' --net={{ postgresql_network }} {{ postgresql_image }} psql -h {{ postgresql_container_name }} -d {{ postgresql_database }} -U {{ postgresql_user }} -c \"CREATE USER {{ app_postgresql_user }} WITH CREATEDB NOSUPERUSER PASSWORD '{{ app_postgresql_password }}';\""
-      when: output.stdout.find('1') == -1
+    - name: Create app database user
+      postgresql_user:
+        name: "{{ app_postgresql_user }}"
+        password: "{{ app_postgresql_password }}"
+        role_attr_flags: CREATEDB,NOSUPERUSER
+        login_host: "{{ postgresql_container_host.stdout }}"
+        login_password: "{{ postgresql_password }}"
 
-    - name: Check app db exist
-      shell: "docker run --rm -e PGPASSWORD=\'{{ postgresql_password }}\' --net={{ postgresql_network }} {{ postgresql_image }} psql -h {{ postgresql_container_name }} -d {{ postgresql_database }} -U {{ postgresql_user }} -tAc \"SELECT 1 FROM pg_database WHERE datname=\'{{ app_postgresql_database }}\';\""
-      register: output
-
-    - name: Create app db
-      shell: "docker run --rm -e PGPASSWORD=\'{{ postgresql_password }}\' --net={{ postgresql_network }} {{ postgresql_image }} psql -h {{ postgresql_container_name }} -d {{ postgresql_database }} -U {{ postgresql_user }} -c \"CREATE DATABASE {{ app_postgresql_database }} WITH OWNER {{ app_postgresql_user }};\""
-      when: output.stdout.find('1') == -1
+    - name: Create app database
+      postgresql_db:
+        name: "{{ app_postgresql_database }}"
+        owner: "{{ app_postgresql_user }}"
+        encoding: UTF-8
+        login_host: "{{ postgresql_container_host.stdout }}"
+        login_password: "{{ postgresql_password }}"
 
     - name: Create app network
       docker_network:
