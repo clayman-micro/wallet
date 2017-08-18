@@ -1,12 +1,12 @@
 ---
 
 - hosts: locals
-  vars:
-    app_root_folder: "{{ inventory_dir }}"
-    app_dist_folder: "{{ inventory_dir }}/dist"
-    app_web_folder: "{{ inventory_dir }}/web"
-
   pre_tasks:
+    - name: Configure
+      set_fact:
+        app_root_folder: "{{ inventory_dir }}"
+        app_dist_folder: "{{ inventory_dir }}/dist"
+
     - name: Get current distribution version
       shell: docker run --rm -v {{ app_root_folder }}:/code {{ app_base_image }} /bin/sh -c 'cd code && python setup.py --version'
       args:
@@ -26,41 +26,46 @@
 
 
 - hosts: cloud
+
   vars:
-    app_root_folder: "{{ inventory_dir }}"
-    app_dist_folder: "{{ inventory_dir }}/dist"
-    app_web_folder: "{{ inventory_dir }}/web"
+    credentials_path: "{{ lookup('env','HOME') }}/.credentials/{{ inventory_hostname }}"
 
   tasks:
+    - name: Collect facts
+      set_fact:
+        app_postgresql_password: "{{ lookup('password', '{{ credentials_path }}/{{ app_name }}/postgres_password length=20') }}"
+
     - name: Pull app image from registry
       docker_image:
         name: "{{ hostvars[groups['locals'][0]]['app_image'] }}"
         force: yes
 
-    - name: Apply migrations
-      shell: docker run --rm --net {{ app_network }} -v /opt/projects/{{ app_name }}:/root/ {{ hostvars[groups['locals'][0]]['app_image'] }} {{ app_name }} --config=/root/config.yml db upgrade head
+    - name: Inspect postgresql container ip address
+      shell: "docker inspect --format '{''{ .NetworkSettings.IPAddress }''}' {{ postgresql_container_name }}"
+      register: postgresql_container_host
+
+    - name: Upload database schema
+      copy:
+        src: "../wallet/storage/sql/upgrade_schema.sql"
+        dest: "/opt/projects/{{ app_name }}/schema.sql"
+
+    - name: Upgrade database schema
+      shell: "docker run --rm -e PGPASSWORD=\"{{ app_postgresql_password }}\" -v /opt/projects/{{ app_name }}/schema.sql:/root/schema.sql postgres:alpine psql -h {{ postgresql_container_host.stdout }} -U {{ app_postgresql_user }} -d {{ app_postgresql_database }} -f root/schema.sql"
 
     - name: Start app container
       docker_container:
         name: "{{ app_name }}_{{ item }}"
         image: "{{ hostvars[groups['locals'][0]]['app_image'] }}"
-        command: "{{ app_name }} --config=/root/config.yml run --host=0.0.0.0 --port={{ app_server_port }}"
+        command: "{{ app_name }} --config=/root/config.yml server run --host=0.0.0.0 --port={{ app_server_port }} --consul"
         recreate: yes
+        log_driver: journald
+        log_options:
+          tag: "{{ app_name }}"
+          labels: "{{ app_name }}"
         networks:
           - name: "{{ app_network }}"
+        restart_policy: "always"
         stop_signal: "SIGINT"
         volumes:
           - "/opt/projects/{{ app_name }}:/root/"
       with_sequence: count={{ app_containers_count }}
-
-    - name: Cleanup remote assets folder
-      file: state=absent path="/var/www/{{ app_name }}/build"
-      tags:
-        - assets
-
-    - name: Upload web assets
-      copy:
-        src: "{{ app_dist_folder }}/web/"
-        dest: "/var/www/{{ app_name }}"
-      tags:
-        - assets

@@ -14,7 +14,7 @@
     credentials_path: "{{ lookup('env','HOME') }}/.credentials/{{ inventory_hostname }}"
 
   handlers:
-    - name: 'restart loadbalancer'
+    - name: Restart loadbalancer
       shell: docker restart {{ loadbalancer_container_name }}
       listen: "restart loadbalancer"
 
@@ -23,7 +23,8 @@
       set_fact:
         postgresql_password: "{{ lookup('password', '{{ credentials_path }}/postgresql/password length=20') }}"
 
-        app_secret_key: "{{ lookup('password', '{{ credentials_path }}/{{ app_name }}/secret_key length=20') }}"
+        app_sentry_dsn: "{{ lookup('file', '{{ credentials_path }}/{{ app_name }}/sentry_dsn') }}"
+        app_secret_key: "{{ lookup('password', '{{ credentials_path }}/{{ app_name }}/secret_key length=32') }}"
         app_postgresql_password: "{{ lookup('password', '{{ credentials_path }}/{{ app_name }}/postgres_password length=20') }}"
 
     - name: Install required packages
@@ -42,17 +43,24 @@
     - role: clayman74.postgresql
 
   post_tasks:
-    - name: Create app folder
-      file: path="{{ item }}" state=directory
+    - name: Create app folders
+      file: path={{ item }} state=directory
       with_items:
-        - '/etc/service/{{ app_name }}_consul_template'
-        - '/opt/projects/{{ app_name }}'
+        - "/etc/service/{{ app_name }}_consul_template"
+        - "/opt/projects/{{ app_name }}"
+
+    - name: Create app network
+      docker_network:
+        name: "{{ app_network }}"
+        connected:
+          - "{{ app_consul_container_name }}"
+          - "{{ app_postgresql_container_name }}"
+        appends: yes
 
     - name: Assemble app config
       template:
         src: "templates/config.yml.j2"
         dest: "/opt/projects/{{ app_name }}/config.yml"
-      notify: "restart loadbalancer"
 
     - name: Assemble consul-template config
       template:
@@ -86,11 +94,3 @@
         encoding: UTF-8
         login_host: "{{ postgresql_container_host.stdout }}"
         login_password: "{{ postgresql_password }}"
-
-    - name: Create app network
-      docker_network:
-        name: "{{ app_network }}"
-        connected:
-          - "{{ app_consul_container_name }}"
-          - "{{ app_postgresql_container_name }}"
-        appends: yes

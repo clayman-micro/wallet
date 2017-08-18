@@ -1,0 +1,44 @@
+---
+language: python
+python:
+  - "3.6"
+
+sudo: required
+
+services:
+  - docker
+
+# Install ansible
+addons:
+  apt:
+    packages:
+    - python-pip
+
+install:
+  # Install ansible
+  - pip install tox
+
+script:
+  - tox
+
+after_success:
+  - deactivate
+  - apt-get install -y sshpass
+
+  # Install ansible
+  - pip install ansible docker-py==1.9.0 dopy==0.3.5
+
+  # Check ansible version
+  - ansible --version
+
+  # Assemble ansible config
+  - echo 'roles_path = .roles' >> ansible.cfg
+
+  # Install ansible dependencies
+  - ansible-galaxy install -r ansible/requirements.yml
+
+  # Build image
+  - ansible-playbook -i inventory ansible/build.yml
+
+notifications:
+  slack: claymanpro:5w9rLMZvWaCzlzUJPrUChXY5
