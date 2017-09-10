@@ -47,11 +47,12 @@ async def auth_middleware(app, handler):
         if status == 200:
             try:
                 data = ujson.loads(text)
-                response = await handler(data['owner'], request)
             except KeyError:
                 raise web.HTTPInternalServerError()
             except ValueError:
                 raise web.HTTPInternalServerError()
+            else:
+                response = await handler(data['owner'], request)
         elif status == 401:
             raise web.HTTPUnauthorized(text=text)
         else:

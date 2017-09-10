@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS tags (
     created_on TIMESTAMP WITHOUT TIME ZONE NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS tags_name_idx ON tags (name, owner_id);
+CREATE UNIQUE INDEX IF NOT EXISTS tags_name_idx ON tags (name, enabled, owner_id);
 
 
 CREATE SEQUENCE IF NOT EXISTS operations_pk START WITH 1;

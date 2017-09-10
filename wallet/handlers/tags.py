@@ -17,10 +17,18 @@ schema = {
 
 
 async def get_tags(owner: Dict, request: web.Request) -> web.Response:
-    async with request.app.db.acquire() as conn:
-        tags = await fetch_tags(owner, conn)
+    name = None
+    if 'name' in request.query and request.query['name']:
+        name = request.query['name']
 
-    return json_response({'tags': tags, 'meta': {'total': len(tags)}})
+    async with request.app.db.acquire() as conn:
+        tags = await fetch_tags(owner, conn=conn, name=name)
+
+    meta = {'total': len(tags)}
+    if name:
+        meta['search'] = {'name': name}
+
+    return json_response({'tags': tags, 'meta': meta})
 
 
 async def create_tag(owner: Dict, request: web.Request) -> web.Response:
