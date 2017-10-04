@@ -8,6 +8,7 @@ import pytest
 import requests
 
 from wallet import configure, init
+from wallet.storage.owner import Owner
 
 
 @pytest.fixture(scope='session')
@@ -121,15 +122,16 @@ def owner(passport):
     r = requests.post(f'{passport}/api/login', data=user)
     assert r.status_code == 200
 
-    user['token'] = r.headers['X-ACCESS-TOKEN']
+    owner = Owner(0, user['email'])
+    owner.token = r.headers['X-ACCESS-TOKEN']
 
     r = requests.get(f'{passport}/api/identify',
-                     headers={'X-ACCESS-TOKEN': user['token']})
+                     headers={'X-ACCESS-TOKEN': owner.token})
     data = r.json()
 
-    user['id'] = data['owner']['id']
+    owner.id = data['owner']['id']
 
-    yield user
+    yield owner
 
 
 @pytest.yield_fixture(scope='function')

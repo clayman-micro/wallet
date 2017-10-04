@@ -42,7 +42,7 @@ async def test_get_tags(client, passport, owner):
         await add_tag(owner, 'Foo', now, conn)
 
     url = app.router.named_resources()['api.tags.get_tags'].url()
-    resp = await client.get(url, headers={'X-ACCESS-TOKEN': owner['token']})
+    resp = await client.get(url, headers={'X-ACCESS-TOKEN': owner.token})
 
     assert resp.status == 200
     result = await resp.json()
@@ -61,7 +61,7 @@ async def test_get_tags_with_filter(client, passport, owner):
 
     url = app.router.named_resources()['api.tags.get_tags'].url()
     resp = await client.get(f'{url}?name=F',
-                            headers={'X-ACCESS-TOKEN': owner['token']})
+                            headers={'X-ACCESS-TOKEN': owner.token})
 
     assert resp.status == 200
     result = await resp.json()
@@ -79,7 +79,7 @@ async def test_create_success(client, passport, owner, json):
 
     url = app.router.named_resources()['api.tags.create_tag'].url()
     resp = await client.post(url, **prepare_request(
-        data, {'X-ACCESS-TOKEN': owner['token']}, json
+        data, {'X-ACCESS-TOKEN': owner.token}, json
     ))
 
     assert resp.status == 201
@@ -101,7 +101,7 @@ async def test_create_with_name_conflict(client, passport, owner, json):
 
     url = app.router.named_resources()['api.tags.create_tag'].url()
     resp = await client.post(url, **prepare_request(
-        data, {'X-ACCESS-TOKEN': owner['token']}, json
+        data, {'X-ACCESS-TOKEN': owner.token}, json
     ))
 
     assert resp.status == 400
@@ -121,7 +121,7 @@ async def test_missing(client, passport, owner, method, endpoint):
         'instance_id': 1
     })
     call_method = getattr(client, method.lower())
-    resp = await call_method(url, headers={'X-ACCESS-TOKEN': owner['token']})
+    resp = await call_method(url, headers={'X-ACCESS-TOKEN': owner.token})
 
     assert resp.status == 404
 
@@ -138,7 +138,7 @@ async def test_get_tag(client, passport, owner):
 
     url = app.router.named_resources()['api.tags.get_tag'].url(
         parts={'instance_id': 1})
-    resp = await client.get(url, headers={'X-ACCESS-TOKEN': owner['token']})
+    resp = await client.get(url, headers={'X-ACCESS-TOKEN': owner.token})
 
     assert resp.status == 200
     result = await resp.json()
@@ -161,7 +161,7 @@ async def test_update_tag(client, passport, owner, json):
     url = app.router.named_resources()['api.tags.update_tag'].url(
         parts={'instance_id': 1})
     resp = await client.put(url, **prepare_request(
-        data, {'X-ACCESS-TOKEN': owner['token']}, json
+        data, {'X-ACCESS-TOKEN': owner.token}, json
     ))
 
     assert resp.status == 200
@@ -185,7 +185,7 @@ async def test_update_tag_with_conflict_name(client, passport, owner, json):
     url = app.router.named_resources()['api.tags.update_tag'].url(
         parts={'instance_id': 1})
     resp = await client.put(url, **prepare_request(
-        data, {'X-ACCESS-TOKEN': owner['token']}, json
+        data, {'X-ACCESS-TOKEN': owner.token}, json
     ))
 
     assert resp.status == 400
@@ -204,6 +204,6 @@ async def test_remove_tag(client, passport, owner, json):
 
     url = app.router.named_resources()['api.tags.remove_tag'].url(
         parts={'instance_id': 1})
-    resp = await client.delete(url, headers={'X-ACCESS-TOKEN': owner['token']})
+    resp = await client.delete(url, headers={'X-ACCESS-TOKEN': owner.token})
 
     assert resp.status == 200

@@ -6,6 +6,7 @@ from aiohttp import web
 from wallet.handlers import (get_instance_id, get_payload, json_response,
                              register_handler)
 from wallet.storage import AlreadyExist
+from wallet.storage.owner import Owner
 from wallet.storage.tags import add_tag, fetch_tag, fetch_tags, remove_tag
 from wallet.validation import ValidationError, Validator
 
@@ -16,7 +17,7 @@ schema = {
 }
 
 
-async def get_tags(owner: Dict, request: web.Request) -> web.Response:
+async def get_tags(owner: Owner, request: web.Request) -> web.Response:
     name = None
     if 'name' in request.query and request.query['name']:
         name = request.query['name']
@@ -28,10 +29,11 @@ async def get_tags(owner: Dict, request: web.Request) -> web.Response:
     if name:
         meta['search'] = {'name': name}
 
+    tags = list(map(lambda item: item.serialize(), tags))
     return json_response({'tags': tags, 'meta': meta})
 
 
-async def create_tag(owner: Dict, request: web.Request) -> web.Response:
+async def create_tag(owner: Owner, request: web.Request) -> web.Response:
     payload = await get_payload(request)
 
     validator = Validator(schema)
@@ -43,19 +45,19 @@ async def create_tag(owner: Dict, request: web.Request) -> web.Response:
         except AlreadyExist:
             raise ValidationError({'name': 'Already exist'})
 
-    return json_response({'tag': tag}, status=201)
+    return json_response({'tag': tag.serialize()}, status=201)
 
 
-async def get_tag(owner: Dict, request: web.Request) -> web.Response:
+async def get_tag(owner: Owner, request: web.Request) -> web.Response:
     tag_id = get_instance_id(request)
 
     async with request.app.db.acquire() as conn:
         tag = await fetch_tag(owner, tag_id, conn)
 
-    return json_response({'tag': tag})
+    return json_response({'tag': tag.serialize()})
 
 
-async def update_tag(owner: Dict, request: web.Request) -> web.Response:
+async def update_tag(owner: Owner, request: web.Request) -> web.Response:
     tag_id = get_instance_id(request)
 
     payload = await get_payload(request)
@@ -70,21 +72,21 @@ async def update_tag(owner: Dict, request: web.Request) -> web.Response:
             SELECT COUNT(id) FROM tags
               WHERE name = $1 AND owner_id = $2 AND id != $3
         '''
-        count = await conn.fetchval(query, payload['name'], owner['id'], tag_id)
+        count = await conn.fetchval(query, payload['name'], owner.id, tag_id)
         if count:
             raise ValidationError({'name': 'Already exist'})
 
         tag.update(**document)
 
-    return json_response({'tag': tag})
+    return json_response({'tag': tag.serialize()})
 
 
-async def delete_tag(owner: Dict, request: web.Request) -> web.Response:
+async def delete_tag(owner: Owner, request: web.Request) -> web.Response:
     tag_id = get_instance_id(request)
 
     async with request.app.db.acquire() as conn:
         tag = await fetch_tag(owner, tag_id, conn)
-        removed = await remove_tag(owner, tag, conn)
+        removed = await remove_tag(tag, conn)
 
     return web.Response(status=200 if removed else 400)
 

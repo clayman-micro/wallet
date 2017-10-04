@@ -3,6 +3,7 @@ from aiohttp import ClientSession, web
 
 from wallet.handlers import json_response
 from wallet.storage import ResourceNotFound
+from wallet.storage.owner import Owner
 from wallet.validation import ValidationError
 
 
@@ -52,7 +53,8 @@ async def auth_middleware(app, handler):
             except ValueError:
                 raise web.HTTPInternalServerError()
             else:
-                response = await handler(data['owner'], request)
+                owner = Owner(data['owner']['id'], data['owner']['email'])
+                response = await handler(owner, request)
         elif status == 401:
             raise web.HTTPUnauthorized(text=text)
         else:
