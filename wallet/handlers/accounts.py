@@ -1,14 +1,11 @@
-from datetime import datetime
-from typing import Dict
-
-import sqlalchemy
 from aiohttp import web
 
-from wallet.storage.base import to_decimal
-from wallet.utils.handlers import register_handler
-from ..exceptions import ValidationError
-from ..storage import accounts, balance as balance_storage
-from . import base, auth
+from wallet.handlers import (get_instance_id, get_payload, json_response,
+                             register_handler)
+from wallet.storage import AlreadyExist
+from wallet.storage.accounts import AccountsRepo
+from wallet.storage.owner import Owner
+from wallet.validation import to_decimal, ValidationError, Validator
 
 
 schema = {
@@ -16,156 +13,97 @@ schema = {
         'type': 'integer',
     },
     'name': {
-        'type': 'string',
-        'maxlength': 255,
-        'required': True,
-        'empty': False
+        'type': 'string', 'maxlength': 255, 'required': True, 'empty': False
     },
-    'original_amount': {
-        'type': 'decimal',
-        'coerce': to_decimal(2),
-        'empty': True
+    'amount': {
+        'type': 'decimal', 'coerce': to_decimal(2), 'empty': True
+    },
+    'original': {
+        'type': 'decimal', 'coerce': to_decimal(2), 'empty': True
     },
     'created_on': {
-        'type': 'datetime',
-        'empty': True
+        'type': 'datetime', 'empty': True
     },
     'owner_id': {
-        'type': 'integer',
-        'coerce': int,
-        'readonly': True
+        'type': 'integer', 'coerce': int, 'readonly': True
     }
 }
 
 
-async def validate(document, request, owner, resource=None):
-    params = [
-        accounts.table.c.name == document.get('name'),
-        accounts.table.c.owner_id == owner.get('id')
-    ]
+async def get_accounts(owner: Owner, request: web.Request) -> web.Response:
+    name = None
+    if 'name' in request.query and request.query['name']:
+        name = request.query['name']
 
-    if resource is not None:
-        params.append(accounts.table.c.id != resource.get('id'))
+    async with request.app.db.acquire() as conn:
+        repo = AccountsRepo(conn=conn)
+        accounts = await repo.fetch_many(owner, name=name)
 
-    async with request.app['engine'].acquire() as conn:
-        count = await conn.scalar(
-            sqlalchemy.select([sqlalchemy.func.count()])
-                .select_from(accounts.table)
-                .where(sqlalchemy.and_(*params)))
-        if count > 0:
-            raise ValidationError({'name': 'Already exists.'})
+    meta = {'total': len(accounts)}
+    if name:
+        meta['search'] = {'name': name}
 
-    if not resource:
-        document.setdefault('owner_id', owner.get('id'))
-        document.setdefault('created_on', datetime.now())
-
-    return document
+    accounts = list(map(lambda item: item.serialize(), accounts))
+    return json_response({'accounts': accounts, 'meta': meta})
 
 
-def serialize(resource):
-    result = {
-        'id': resource['id'],
-        'name': resource['name'],
-    }
-    balance = resource.get('balance')  # type: Dict
-    if balance:
-        result['balance'] = {
-            'income': float(balance['income']),
-            'expense': float(balance['expense']),
-            'remain': float(balance['remain']),
-        }
+async def create_account(owner: Owner, request: web.Request) -> web.Response:
+    payload = await get_payload(request)
 
-    return result
+    validator = Validator(schema)
+    document = validator.validate_payload(payload)
 
-
-@auth.owner_required
-@base.handle_response
-async def get_accounts(request: web.Request, owner: Dict) -> Dict:
-    async with request.app['engine'].acquire() as conn:
-        collection, total = await accounts.get_accounts(owner, conn=conn)
-
-    for key in iter(collection.keys()):
+    async with request.app.db.acquire() as conn:
+        repo = AccountsRepo(conn=conn)
         try:
-            collection[key]['balance'] = collection[key]['balance'][0]
-        except (IndexError, KeyError):
-            collection[key]['balance'] = {
-                'income': 0,
-                'expense': 0,
-                'remain': collection[key]['original_amount']
-            }
+            account = await repo.create(document['name'], owner,
+                                        amount=document.get('amount', 0.0),
+                                        original=document.get('original', 0.0))
+        except AlreadyExist:
+            raise ValidationError({'name': 'Already exist'})
 
-    return {
-        'accounts': list(map(serialize, collection.values())),
-        'meta': {
-            'count': len(collection),
-            'total': total
-        }
-    }
+    return json_response({'account': account.serialize()}, status=201)
 
 
-@auth.owner_required
-@base.create_handler('account', accounts.table, schema, validate, serialize)
-async def create_account(account, request: web.Request, owner: Dict) -> Dict:
-    async with request.app['engine'].acquire() as conn:
-        today = datetime.today()
-        balance = await accounts.calculate_balance(account, today, conn=conn)
-        await balance_storage.update_balance(balance, account, conn=conn)
-    account['balance'] = balance[-1]
-    return account
+async def get_account(owner: Owner, request: web.Request) -> web.Response:
+    account_id = get_instance_id(request)
+
+    async with request.app.db.acquire() as conn:
+        repo = AccountsRepo(conn=conn)
+        account = await repo.fetch(owner, account_id)
+
+    return json_response({'account': account.serialize()})
 
 
-@auth.owner_required
-@base.handle_response
-async def get_account(request: web.Request, owner: Dict) -> Dict:
-    instance_id = base.get_instance_id(request)
-    async with request.app['engine'].acquire() as conn:
-        account = await accounts.get_account(instance_id, owner, conn)
-    return {'account': serialize(account)}
+async def update_account(owner: Owner, request: web.Request) -> web.Response:
+    account_id = get_instance_id(request)
+
+    payload = await get_payload(request)
+
+    async with request.app.db.acquire() as conn:
+        repo = AccountsRepo(conn=conn)
+        account = await repo.fetch(owner, account_id)
+
+        validator = Validator(schema)
+        document = validator.validate_payload(payload)
+
+        success = await repo.rename(account, document['name'])
+
+        if success:
+            account.name = document['name']
+
+    return json_response({'account': account.serialize()})
 
 
-@auth.owner_required
-@base.handle_response
-async def update_account(request: web.Request, owner: Dict) -> Dict:
-    instance_id = base.get_instance_id(request)
+async def remove_account(owner: Owner, request: web.Request) -> web.Response:
+    tag_id = get_instance_id(request)
 
-    # Get resource
-    async with request.app['engine'].acquire() as conn:
-        account = await accounts.get_account(instance_id, owner, conn)
+    async with request.app.db.acquire() as conn:
+        repo = AccountsRepo(conn=conn)
+        account = await repo.fetch(owner, tag_id)
+        removed = await repo.remove(account)
 
-        # Validate payload
-        payload = await base.get_payload(request)
-        document = base.validate_payload(payload, schema, update=True)
-
-        # Validate resource after update
-        before = account.copy()
-        account.update(document)
-        resource = await validate(account, request, owner, resource=account)
-
-        # Update resource
-        balance = resource.pop('balance')
-        after = await base.update_instance(resource, accounts.table, conn)
-        after['balance'] = balance
-
-        # Update balance
-        if before['original_amount'] != after['original_amount']:
-            today = datetime.today()
-            balance = await accounts.calculate_balance(after, today, conn)
-            await balance_storage.update_balance(balance, after, conn)
-            after['balance'] = balance[-1]
-
-    return {'account': serialize(after)}
-
-
-@auth.owner_required
-@base.handle_response
-async def remove_account(request: web.Request, owner: Dict) -> Dict:
-    instance_id = base.get_instance_id(request)
-
-    async with request.app['engine'].acquire() as conn:
-        account = await accounts.get_account(instance_id, owner, conn)
-        await base.remove_instance(account, accounts.table, conn)
-
-    return {'account': 'removed'}
+    return web.Response(status=200 if removed else 400)
 
 
 def register(app, url_prefix, name_prefix):

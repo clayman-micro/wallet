@@ -9,7 +9,7 @@ from raven import Client
 from raven_aiohttp import AioHttpTransport
 
 from wallet.config import Config
-from wallet.handlers import index, register_handler, tags
+from wallet.handlers import accounts, index, register_handler, tags
 from wallet.middlewares import auth_middleware, catch_exceptions_middleware
 
 
@@ -77,6 +77,7 @@ async def init(config: Config, logger: logging.Logger=None,
     with register_handler(app, '/') as add:
         add('GET', '', index, 'index')
 
+    accounts.register(app, '/api/accounts', 'api.accounts')
     tags.register(app, '/api/tags', 'api.tags')
 
     return app

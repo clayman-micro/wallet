@@ -7,14 +7,14 @@ CREATE SEQUENCE IF NOT EXISTS accounts_pk START WITH 1;
 CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY default nextval('accounts_pk'),
     name VARCHAR(255) NOT NULL,
-    amount NUMERIC(20, 2),
-    original NUMERIC(20, 2),
+    amount NUMERIC(20, 2) DEFAULT 0.0,
+    original NUMERIC(20, 2) DEFAULT 0.0,
     enabled BOOLEAN DEFAULT TRUE,
     owner_id INTEGER,
     created_on TIMESTAMP WITHOUT TIME ZONE NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS accounts_name_idx ON accounts (name, owner_id);
+CREATE UNIQUE INDEX IF NOT EXISTS accounts_name_idx ON accounts (name, enabled, owner_id);
 
 
 CREATE SEQUENCE IF NOT EXISTS tags_pk START WITH 1;

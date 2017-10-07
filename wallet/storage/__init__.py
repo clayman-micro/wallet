@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Dict
@@ -37,3 +38,23 @@ class Resource(ABC):
         for key, value in iter(values.items()):
             if key in self.__slots__:
                 setattr(self, key, value)
+
+
+def update(f):
+    update_pattern = re.compile(r'UPDATE (?P<count>\d+)')
+
+    async def wrapped(*args, **kwargs):
+        result = await f(*args, **kwargs)
+
+        count = 0
+
+        match = update_pattern.search(result)
+        if match:
+            try:
+                count = int(match.group('count'))
+            except ValueError:
+                count = 0
+
+        return count > 0
+
+    return wrapped

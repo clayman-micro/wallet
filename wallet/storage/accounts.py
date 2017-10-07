@@ -1,128 +1,129 @@
-from datetime import datetime
-from decimal import Decimal
-from itertools import groupby
+# from datetime import datetime
+# from decimal import Decimal
+# from itertools import groupby
 from typing import Dict, List
 
-import sqlalchemy
-from aiopg.sa import Engine, SAConnection
-from dateutil.rrule import rrule, MONTHLY
+from asyncpg.connection import Connection
 
-from wallet import exceptions
-from .base import create_table, get_instance
-from .balance import table as balance_table
+from wallet.storage import AlreadyExist, Resource, ResourceNotFound, update
+from wallet.storage.owner import Owner
 
 
-table = create_table('accounts', (
-    sqlalchemy.Column('name', sqlalchemy.String(255), nullable=False),
-    sqlalchemy.Column('original_amount', sqlalchemy.Numeric(20, 2)),
-    sqlalchemy.Column('owner_id', sqlalchemy.Integer,
-                      sqlalchemy.ForeignKey('users.id')),
-    sqlalchemy.Column('created_on', sqlalchemy.DateTime(), nullable=False)
-))
-
-
-async def get_accounts(owner: Dict, conn: SAConnection) -> Dict:
-    accounts = {}
-
-    params = table.c.owner_id == owner.get('id')
-
-    async for row in conn.execute(sqlalchemy.select([table]).where(params)):
-        account = dict(zip(row.keys(), row.values()))
-        accounts[account['id']] = account
-
-    total = await conn.scalar(
-        sqlalchemy.select([sqlalchemy.func.count()]).select_from(
-            table).where(params)
+class Account(Resource):
+    __slots__ = (
+        'id', 'name', 'amount', 'original', 'enabled', 'owner_id', 'created_on'
     )
 
-    balance = []
-    query = sqlalchemy.select([balance_table]).where(
-        balance_table.c.account_id.in_(accounts.keys())).order_by(
-        balance_table.c.date.desc())
-    async for row in conn.execute(query):
-        item = dict(zip(row.keys(), row.values()))
-        balance.append(item)
+    def __init__(self, name: str, owner: Owner, **optional) -> None:
+        self.name = name
+        self.amount = optional.get('amount', 0.0)
+        self.original = optional.get('original', 0.0)
 
-    for key, group in groupby(balance, lambda b: b.get('account_id')):
-        accounts[key]['balance'] = list(group)
+        super(Account, self).__init__(owner, **optional)
 
-    return accounts, total
-
-
-async def get_account(instance_id, owner: Dict, conn: SAConnection) -> Dict:
-    query = sqlalchemy.select([table]).where(sqlalchemy.and_(
-        table.c.id == instance_id,
-        table.c.owner_id == owner.get('id')
-    ))
-    account = await get_instance(query, conn=conn)
-
-    balance = {'income': 0, 'expense': 0,
-               'remain': account.get('original_amount')}
-
-    query = sqlalchemy.select([balance_table]).where(
-        balance_table.c.account_id == account.get('id')
-    ).order_by(balance_table.c.date.desc())
-
-    result = await conn.execute(query)
-    if result.returns_rows and result.rowcount:
-        row = await result.fetchone()
-        balance = {
-            'income': row.income,
-            'expense': row.expense,
-            'remain': row.remain
+    def serialize(self) -> Dict:
+        return {
+            'id': self.id,
+            'name': self.name,
+            'amount': self.amount,
+            'original': self.original
         }
 
-    account['balance'] = balance
-    return account
+
+class AccountsRepo(object):
+    def __init__(self, conn: Connection) -> None:
+        self.conn: Connection = conn
+
+    async def fetch_many(self, owner: Owner, **search) -> List[Account]:
+        result = []
+
+        async with self.conn.transaction():
+            query = [
+                'SELECT id, name, amount, original FROM accounts',
+                'WHERE (enabled = True'
+            ]
+
+            if 'name' in search and search['name']:
+                query.append(f"AND name LIKE '{search['name']}%'")
+
+            query.append('AND owner_id = $1) ORDER BY created_on ASC;')
+
+            async for row in self.conn.cursor(' '.join(query), owner.id):
+                account = Account(row['name'], owner, amount=row['amount'],
+                                  original=row['original'], id=row['id'])
+                result.append(account)
+
+        return result
+
+    async def fetch(self, owner: Owner, account_id: int) -> Account:
+        query = '''
+            SELECT id, name, amount, original FROM accounts
+            WHERE enabled = TRUE AND owner_id = $1 AND id = $2
+        '''
+        row = await self.conn.fetchrow(query, owner.id, account_id)
+
+        if not row:
+            raise ResourceNotFound()
+
+        return Account(row['name'], owner, amount=row['amount'],
+                       original=row['original'], id=row['id'])
+
+    async def create(self, name: str, owner: Owner, **optional) -> Account:
+        account = Account(name, owner, amount=optional.get('amount', 0.0),
+                          original=optional.get('original', 0.0))
+
+        async with self.conn.transaction():
+            query = '''
+            SELECT COUNT(id) FROM accounts WHERE name = $1 AND owner_id = $2
+            '''
+            count = await self.conn.fetchval(query, account.name, owner.id)
+            if count:
+                raise AlreadyExist()
+
+            query = '''
+                INSERT INTO accounts (
+                    name, amount, original, enabled, owner_id, created_on
+                )
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING id
+            '''
+
+            account.id = await self.conn.fetchval(
+                query, account.name, account.amount, account.original,
+                account.enabled, account.owner_id, account.created_on
+            )
+
+        return account
+
+    @update
+    async def rename(self, account: Account, name) -> bool:
+        async with self.conn.transaction():
+            query = '''
+                SELECT COUNT(id) FROM accounts
+                WHERE (
+                    id != $1 AND owner_id = $2 AND enabled = TRUE and name = $3
+                )
+            '''
+            count = await self.conn.fetchval(query, account.id,
+                                             account.owner_id, name)
+            if count:
+                raise AlreadyExist()
+
+            query = '''
+                UPDATE accounts SET name = $1 WHERE id = $2
+            '''
+            result = await self.conn.execute(query, name, account.id)
+        return result
+
+    @update
+    async def remove(self, account: Account) -> bool:
+        async with self.conn.transaction():
+            query = '''
+                UPDATE accounts SET enabled = FALSE
+                WHERE id = $1 AND owner_id = $2 AND enabled = TRUE
+            '''
+            result = await self.conn.execute(query, account.id,
+                                             account.owner_id)
+        return result
 
 
-async def calculate_balance(account: Dict, until: datetime,
-                            conn: SAConnection) -> List:
-    query = '''
-        SELECT
-          SUM(transactions.amount),
-          transactions.type,
-          to_char(transactions.created_on, 'MM-YYYY') as date
-        FROM transactions
-        WHERE (
-          transactions.account_id = {account_id}
-        )
-        GROUP BY transactions.type, transactions.created_on
-        ORDER BY transactions.created_on ASC;
-    '''.format(account_id=account.get('id'))
-
-    total_by_month = {}
-
-    min_date = until
-    async for item in conn.execute(query):
-        date = datetime.strptime(item.date, '%m-%Y')
-        min_date = min(date, min_date)
-        if item.date in total_by_month:
-            total_by_month[item.date][item.type] = item.sum
-        else:
-            total_by_month[item.date] = {item.type: item.sum}
-
-    if not total_by_month:
-        t = min_date
-        date = datetime(year=t.year, month=t.month, day=1)
-        total_by_month[date.strftime('%m-%Y')] = {'income': 0, 'expense': 0}
-
-    balance = []
-    remain = account.get('original_amount', 0)
-    if not isinstance(remain, Decimal):
-        remain = Decimal(remain)
-    for d in rrule(MONTHLY, dtstart=min_date, until=until):  # type: datetime
-        key = d.strftime('%m-%Y')
-        expense = Decimal(0)
-        income = Decimal(0)
-        if key in total_by_month:
-            expense = total_by_month[key].get('expense', Decimal(0))
-            income = total_by_month[key].get('income', Decimal(0))
-
-        balance.append({
-            'expense': expense, 'income': income, 'remain': remain, 'date': d
-        })
-
-        remain = remain + income - expense
-
-    return balance
