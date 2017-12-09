@@ -9,8 +9,8 @@ from raven import Client
 from raven_aiohttp import AioHttpTransport
 
 from wallet.config import Config
-from wallet.handlers import accounts, index, register_handler, tags
-from wallet.middlewares import auth_middleware, catch_exceptions_middleware
+from wallet.handlers import index, register_handler
+from wallet.middlewares import catch_exceptions_middleware
 
 
 class App(web.Application):
@@ -69,7 +69,7 @@ async def cleanup(instance: App) -> None:
 async def init(config: Config, logger: logging.Logger=None,
                loop: asyncio.AbstractEventLoop=None) -> App:
     app = App(config=config, logger=logger, loop=loop,
-              middlewares=[catch_exceptions_middleware, auth_middleware])
+              middlewares=[catch_exceptions_middleware])
 
     app.on_startup.append(startup)
     app.on_cleanup.append(cleanup)
@@ -77,8 +77,6 @@ async def init(config: Config, logger: logging.Logger=None,
     with register_handler(app, '/') as add:
         add('GET', '', index, 'index')
 
-    accounts.register(app, '/api/accounts', 'api.accounts')
-    tags.register(app, '/api/tags', 'api.tags')
 
     return app
 
