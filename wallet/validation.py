@@ -4,6 +4,8 @@ from typing import Callable, Dict
 
 import cerberus
 
+from wallet.entities import OperationType
+
 
 class ValidationError(Exception):
     def __init__(self, errors):
@@ -34,6 +36,14 @@ class Validator(cerberus.Validator):
 
     def _validate_type_decimal(self, value):
         return isinstance(value, Decimal)
+
+    def _validate_type_operation_type(self, value):
+        if value and isinstance(value, OperationType):
+            return True
+
+    def _normalize_coerce_operation_type(self, value):
+        if value:
+            return getattr(OperationType, value.upper())
 
     def _normalize_coerce_bool(self, value):
         if isinstance(value, bool):
