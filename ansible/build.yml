@@ -6,11 +6,12 @@
     app_docker_passpord: "{{ lookup('env', 'DOCKER_PASS') }}"
     app_docker_email: "{{ lookup('env', 'DOCKER_EMAIL') }}"
 
-    app_root_folder: "{{ inventory_dir }}"
-    app_dist_folder: "{{ inventory_dir }}/dist"
-    app_web_folder: "{{ inventory_dir }}/web"
-
   tasks:
+    - name: Configure
+      set_fact:
+        app_root_folder: "{{ inventory_dir }}"
+        app_dist_folder: "{{ inventory_dir }}/dist"
+
     - name: Get current distribution version
       shell: docker run --rm -v {{ app_root_folder }}:/code {{ app_base_image }} /bin/sh -c 'cd code && python setup.py --version'
       args:
@@ -23,11 +24,9 @@
         app_image: "{{ app_maintainer }}/{{ app_name }}:{{ output.stdout }}"
 
     - name: Cleanup distribution folder
-      file: state=absent path="{{ app_dist_folder }}"
-      tags:
-        - assets
+      file: state="absent" path="{{ app_dist_folder }}/"
 
-    - name: Build distribution
+    - name: Create distribution
       shell: docker run --rm -v {{ app_root_folder }}:/code {{ app_base_image }} /bin/sh -c 'cd code && python setup.py sdist'
       args:
         chdir: "{{ app_root_folder }}"
@@ -50,17 +49,3 @@
 
     - name: Push image to Docker Hub
       shell: "docker push {{ app_image }}"
-
-    - name: Build web assets
-      shell: npm run-script build
-      args:
-        chdir: "{{ app_web_folder }}"
-      tags:
-        - assets
-
-    - name: Copy web assets
-      copy:
-        src: "{{ app_web_folder }}/build"
-        dest: "{{ app_dist_folder }}/web"
-      tags:
-        - assets
