@@ -1,5 +1,0 @@
-instrumentation:
-  root: 'src/js'
-  extensions:
-    - .js
-    - .jsx
