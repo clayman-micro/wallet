@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from typing import Dict
 
-
 import ujson
 from aiohttp import web
 
@@ -48,7 +47,8 @@ def register_handler(app: web.Application, url_prefix: str=None,
     yield register
 
 
-async def index(owner: Dict, request: web.Request) -> web.Response:
+async def index(owner, request: web.Request) -> web.Response:
     return json_response({
-        'project': request.app.config['app_name']
+        'project': request.app.distribution.project_name,
+        'version': request.app.distribution.version
     })

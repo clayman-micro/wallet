@@ -3,6 +3,7 @@ import logging
 import os
 from typing import Dict
 
+import pkg_resources
 from aiohttp import web
 from asyncpg.pool import create_pool, Pool
 from raven import Client
@@ -11,15 +12,17 @@ from raven_aiohttp import AioHttpTransport
 from wallet.config import Config
 from wallet.handlers import index, register_handler
 from wallet.middlewares import catch_exceptions_middleware
+from wallet.handlers import accounts, index, register_handler
 
 
 class App(web.Application):
     def __init__(self, *args, config=None, **kwargs):
         super(App, self).__init__(**kwargs)
 
-        self._config = config  # type: Config
-        self._db = None  # type: Pool
-        self._raven = None  # type: Client
+        self._config: Config = config
+        self._db: Pool = None
+        self._distribution = pkg_resources.get_distribution('wallet')
+        self._raven: Client = None
 
     @property
     def config(self) -> Config:
@@ -30,15 +33,22 @@ class App(web.Application):
         return self._db
 
     @property
+    def distribution(self):
+        return self._distribution
+
     def raven(self) -> Client:
         return self._raven
 
-    @db.setter
-    def db(self, value):
+    @db.setter  # noqa
+    def db(self, value: Pool) -> None:
         self._db = value
 
-    @raven.setter
-    def raven(self, value):
+    @passport.setter  # noqa
+    def passport(self, value: PassportGateway) -> None:
+        self._passport = value
+
+    @raven.setter  # noqa
+    def raven(self, value: Client) -> None:
         self._raven = value
 
     def copy(self):

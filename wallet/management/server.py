@@ -98,7 +98,7 @@ def run(context, host, port, consul):
         loop.run_until_complete(srv.wait_closed())
 
         loop.run_until_complete(app.shutdown())
-        loop.run_until_complete(handler.finish_connections(60))
+        loop.run_until_complete(handler.shutdown(60))
         loop.run_until_complete(app.cleanup())
 
     loop.close()
