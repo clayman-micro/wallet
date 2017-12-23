@@ -10,9 +10,9 @@ from raven import Client
 from raven_aiohttp import AioHttpTransport
 
 from wallet.config import Config
-from wallet.handlers import index, register_handler
-from wallet.middlewares import catch_exceptions_middleware
+from wallet.gateways.owners import PassportGateway
 from wallet.handlers import accounts, index, register_handler
+from wallet.middlewares import auth_middleware, catch_exceptions_middleware
 
 
 class App(web.Application):
@@ -23,6 +23,7 @@ class App(web.Application):
         self._db: Pool = None
         self._distribution = pkg_resources.get_distribution('wallet')
         self._raven: Client = None
+        self._passport: PassportGateway = None
 
     @property
     def config(self) -> Config:
@@ -36,6 +37,11 @@ class App(web.Application):
     def distribution(self):
         return self._distribution
 
+    @property
+    def passport(self) -> PassportGateway:
+        return self._passport
+
+    @property
     def raven(self) -> Client:
         return self._raven
 
@@ -59,6 +65,8 @@ async def startup(app: App) -> None:
     app.logger.info('Application serving on {host}:{port}'.format(
         host=app.config['app_host'], port=app.config['app_port']))
 
+    app.passport = PassportGateway(app.config.get('passport_dsn'))
+
     app.db = await create_pool(
         user=app.config.get('db_user'), database=app.config.get('db_name'),
         host=app.config.get('db_host'), password=app.config.get('db_password'),
@@ -78,8 +86,9 @@ async def cleanup(instance: App) -> None:
 
 async def init(config: Config, logger: logging.Logger=None,
                loop: asyncio.AbstractEventLoop=None) -> App:
+
     app = App(config=config, logger=logger, loop=loop,
-              middlewares=[catch_exceptions_middleware])
+              middlewares=[catch_exceptions_middleware, auth_middleware])
 
     app.on_startup.append(startup)
     app.on_cleanup.append(cleanup)
