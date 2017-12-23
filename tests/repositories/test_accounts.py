@@ -25,7 +25,6 @@ def factory():
     return create
 
 
-@pytest.mark.clean
 @pytest.mark.parametrize('accounts,expected', (
     ((), 0),
     ((('Foo', False), ), 0),
@@ -45,7 +44,6 @@ async def test_fetch_accounts(client, user, factory, accounts, expected):
     assert len(accounts) == expected
 
 
-@pytest.mark.clean
 @pytest.mark.parametrize('accounts,expected', (
     ((), 0),
     ((('Foo', False), ), 0),
@@ -68,7 +66,6 @@ async def test_fetch_accounts_filter_by_name(client, user, factory, accounts,
     assert len(accounts) == expected
 
 
-@pytest.mark.clean
 async def test_fetch_account_by_pk_successed(client, user, factory):
     now = datetime.now()
     async with client.server.app.db.acquire() as conn:
@@ -84,7 +81,6 @@ async def test_fetch_account_by_pk_successed(client, user, factory):
     assert account.name == 'Foo'
 
 
-@pytest.mark.clean
 async def test_fetch_account_by_pk_failed(client, user, factory):
     async with client.server.app.db.acquire() as conn:
         repo = AccountsRepository(conn=conn)
@@ -93,7 +89,6 @@ async def test_fetch_account_by_pk_failed(client, user, factory):
             await repo.fetch_by_pk(owner=user, pk=1)
 
 
-@pytest.mark.clean
 async def test_save_account_successed(client, user):
     async with client.server.app.db.acquire() as conn:
         account = Account('Foo', Decimal(0.0), user, created_on=datetime.now())
@@ -104,7 +99,6 @@ async def test_save_account_successed(client, user):
     assert pk == 1
 
 
-@pytest.mark.clean
 async def test_save_account_failed(client, user, factory):
     async with client.server.app.db.acquire() as conn:
         now = datetime.now()
@@ -120,7 +114,6 @@ async def test_save_account_failed(client, user, factory):
             await repo.save(account)
 
 
-@pytest.mark.clean
 async def test_update_account_name_success(client, user):
     async with client.server.app.db.acquire() as conn:
         account = Account('Foo', Decimal(0.0), user)
@@ -136,7 +129,6 @@ async def test_update_account_name_success(client, user):
     assert acc.name == 'Bar'
 
 
-@pytest.mark.clean
 async def test_update_account_amount(client, user):
     async with client.server.app.db.acquire() as conn:
         account = Account('Foo', Decimal(0.0), user)
@@ -154,7 +146,6 @@ async def test_update_account_amount(client, user):
     assert acc.original == Decimal(200.0)
 
 
-@pytest.mark.clean
 async def test_update_account_name_failed(client, user):
     async with client.server.app.db.acquire() as conn:
         account = Account('Foo', Decimal(0.0), user)
@@ -168,7 +159,6 @@ async def test_update_account_name_failed(client, user):
             await repo.update(account, name='Bar')
 
 
-@pytest.mark.clean
 async def test_remove_account_successed(client, user, factory):
     async with client.server.app.db.acquire() as conn:
         now = datetime.now()
@@ -185,7 +175,6 @@ async def test_remove_account_successed(client, user, factory):
     assert removed
 
 
-@pytest.mark.clean
 async def test_remove_account_failed(client, user):
     async with client.server.app.db.acquire() as conn:
         account = Account('Foo', Decimal(0.0), user, pk=1)
