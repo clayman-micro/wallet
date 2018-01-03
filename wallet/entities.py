@@ -62,8 +62,8 @@ class Account(Entity):
     def from_dict(self, props: Dict) -> 'Account':
         return Account(
             props['name'], props['amount'], props['owner'],
-            original=props.get('original', None), pk=props.get('pk', 0),
-            enabled=props.get('enabled', None),
+            original=props.get('original', Decimal(0.0)), pk=props.get('pk', 0),
+            enabled=props.get('enabled', True),
             created_on=props.get('created_on', None)
         )
 

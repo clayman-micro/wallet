@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from wallet.entities import Account, EntityAlreadyExist, EntityNotFound, Owner
+from wallet.entities import Account, EntityAlreadyExist, EntityNotFound
 from wallet.repositories.accounts import AccountsRepository
 
 

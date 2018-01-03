@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List, Optional
 
-from wallet.entities import Account, Owner
+from wallet.entities import Account, EntityAlreadyExist, Owner
 from wallet.repositories.accounts import AccountsRepository
 from wallet.validation import ValidationError, Validator
 
@@ -51,20 +51,10 @@ class GetAccountInteractor(object):
         self._pk = pk
 
     async def execute(self) -> Account:
-        return await self._repo.fetch_by_pk(owner=self._owner, pk=self._pk)
+        return await self._repo.fetch_account(owner=self._owner, pk=self._pk)
 
 
 class CreateAccountInteractor(object):
-    """
-    Create account
-
-    Primary course:
-    1. Validate incoming data
-    2. Create account instance if data is valid
-    3. Save account instance to repository
-    4. Return account instance
-
-    """
     def __init__(self, repo: AccountsRepository) -> None:
         self._repo: AccountsRepository = repo
         self._owner: Optional[Owner] = None
@@ -79,19 +69,17 @@ class CreateAccountInteractor(object):
         self._amount = amount
 
     async def execute(self) -> Account:
-        # Validate incoming data
         document = self._validator.validate_payload({
             'name': self._name,
             'amount': self._amount,
             'original': self._amount
         })
 
-        exists = await self._repo.check_exists(self._owner, document['name'])
-        if exists:
+        try:
+            account = Account.from_dict({**document, 'owner': self._owner})
+            account.pk = await self._repo.save(account)
+        except EntityAlreadyExist:
             raise ValidationError({'name': 'Already exist'})
-
-        account = Account.from_dict({**document, 'owner': self._owner})
-        account.pk = await self._repo.save(account)
 
         return account
 
@@ -113,7 +101,7 @@ class UpdateAccountInteractor(object):
         self.original = original
 
     async def execute(self) -> bool:
-        account = await self.repo.fetch_by_pk(self.owner, self.pk)
+        account = await self.repo.fetch_account(self.owner, self.pk)
 
         fields = {}
 
@@ -127,6 +115,7 @@ class UpdateAccountInteractor(object):
         for key, value in iter(document.items()):
             setattr(account, key, value)
 
+        keys = list(document.keys())
         if self.original and self.original != account.original:
             operations = await self.operation_repo.fetch(account)
 
@@ -134,8 +123,9 @@ class UpdateAccountInteractor(object):
                 account.apply_operation(operation)
 
             document['amount'] = account.amount
+            keys.append('amount')
 
-        await self.repo.update(account, **document)
+        await self.repo.update(account, keys)
         return account
 
 
@@ -150,6 +140,6 @@ class RemoveAccountInteractor(object):
         self._pk = pk
 
     async def execute(self) -> bool:
-        account = await self._repo.fetch_by_pk(self._owner, self._pk)
+        account = await self._repo.fetch_account(self._owner, self._pk)
         removed = await self._repo.remove(account)
         return removed
