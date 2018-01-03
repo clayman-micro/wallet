@@ -49,7 +49,7 @@ class AccountsRepository(object):
 
         return accounts
 
-    async def fetch_by_pk(self, owner: Owner, pk: int) -> Account:
+    async def fetch_account(self, owner: Owner, pk: int) -> Account:
         query = '''
             SELECT id, name, amount, original FROM accounts
             WHERE enabled = TRUE AND owner_id = $1 AND id = $2
@@ -86,16 +86,16 @@ class AccountsRepository(object):
 
         return pk
 
-    async def update(self, account: Account, **fields) -> bool:
+    async def update(self, account: Account, fields) -> bool:
         allowed = ('name', 'amount', 'original')
 
         index = 2
         query_parts = []
         args = []
-        for key in fields:
-            if key in allowed:
-                query_parts.append(f'{key} = ${index}')
-                args.append(fields[key])
+        for field in fields:
+            if field in allowed:
+                query_parts.append(f'{field} = ${index}')
+                args.append(getattr(account, field))
                 index += 1
 
         async with self._conn.transaction():
@@ -103,16 +103,20 @@ class AccountsRepository(object):
                 count = await self._conn.fetchval("""
                     SELECT COUNT(id) FROM accounts
                     WHERE name = $1 AND owner_id = $2 AND id != $3
-                """, fields['name'], account.owner.pk, account.pk)
+                """, account.name, account.owner.pk, account.pk)
 
                 if count:
                     raise EntityAlreadyExist()
 
-            result = await self._conn.execute(f"""
-                UPDATE accounts SET {", ".join(query_parts)} WHERE id = $1;
-            """, account.pk, *args)
+            if query_parts:
+                query = f"""
+                    UPDATE accounts SET {", ".join(query_parts)} WHERE id = $1;
+                """
 
-        return self._did_update(result)
+                result = await self._conn.execute(query, account.pk, *args)
+                return self._did_update(result)
+            else:
+                return False
 
     async def remove(self, account: Account) -> bool:
         query = '''

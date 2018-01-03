@@ -3,9 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from wallet.entities import (
-    Account, EntityNotFound, Operation, OperationType, Owner
-)
+from wallet.entities import EntityNotFound, Operation, OperationType
 from wallet.repositories.operations import OperationsRepo
 
 
