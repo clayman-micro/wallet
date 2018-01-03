@@ -1,5 +1,6 @@
 import logging
 import subprocess
+from decimal import Decimal
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -7,7 +8,7 @@ import pytest
 from aiohttp.test_utils import make_mocked_coro
 
 from wallet import configure, init
-from wallet.entities import Owner
+from wallet.entities import Account, Owner
 
 
 @pytest.fixture(scope='session')
@@ -26,6 +27,11 @@ def config():
 @pytest.fixture(scope='function')
 def owner():
     return Owner('test@clayman.pro', pk=1)
+
+
+@pytest.fixture(scope='function')
+def account(owner):
+    return Account('Visa', Decimal(0.0), owner)
 
 
 @pytest.fixture(scope='function')
