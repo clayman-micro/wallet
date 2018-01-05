@@ -53,5 +53,5 @@ build-image: build
 	docker images -qf dangling=true | xargs docker rmi
 
 publish-image:
-	docker login -u $(DOCKER_LOGIN) -p $(DOCKER_PASSWORD)
+	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
 	docker push clayman74/wallet
