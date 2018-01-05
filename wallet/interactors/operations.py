@@ -1,7 +1,8 @@
-from decimal import Decimal
-from typing import List, Optional
+from datetime import datetime
+from typing import Dict, List, Optional
 
-from wallet.entities import Account, Operation, OperationType
+from wallet.entities import Account, Operation
+from wallet.repositories.operations import OperationsRepo
 from wallet.validation import Validator
 
 
@@ -30,20 +31,29 @@ schema = {
 
 
 class GetOperationsInteractor(object):
-    def __init__(self, repo) -> None:
+    def __init__(self, repo: OperationsRepo) -> None:
         self.account: Optional[Account] = None
-        self.repo = repo
+        self.repo: OperationsRepo = repo
+        self.filters = None
 
-    def set_params(self, account: Account) -> None:
+    def set_params(self, account: Account, filters=None) -> None:
         self.account = account
+        self.filters = filters
 
     async def execute(self) -> List[Operation]:
-        return await self.repo.fetch(account=self.account)
+        if self.filters:
+            year, month = self.filters.year, self.filters.month
+        else:
+            now = datetime.now()
+            year, month = now.year, now.month
+
+        return await self.repo.fetch(account=self.account, year=int(year),
+                                     month=int(month))
 
 
 class GetOperationInteractor(object):
-    def __init__(self, repo) -> None:
-        self.repo = repo
+    def __init__(self, repo: OperationsRepo) -> None:
+        self.repo: OperationsRepo = repo
         self.account: Optional[Account] = None
         self.pk: int = 0
 
@@ -52,82 +62,60 @@ class GetOperationInteractor(object):
         self.pk = pk
 
     async def execute(self) -> Operation:
-        return await self.repo.fetch_by_pk(account=self.account, pk=self.pk)
+        return await self.repo.fetch_operation(self.account, self.pk)
 
 
 class CreateOperationInteractor(object):
-    def __init__(self, accounts_repo, operations_repo) -> None:
+    def __init__(self, accounts_repo, operations_repo: OperationsRepo) -> None:
         self.accounts_repo = accounts_repo
-        self.operations_repo = operations_repo
+        self.operations_repo: OperationsRepo = operations_repo
 
-        self.amount: Decimal = Decimal(0.0)
-        self.type: OperationType = OperationType.EXPENSE
         self.account: Account = None
-        self.description: str = ''
+        self.payload: Dict = {}
 
         self.validator = Validator(schema)
 
-    def set_params(self, amount: Decimal, account: Account,
-                   operation_type: OperationType, description: str='') -> None:
-
-        self.amount = amount
+    def set_params(self, account: Account, payload: Dict) -> None:
         self.account = account
-        self.type = operation_type
-        self.description = description
+        self.payload = payload
 
     async def execute(self) -> Operation:
-        document = self.validator.validate_payload({
-            'amount': self.amount,
-            'type': self.type,
-            'description': self.description
-        })
+        document = self.validator.validate_payload(self.payload)
 
         operation = Operation.from_dict({**document, 'account': self.account})
         operation.pk = await self.operations_repo.save(operation)
 
         self.account.apply_operation(operation)
-        await self.accounts_repo.update(self.account,
-                                        amount=self.account.amount)
+        await self.accounts_repo.update(self.account, ['amount'])
 
         return operation
 
 
 class UpdateOperationInteractor(object):
-    def __init__(self, accounts_repo, operations_repo) -> None:
+    def __init__(self, accounts_repo, operations_repo: OperationsRepo) -> None:
         self.accounts_repo = accounts_repo
-        self.operations_repo = operations_repo
+        self.operations_repo: OperationsRepo = operations_repo
 
         self.pk = 0
         self.account: Account = None
+        self.payload: Dict = {}
 
         self.validator = Validator(schema)
 
-    def set_params(self, account: Account, pk: int, amount: Decimal = None,
-                   type: OperationType = None, description: str = None,
-                   created_on: str = None) -> None:
-
+    def set_params(self, account: Account, pk: int, payload: Dict) -> None:
         self.account = account
         self.pk = pk
-        self.amount = amount
-        self.type = type
-        self.description = description
-        self.created_on = created_on
+        self.payload = payload
 
     async def execute(self) -> bool:
-        operation = await self.operations_repo.fetch_by_pk(
+        operation = await self.operations_repo.fetch_operation(
             self.account, self.pk
         )
 
-        fields = {}
         update_account = False
 
-        for field in ('amount', 'type', 'description', 'created_on'):
-            value = getattr(self, field, None)
-            if value:
-                fields[field] = value
-
-        document = self.validator.validate_payload(fields, True)
-        if not self.created_on:
+        document = self.validator.validate_payload(self.payload, True)
+        if 'created_on' not in self.payload:
             document.pop('created_on')
 
         for key, value in iter(document.items()):
@@ -141,17 +129,16 @@ class UpdateOperationInteractor(object):
                 update_account = True
 
         if update_account:
-            await self.accounts_repo.update(self.account,
-                                            amount=self.account.amount)
+            await self.accounts_repo.update(self.account, ['amount'])
 
-        updated = await self.operations_repo.update(operation, **document)
-        return updated
+        await self.operations_repo.update(operation, list(document.keys()))
+        return operation
 
 
 class RemoveOperationInteractor(object):
-    def __init__(self, accounts_repo, operations_repo) -> None:
+    def __init__(self, accounts_repo, operations_repo: OperationsRepo) -> None:
         self.accounts_repo = accounts_repo
-        self.operations_repo = operations_repo
+        self.operations_repo: OperationsRepo = operations_repo
 
         self.pk = 0
         self.account: Account = None
@@ -161,13 +148,12 @@ class RemoveOperationInteractor(object):
         self.pk = pk
 
     async def execute(self) -> bool:
-        operation = await self.operations_repo.fetch_by_pk(
+        operation = await self.operations_repo.fetch_operation(
             self.account, self.pk
         )
 
         self.account.rollback_operation(operation)
-        await self.accounts_repo.update(self.account,
-                                        amount=self.account.amount)
+        await self.accounts_repo.update(self.account, ('amount', ))
 
         removed = await self.operations_repo.remove(operation)
         return removed
