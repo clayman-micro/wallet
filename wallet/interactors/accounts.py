@@ -117,6 +117,8 @@ class UpdateAccountInteractor(object):
 
         keys = list(document.keys())
         if self.original and self.original != account.original:
+            account.amount = document['original']
+
             operations = await self.operation_repo.fetch(account)
 
             for operation in operations:
