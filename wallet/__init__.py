@@ -11,7 +11,7 @@ from raven_aiohttp import AioHttpTransport
 
 from wallet.config import Config
 from wallet.gateways.owners import PassportGateway
-from wallet.handlers import accounts, index, register_handler
+from wallet.handlers import accounts, index, operations, register_handler
 from wallet.middlewares import auth_middleware, catch_exceptions_middleware
 
 
@@ -96,6 +96,20 @@ async def init(config: Config, logger: logging.Logger=None,
     with register_handler(app, '/') as add:
         add('GET', '', index, 'index')
 
+    with register_handler(app, '/api/accounts', 'api') as add:
+        add('GET', '', accounts.get_accounts)
+        add('POST', '', accounts.add_account)
+        add('GET', '{instance_id}', accounts.get_account)
+        add('PUT', '{instance_id}', accounts.update_account)
+        add('DELETE', '{instance_id}', accounts.remove_account)
+
+    url_prefix = '/api/accounts/{account}/operations'
+    with register_handler(app, url_prefix, 'api') as add:
+        add('GET', '', operations.get_operations)
+        add('POST', '', operations.add_operation)
+        add('GET', '{operation}', operations.get_operation)
+        add('PUT', '{operation}', operations.update_operation)
+        add('DELETE', '{operation}', operations.remove_operation)
 
     return app
 

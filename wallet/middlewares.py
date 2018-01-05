@@ -13,7 +13,7 @@ async def catch_exceptions_middleware(request: web.Request, handler):
     except EntityNotFound:
         raise web.HTTPNotFound
     except ValidationError as exc:
-        return json_response(exc.errors, status=400)
+        return json_response(exc.errors, status=422)
     except Exception as exc:
         if isinstance(exc, (web.HTTPClientError, )):
             raise
