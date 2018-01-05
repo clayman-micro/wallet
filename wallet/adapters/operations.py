@@ -29,31 +29,22 @@ class OperationsAPIAdapter(object):
 
         return account
 
-    async def fetch(self, owner: Owner, account_pk: int, operation_pk=None,
-                    filters=None):
-
-        interactor = operations.GetOperationsInteractor(self._operations_repo)
+    async def fetch(self, owner: Owner, account_pk: int, filters=None):
         account = await self.fetch_account(owner, account_pk)
 
-        if operation_pk:
-            interactor.set_params(account, operation_pk=operation_pk)
-        else:
-            interactor.set_params(account, filters)
-
+        interactor = operations.GetOperationsInteractor(self._operations_repo)
+        interactor.set_params(account, filters)
         items = await interactor.execute()
 
-        if operation_pk:
-            result = {'operation': self.serialize(items[0])}
-        else:
-            result = {
-                'operations': [self.serialize(item) for item in items],
-                'meta': {
-                    'total': len(items)
-                }
+        result = {
+            'operations': [self.serialize(item) for item in items],
+            'meta': {
+                'total': len(items)
             }
+        }
 
-            if filters:
-                result['meta']['filters'] = filters.to_dict()
+        if filters:
+            result['meta']['filters'] = filters.to_dict()
 
         return result
 

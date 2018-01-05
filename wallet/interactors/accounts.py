@@ -119,7 +119,7 @@ class UpdateAccountInteractor(object):
         if self.original and self.original != account.original:
             account.amount = document['original']
 
-            operations = await self.operation_repo.fetch(account)
+            operations = await self.operation_repo.fetch_operations(account)
 
             for operation in operations:
                 account.apply_operation(operation)

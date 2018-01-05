@@ -26,6 +26,30 @@ class OperationsRepo(object):
 
         return count > 0
 
+    async def fetch_operations(self, account: Account) -> Operations:
+        operations: Operations = []
+
+        query = '''
+            SELECT
+                id, type, amount, description, created_on
+            FROM operations
+            WHERE (
+                enabled = True AND owner_id = $1 AND account_id = $2
+            ) ORDER BY created_on DESC;
+        '''
+
+        async with self._conn.transaction():
+            args = (account.owner.pk, account.pk)
+            async for row in self._conn.cursor(query, *args):
+                operation = Operation(
+                    row['amount'], account, pk=row['id'],
+                    type=getattr(OperationType, row['type'].upper()),
+                    description=row['description'],
+                    created_on=row['created_on']
+                )
+                operations.append(operation)
+        return operations
+
     async def fetch(self, account: Account, year: int, month: int) -> Operations:
         operations: Operations = []
 

@@ -34,6 +34,9 @@ def json_response(data, status: int=200, **kwargs) -> web.Response:
 def register_handler(app: web.Application, url_prefix: str=None,
                      name_prefix: str=None):
     def register(method: str, url: str, handler, name: str=None):
+        if not name:
+            name = handler.__name__
+
         if url_prefix:
             if not url:
                 url = url_prefix

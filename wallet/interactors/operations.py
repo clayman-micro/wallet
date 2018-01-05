@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from wallet.entities import Account, Operation
+from wallet.entities import Account, Operation, OperationType
 from wallet.repositories.operations import OperationsRepo
 from wallet.validation import Validator
 
@@ -41,7 +41,7 @@ class GetOperationsInteractor(object):
         self.filters = filters
 
     async def execute(self) -> List[Operation]:
-        if self.filters:
+        if self.filters and self.filters.year and self.filters.month:
             year, month = self.filters.year, self.filters.month
         else:
             now = datetime.now()
@@ -80,6 +80,9 @@ class CreateOperationInteractor(object):
         self.payload = payload
 
     async def execute(self) -> Operation:
+        self.payload.setdefault('type', OperationType.EXPENSE.value.lower())
+        self.payload.setdefault('created_on', datetime.now())
+
         document = self.validator.validate_payload(self.payload)
 
         operation = Operation.from_dict({**document, 'account': self.account})

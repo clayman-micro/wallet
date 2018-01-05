@@ -136,7 +136,9 @@ async def test_update_original_amount(owner):
     ])
 
     operations_repo = mock.MagicMock()
-    operations_repo.fetch = mock.MagicMock(return_value=fetch_operations)
+    operations_repo.fetch_operations = mock.MagicMock(
+        return_value=fetch_operations
+    )
 
     interactor = accounts.UpdateAccountInteractor(repo, operations_repo)
     interactor.set_params(owner, 1, original='2500')
@@ -144,9 +146,9 @@ async def test_update_original_amount(owner):
 
     repo.fetch_account.assert_called_with(owner, 1)
     repo.update.assert_called_with(account, ['original', 'amount'])
-    operations_repo.fetch.assert_called_with(account)
+    operations_repo.fetch_operations.assert_called_with(account)
 
-    assert updated.amount == Decimal(-900.0)
+    assert updated.amount == Decimal(1500.0)
 
 
 @pytest.mark.interactors

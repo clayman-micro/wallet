@@ -158,7 +158,9 @@ async def test_update_account_original(loop, owner):
     fetch_operations.set_result([])
 
     operations_repo = mock.MagicMock()
-    operations_repo.fetch = mock.MagicMock(return_value=fetch_operations)
+    operations_repo.fetch_operations = mock.MagicMock(
+        return_value=fetch_operations
+    )
 
     adapter = AccountsAPIAdapter(repo, operations_repo)
     result = await adapter.update_account(owner, 1, {'original': '200'})
