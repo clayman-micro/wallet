@@ -3,25 +3,21 @@ language: python
 python:
   - "3.6"
 
-# safelist
 branches:
   only:
   - master
-  - develop
 
 sudo: required
 
 services:
   - docker
 
-# Install ansible
 addons:
   apt:
     packages:
     - python-pip
 
 install:
-  # Install ansible
   - pip install tox
 
 script:
@@ -29,7 +25,10 @@ script:
 
 after_success:
   # Build image and publish image
-  - ./publish.sh
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+    make build-image;
+    make publish-image;
+    fi
 
 notifications:
   slack: claymanpro:5w9rLMZvWaCzlzUJPrUChXY5
