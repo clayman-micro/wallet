@@ -1,0 +1,35 @@
+---
+language: python
+python:
+  - "3.6"
+
+# safelist
+branches:
+  only:
+  - master
+  - develop
+
+sudo: required
+
+services:
+  - docker
+
+# Install ansible
+addons:
+  apt:
+    packages:
+    - python-pip
+
+install:
+  # Install ansible
+  - pip install tox
+
+script:
+  - make test-all
+
+after_success:
+  # Build image and publish image
+  - ./publish.sh
+
+notifications:
+  slack: claymanpro:5w9rLMZvWaCzlzUJPrUChXY5

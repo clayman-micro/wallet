@@ -1,256 +1,78 @@
-import asyncio
-import gc
 import logging
-import os
-import socket
-import ujson
-from typing import Dict
+import subprocess
+from decimal import Decimal
+from pathlib import Path
+from unittest.mock import MagicMock
 
-from aiohttp import ClientSession
 import pytest
+from aiohttp.test_utils import make_mocked_coro
 
-from alembic.config import Config as AlembicConfig
-from alembic import command
-
-from .handlers import create_owner, create_account, create_category, \
-    create_transaction
-
-from wallet.app import init, create_config
-from wallet.utils.handlers import reverse_url
+from wallet import configure, init
+from wallet.entities import Account, Owner
 
 
-config = create_config()
+@pytest.fixture(scope='session')
+def config():
+    conf = configure(defaults={
+        'secret_key': 'secret',
+
+        'app_name': 'wallet',
+        'app_host': 'localhost',
+        'app_port': '5000'
+    })
+
+    return conf
 
 
-@pytest.yield_fixture
-def loop(request):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    yield loop
-
-    if not loop._closed:
-        loop.stop()
-        loop.run_forever()
-        loop.close()
-    gc.collect()
-    asyncio.set_event_loop(None)
+@pytest.fixture(scope='function')
+def owner():
+    return Owner('test@clayman.pro', pk=1)
 
 
-@pytest.yield_fixture('function')
-def app(loop, request):
-    logger = logging.getLogger('wallet')
+@pytest.fixture(scope='function')
+def account(owner):
+    return Account('Visa', Decimal(0.0), owner)
+
+
+@pytest.fixture(scope='function')
+def passport_gateway(owner):
+    gateway_mock = MagicMock()
+    gateway_mock.identify = make_mocked_coro(owner)
+
+    return gateway_mock
+
+
+@pytest.yield_fixture(scope='function')
+def client(loop, test_client, passport_gateway, pg_server, config):
+    logger = logging.getLogger('app')
+
+    config.update(db_name=pg_server['params']['database'],
+                  db_user=pg_server['params']['user'],
+                  db_password=pg_server['params']['password'],
+                  db_host=pg_server['params']['host'],
+                  db_port=pg_server['params']['port'])
+
     app = loop.run_until_complete(init(config, logger, loop=loop))
 
-    directory = app['config'].get('MIGRATIONS_ROOT')
-    db_uri = app['config'].get_sqlalchemy_dsn()
+    cwd = Path(config['app_root'])
+    sql_root = cwd / 'repositories' / 'sql'
 
-    conf = AlembicConfig(os.path.join(directory, 'alembic.ini'))
-    conf.set_main_option('script_location', directory)
-    conf.set_main_option('sqlalchemy.url', db_uri)
+    cmd = 'cat {schema} | PGPASSWORD=\'{password}\' psql -h {host} -p {port} -d {database} -U {user}'  # noqa
 
-    command.upgrade(conf, revision='head')
+    subprocess.call([cmd.format(
+        schema=(sql_root / 'upgrade_schema.sql').as_posix(),
+        database=config['db_name'],
+        host=config['db_host'], port=config['db_port'],
+        user=config['db_user'], password=config['db_password'],
+    )], shell=True, cwd=cwd.as_posix())
 
-    yield app
+    yield loop.run_until_complete(test_client(app))
 
-    command.downgrade(conf, revision='base')
+    subprocess.call([cmd.format(
+        schema=(sql_root / 'downgrade_schema.sql').as_posix(),
+        database=config['db_name'],
+        host=config['db_host'], port=config['db_port'],
+        user=config['db_user'], password=config['db_password'],
+    )], shell=True, cwd=cwd.as_posix())
 
     loop.run_until_complete(app.cleanup())
-
-
-class Server(object):
-
-    def __init__(self, app):
-        self._app = app
-        self._handler = None
-        self._srv = None
-        self._url = None
-
-    def _find_unused_port(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(('127.0.0.1', 0))
-            return s.getsockname()[1]
-
-    async def create(self):
-        self._handler = self._app.make_handler(debug=False, keep_alive=False)
-
-        port = self._find_unused_port()
-        self._srv = await self._app.loop.create_server(
-            self._handler, '127.0.0.1', port)
-        self._url = 'http://127.0.0.1:{port}'.format(port=port)
-
-    async def finish(self):
-        await self._handler.finish_connections()
-        await self._app.finish()
-        self._srv.close()
-        await self._srv.wait_closed()
-
-    def reverse_url(self, route, parts=None):
-        return ''.join((self._url, reverse_url(self._app, route, parts)))
-
-
-@pytest.yield_fixture('function')
-def server(app, request):
-    server = Server(app)
-    app.loop.run_until_complete(server.create())
-    yield server
-    app.loop.run_until_complete(server.finish())
-
-
-@pytest.yield_fixture('function')
-def owner(app, request):
-    credentials = {'login': 'John', 'password': 'top_secret'}
-    owner = app.loop.run_until_complete(create_owner(credentials, app))
-    owner['credentials'] = credentials
-    yield owner
-
-
-@pytest.yield_fixture('function')
-def stranger(app, request):
-    credentials = {'login': 'Smoker', 'password': 'evil'}
-    stranger = app.loop.run_until_complete(create_owner(credentials, app))
-    stranger['credentials'] = credentials
-    yield stranger
-
-
-@pytest.yield_fixture('function')
-def account(owner: Dict, app, request):
-    yield app.loop.run_until_complete(create_account({
-        'name': 'Card', 'original_amount': 12345.67, 'owner_id': owner['id']
-    }, app))
-
-
-@pytest.yield_fixture('function')
-def category(owner: Dict, app, request):
-    yield app.loop.run_until_complete(create_category({
-        'name': 'Food', 'owner_id': owner['id']
-    }, app))
-
-
-@pytest.yield_fixture('function')
-def transaction(owner, app, request):
-    account = app.loop.run_until_complete(create_account({
-        'name': 'Card', 'original_amount': 12345.67, 'owner_id': owner['id']
-    }, app))
-
-    category = app.loop.run_until_complete(create_category({
-        'name': 'Food', 'owner_id': owner['id']
-    }, app))
-
-    transaction = app.loop.run_until_complete(create_transaction({
-        'type': 'expense', 'description': 'Meal', 'amount': 270.0,
-        'account_id': account['id'], 'category_id': category['id'],
-    }, app))
-
-    transaction['account'] = account
-    transaction['category'] = category
-    transaction['owner'] = owner
-
-    yield transaction
-
-
-class AsyncResponseContext:
-    __slots__ = ('_request', '_response')
-
-    def __init__(self, request):
-        self._request = request
-        self._response = None
-
-    async def __aenter__(self):
-        self._response = await self._request
-        return self._response
-
-    async def __aexit__(self, exc_type, exc, tb):
-        try:
-            self._response.close()
-        finally:
-            self._response = None
-            self._request = None
-
-
-class HTTPClient:
-    def __init__(self, session, app, url):
-        self._app = app
-        self._session = session
-        self._url = url
-
-    def reverse_url(self, route, parts=None):
-        return ''.join((self._url, reverse_url(self._app, route, parts)))
-
-    def request(self, method, endpoint, endpoint_params=None, **kwargs):
-        if kwargs:
-            if kwargs.pop('json', None):
-                headers = kwargs.pop('headers', {})
-                headers['content-type'] = 'application/json'
-
-                kwargs['headers'] = headers
-                kwargs['data'] = ujson.dumps(kwargs.pop('data', ''))
-
-        kwargs.setdefault('url', self.reverse_url(endpoint, endpoint_params))
-        return AsyncResponseContext(self._session.request(method, **kwargs))
-
-    async def get_params(self, endpoint: str, credentials: Dict=None,
-                         instance_id: int=None) -> Dict:
-        params = {
-            'endpoint': endpoint
-        }
-
-        if instance_id:
-            params['endpoint_params'] = {'instance_id': instance_id}
-
-        if credentials:
-            params['headers'] = {
-                'X-ACCESS-TOKEN': await self.get_auth_token(credentials)
-            }
-
-        return params
-
-    async def get_auth_token(self, credentials, endpoint='auth.login'):
-        params = {
-            'json': True,
-            'data': credentials,
-            'endpoint': endpoint
-        }
-
-        async with self.request('POST', **params) as response:
-            assert response.status == 200
-            token = response.headers.get('X-ACCESS-TOKEN', None)
-            assert token
-        return token
-
-    def close(self):
-        self._session.close()
-
-
-@pytest.yield_fixture('function')
-def client(server, request):
-    client = HTTPClient(ClientSession(loop=server._app.loop), server._app,
-                        server._url)
-    yield client
-    client.close()
-
-
-@pytest.mark.tryfirst
-def pytest_pycollect_makeitem(collector, name, obj):
-    if collector.funcnamefilter(name):
-        if not callable(obj):
-            return
-        item = pytest.Function(name, parent=collector)
-        if 'run_loop' in item.keywords:
-            return list(collector._genfunctions(name, obj))
-
-
-@pytest.mark.tryfirst
-def pytest_pyfunc_call(pyfuncitem):
-    if 'run_loop' in pyfuncitem.keywords:
-        funcargs = pyfuncitem.funcargs
-        loop = funcargs['loop']
-        testargs = {arg: funcargs[arg]
-                    for arg in pyfuncitem._fixtureinfo.argnames}
-        loop.run_until_complete(pyfuncitem.obj(**testargs))
-        return True
-
-
-def pytest_runtest_setup(item):
-    if 'run_loop' in item.keywords and 'loop' not in item.fixturenames:
-        item.fixturenames.append('loop')

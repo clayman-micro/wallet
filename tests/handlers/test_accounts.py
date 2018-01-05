@@ -1,173 +1,124 @@
+from datetime import datetime
+
 import pytest
-
-from wallet.storage import accounts
-
-from . import create_account
+import ujson
 
 
-@pytest.mark.run_loop
-@pytest.mark.parametrize('headers', ({}, {'X-ACCESS-TOKEN': 'fake-token'}))
-@pytest.mark.parametrize('method, endpoint, endpoint_params', [
-    ('GET', 'api.get_accounts', None),
-    ('POST', 'api.create_account', None),
-    ('GET', 'api.get_account', {'instance_id': 1}),
-    ('PUT', 'api.update_account', {'instance_id': 1}),
-    ('DELETE', 'api.remove_account', {'instance_id': 1})
-])
-async def test_unauthorized(client, headers, method, endpoint, endpoint_params):
-    params = {'headers': headers, 'endpoint': endpoint,
-              'endpoint_params': endpoint_params}
-    async with client.request(method, **params) as response:
-        assert response.status == 401
+def prepare_request(data, token, json=False):
+    headers = {'X-ACCESS-TOKEN': token}
+    if json:
+        data = ujson.dumps(data)
+        headers['Content-Type'] = 'application/json'
+
+    return {'data': data, 'headers': headers}
 
 
-@pytest.mark.run_loop
-async def test_collection(app, client, owner):
-    account = await create_account({
-        'name': 'Credit card', 'original_amount': 3000.0,
-        'owner_id': owner['id']
-    }, app=app)
+@pytest.mark.handlers
+async def test_get_accounts(client, passport_gateway):
+    app = client.server.app
+    app.passport = passport_gateway
 
-    params = await client.get_params('api.get_accounts', owner['credentials'])
-    async with client.request('GET', **params) as response:
-        assert response.status == 200
-
-        data = await response.json()
-        assert 'accounts' in data
-        assert data['accounts'] == [{
-            'id': account['id'], 'name': 'Credit card',
-            'balance': {'expense': 0.0, 'income': 0.0, 'remain': 3000.0}
-        }, ]
+    url = app.router.named_resources()['api.get_accounts'].url()
+    resp = await client.get(url, headers={'X-ACCESS-TOKEN': 'foo'})
+    assert resp.status == 200
 
 
-@pytest.mark.run_loop
-async def test_collection_only_for_owner(app, client, owner, stranger):
-    await create_account({
-        'name': 'Credit card', 'original_amount': 3000.0,
-        'owner_id': owner['id']
-    }, app=app)
+@pytest.mark.handlers
+@pytest.mark.parametrize('json', [True, False])
+async def test_add_account(client, passport_gateway, json):
+    app = client.server.app
+    app.passport = passport_gateway
 
-    params = await client.get_params('api.get_accounts', stranger['credentials'])
-    async with client.request('GET', **params) as response:
-        assert response.status == 200
-        result = await response.json()
-        assert 'accounts' in result
-        assert len(result['accounts']) == 0
+    data = {'name': 'Visa', 'amount': '0.0'}
+
+    url = app.router.named_resources()['api.add_account'].url()
+    resp = await client.post(url, **prepare_request(data, 'foo', json=json))
+    assert resp.status == 201
 
 
-@pytest.mark.run_loop
-@pytest.mark.parametrize('json', (True, False))
-async def test_create(client, owner, json):
-    params = await client.get_params('api.create_account', owner['credentials'])
-    params.update(data={'name': 'Credit card', 'original_amount': 300.0},
-                  json=json)
-
-    async with client.request('POST', **params) as response:
-        assert response.status == 201
-        result = await response.json()
-        assert 'account' in result
-        assert result['account'] == {
-            'id': 1,
-            'name': 'Credit card',
-            'balance': {'remain': 300.0, 'income': 0.0, 'expense': 0.0}
-        }
-
-
-@pytest.mark.run_loop
-@pytest.mark.parametrize('json', (True, False))
-async def test_create_with_name_conflict(app, client, owner, json):
-    await create_account({'name': 'Test', 'original_amount': 0.0,
-                          'owner_id': owner['id']}, app)
-
-    params = await client.get_params('api.create_account', owner['credentials'])
-    params.update(data={'name': 'Test'}, json=json)
-
-    async with client.request('POST', **params) as response:
-        assert response.status == 400
-        result = await response.json()
-        assert 'errors' in result
-        assert 'name' in result['errors']
-
-
-@pytest.mark.run_loop
-@pytest.mark.parametrize('method, endpoint', (
-    ('GET', 'api.get_account'),
-    ('PUT', 'api.update_account'),
-    ('DELETE', 'api.remove_account')
+@pytest.mark.handlers
+@pytest.mark.parametrize('method, resource', (
+    ('get', 'api.get_account'),
+    ('put', 'api.update_account'),
+    ('delete', 'api.remove_account')
 ))
-async def test_missing(client, owner, method, endpoint):
-    params = await client.get_params(endpoint, owner['credentials'], 1)
-    async with client.request(method, **params) as response:
-        assert response.status == 404
+async def test_missing_account(client, passport_gateway, method, resource):
+    app = client.server.app
+    app.passport = passport_gateway
+
+    url = app.router.named_resources()[resource].url(parts={
+        'instance_id': 1
+    })
+
+    do = getattr(client, method)
+    resp = await do(url, headers={'X-ACCESS-TOKEN': 'foo'})
+    assert resp.status == 404
 
 
-@pytest.mark.run_loop
-@pytest.mark.parametrize('method, endpoint', (
-    ('GET', 'api.get_account'),
-    ('PUT', 'api.update_account'),
-    ('DELETE', 'api.remove_account')
+@pytest.mark.handlers
+async def test_get_account(client, owner, passport_gateway):
+    app = client.server.app
+    app.passport = passport_gateway
+
+    async with app.db.acquire() as conn:
+        query = """
+            INSERT INTO accounts (name, enabled, owner_id, created_on)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id
+        """
+        await conn.execute(query, 'Visa', True, owner.pk, datetime.now())
+
+    url = app.router.named_resources()['api.get_account'].url(parts={
+        'instance_id': 1
+    })
+
+    resp = await client.get(url, headers={'X-ACCESS-TOKEN': 'foo'})
+    assert resp.status == 200
+
+
+@pytest.mark.handlers
+@pytest.mark.parametrize('json', [True, False])
+@pytest.mark.parametrize('payload', (
+    {'name': 'Visa Classic'},
+    {'original': '1000.0'},
+    {'name': 'Visa Classic', 'original': '1000.0'}
 ))
-async def test_access_for_strangers(client, stranger, account, method,
-                                    endpoint):
+async def test_update_account(client, owner, passport_gateway, payload, json):
+    app = client.server.app
+    app.passport = passport_gateway
 
-    params = await client.get_params(endpoint, stranger['credentials'],
-                                     account['id'])
-    async with client.request(method, **params) as response:
-        assert response.status == 404
+    async with app.db.acquire() as conn:
+        query = """
+            INSERT INTO accounts (name, enabled, owner_id, created_on)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id
+        """
+        await conn.execute(query, 'Visa', True, owner.pk, datetime.now())
 
+    url = app.router.named_resources()['api.update_account'].url(parts={
+        'instance_id': 1
+    })
 
-@pytest.mark.run_loop
-async def test_get_resource(app, client, owner):
-    account = await create_account({'name': 'Card', 'original_amount': 390.0,
-                                    'owner_id': owner['id']}, app)
-
-    params = await client.get_params('api.get_account', owner['credentials'],
-                                     account['id'])
-    async with client.request('GET', **params) as response:
-        assert response.status == 200
-
-        data = await response.json()
-        assert 'account' in data
-        assert data['account'] == {
-            'id': 1, 'name': 'Card', 'balance': {
-                'remain': 390.0, 'income': 0.0, 'expense': 0.0
-            }
-        }
+    resp = await client.put(url, **prepare_request(payload, 'foo', json))
+    assert resp.status == 200
 
 
-@pytest.mark.run_loop
-@pytest.mark.parametrize('json', (True, False))
-async def test_update_resource(app, client, owner, json):
-    account = await create_account({'name': 'Card', 'original_amount': 390.0,
-                                    'owner_id': owner['id']}, app)
+@pytest.mark.handlers
+async def test_remove_account(client, owner, passport_gateway):
+    app = client.server.app
+    app.passport = passport_gateway
 
-    params = await client.get_params('api.update_account', owner['credentials'],
-                                     account['id'])
-    params.update(data={'name': 'Deposit'}, json=json)
-    async with client.request('PUT', **params) as response:
-        assert response.status == 200
+    async with app.db.acquire() as conn:
+        query = """
+            INSERT INTO accounts (name, enabled, owner_id, created_on)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id
+        """
+        await conn.execute(query, 'Visa', True, owner.pk, datetime.now())
 
-        data = await response.json()
-        assert 'account' in data
-        assert data['account'] == {
-            'id': 1, 'name': 'Deposit', 'balance': {
-                'remain': 390.0, 'income': 0.0, 'expense': 0.0
-            }
-        }
+    url = app.router.named_resources()['api.remove_account'].url(parts={
+        'instance_id': 1
+    })
 
-
-@pytest.mark.run_loop
-async def test_remove_resource(app, client, owner):
-    account = await create_account({'name': 'Card', 'original_amount': 390.0,
-                                    'owner_id': owner['id']}, app)
-
-    params = await client.get_params('api.remove_account', owner['credentials'],
-                                     account['id'])
-    async with client.request('DELETE', **params) as response:
-        assert response.status == 200
-
-    async with app['engine'].acquire() as conn:
-        query = accounts.table.count().where(
-            accounts.table.c.id == account['id'])
-        count = await conn.scalar(query)
-        assert count == 0
+    resp = await client.delete(url, headers={'X-ACCESS-TOKEN': 'foo'})
+    assert resp.status == 200

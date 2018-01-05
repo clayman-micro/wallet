@@ -46,6 +46,8 @@ nosetests.xml
 .project
 .pydevproject
 .idea
+.mypy_cache
+.scannerwork
 *.tar.gz
 
 conf/certs/**/*.crt

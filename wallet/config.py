@@ -1,88 +1,115 @@
-from collections import abc
 import os
-import errno
+import socket
+from collections import abc
 
 import yaml
+
+from wallet.validation import ValidationError, Validator
+
+
+class ImproperlyConfigured(Exception):
+    pass
 
 
 class Config(abc.MutableMapping):
 
-    def __init__(self, root_path, defaults=None):
-        self.root_path = root_path
-        self.__dict__.update(self._keys_to_upper(defaults or {}))
+    def __init__(self, schema, initial=None):
+        self._fields = {
+            'app_hostname': socket.gethostname(),
+
+            'access_log': '%a %s %Tf %b "%r" "%{Referrer}i" "%{User-Agent}i"',
+
+            'db_name': 'postgres',
+            'db_user': 'postgres',
+            'db_password': 'postgres',
+            'db_host': 'localhost',
+            'db_port': 5432,
+
+            'consul_host': 'localhost',
+            'consul_port': 8500,
+
+            'logging': {
+                'version': 1,
+                'formatters': {
+                    'simple': {
+                        'format': '%(asctime)s | %(levelname)s | %(name)s | %(message)s',  # noqa
+                        'datefmt': '%Y-%m-%d %H:%M:%S'
+                    },
+                },
+                'handlers': {
+                    'console': {
+                        'level': 'INFO',
+                        'class': 'logging.StreamHandler',
+                        'formatter': 'simple',
+                        'stream': 'ext://sys.stdout'
+                    }
+                },
+                'loggers': {
+                    'aiohttp': {
+                        'level': 'INFO',
+                        'handlers': ['console', ],
+                        'propagate': False
+                    },
+                    'app': {
+                        'level': 'INFO',
+                        'handlers': ['console', ],
+                        'propagate': False
+                    }
+                },
+            }
+        }
+        self._schema = schema
+
+        if initial and isinstance(initial, dict):
+            for key, value in iter(initial.items()):
+                self[key] = value
 
     def __setitem__(self, key, value):
-        self.__dict__[key] = value
+        self._fields[key] = value
 
     def __getitem__(self, key):
-        return self.__dict__[key]
+        return self._fields[key]
 
     def __delitem__(self, key):
-        del self.__dict__[key]
+        del self._fields[key]
 
     def __iter__(self):
-        return iter(self.__dict__)
+        return iter(self._fields)
 
     def __len__(self):
-        return len(self.__dict__)
+        return len(self._fields)
 
     def __str__(self):
-        return str(self.__dict__)
+        return str(self._fields)
 
-    def _keys_to_upper(self, obj):
-        return {key.upper(): value for key, value in iter(obj.items())}
+    def validate(self) -> None:
+        config_validator = Validator(schema=self._schema)
 
-    def from_envvar(self, variable_name, silent=False):
-        rv = os.environ.get(variable_name)
-        if not rv:
-            if silent:
-                return False
-            else:
-                raise RuntimeError('The environment variable %r is not set. '
-                                   'Set this variable.' % variable_name)
-        self[variable_name] = rv
+        try:
+            config_validator.validate_payload(self._fields)
+        except ValidationError:
+            raise ImproperlyConfigured(config_validator.errors)
 
-    def from_object(self, obj):
-        for key in dir(obj):
-            if key.isupper():
-                self[key] = getattr(obj, key)
+        self.__dict__.update(**config_validator.document)
 
-    def from_yaml(self, filename, silent=False):
-        if self.root_path:
-            filename = os.path.join(self.root_path, filename)
+    def update_from_env_var(self, variable_name: str) -> None:
+        value = os.environ.get(variable_name.upper())
+        if value:
+            self[variable_name] = value
+
+    def update_from_yaml(self, filename: str) -> None:
+        if not filename.endswith('yml'):
+            raise RuntimeError('Config should be in yaml format')
 
         try:
             with open(filename, 'r') as fp:
                 data = fp.read()
-                config = yaml.load(data)
+                conf = yaml.load(data)
         except IOError as exc:
-            if silent and exc.errno in (errno.ENOENT, errno.EISDIR):
-                return False
-            exc.strerror = 'Unable to load configuration file (%s)' % (
-                exc.strerror,
+            exc.strerror = 'Unable to load configuration file `{}`'.format(
+                exc.strerror
             )
             raise
 
-        for key, value in iter(config.items()):
-            if key == 'logging':
-                self[key] = value
-                continue
-
-            if not isinstance(value, dict):
-                self[key.upper()] = value
-            else:
-                for var, val in iter(value.items()):
-                    variable_name = '%s_%s' % (key, var)
-                    self[variable_name.upper()] = val
-
-    def get_sqlalchemy_dsn(self):
-        password = self.get('DB_PASSWORD')
-        if password:
-            credentials = '%s:%s' % (self.get('DB_USER'), password)
-        else:
-            credentials = '%s' % self.get('DB_USER')
-
-        return "postgres://%s@%s:%s/%s" % (
-            credentials, self.get('DB_HOST'), self.get('DB_PORT'),
-            self.get('DB_NAME')
-        )
+        for key, value in iter(conf.items()):
+            self[key] = value
