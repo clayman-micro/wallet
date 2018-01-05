@@ -1,8 +1,19 @@
+import os
 from setuptools import find_packages, setup
 
 
+def static_files(path, prefix):
+    for root, _, files in os.walk(path):
+        paths = []
+        for item in files:
+            paths.append(os.path.join(root, item))
+        yield (root.replace(path, prefix), paths)
+
+
+project = 'wallet'
+
 setup(
-    name='wallet',
+    name=project,
     version='2.0.0',
     url='https://wallet.clayman.pro',
     license='MIT',
@@ -14,6 +25,10 @@ setup(
 
     zip_safe=True,
     include_package_data=True,
+
+    data_files=[item for item in static_files(
+        '%s/repositories/sql' % project, 'usr/share/%s' % project
+    )],
 
     install_requires=[
         'aiohttp',
