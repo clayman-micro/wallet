@@ -1,6 +1,6 @@
 .PHONY: clean clean-test clean-pyc clean-build
 
-clean: clean-build clean-pyc clean-test
+clean: clean-build clean-image clean-pyc clean-test
 
 clean-build:
 	rm -fr build/
@@ -8,6 +8,9 @@ clean-build:
 	rm -fr .eggs/
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
+
+clean-image:
+	docker images -qf dangling=true | xargs docker rmi
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -50,7 +53,6 @@ build: clean-build
 build-image: build
 	docker build --build-arg app_version=`python setup.py --version` -t clayman74/wallet .
 	docker tag clayman74/wallet clayman74/wallet:`python setup.py --version`
-	docker images -qf dangling=true | xargs docker rmi
 
 publish-image:
 	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)

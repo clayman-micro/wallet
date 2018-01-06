@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List, Optional
+from typing import List
 
 from wallet.entities import Account, EntityAlreadyExist, Owner
 from wallet.repositories.accounts import AccountsRepository
@@ -28,9 +28,9 @@ schema = {
 
 class GetAccountsInteractor(object):
     def __init__(self, repo: AccountsRepository) -> None:
-        self._repo: AccountsRepository = repo
-        self._name: str = ''
-        self._owner: Optional[Owner] = None
+        self._repo = repo
+        self._name = ''
+        self._owner = None
 
     def set_params(self, owner: Owner, name: str = '') -> None:
         self._owner = owner
@@ -42,9 +42,9 @@ class GetAccountsInteractor(object):
 
 class GetAccountInteractor(object):
     def __init__(self, repo: AccountsRepository) -> None:
-        self._repo: AccountsRepository = repo
-        self._pk: int = 0
-        self._owner: Optional[Owner] = None
+        self._repo = repo
+        self._pk = 0
+        self._owner = None
 
     def set_params(self, owner: Owner, pk: int) -> None:
         self._owner = owner
@@ -56,10 +56,10 @@ class GetAccountInteractor(object):
 
 class CreateAccountInteractor(object):
     def __init__(self, repo: AccountsRepository) -> None:
-        self._repo: AccountsRepository = repo
-        self._owner: Optional[Owner] = None
+        self._repo = repo
+        self._owner = None
         self._name = ''
-        self._amount: Decimal = Decimal(0.0)
+        self._amount = Decimal(0.0)
 
         self._validator = Validator(schema)
 
@@ -86,7 +86,7 @@ class CreateAccountInteractor(object):
 
 class UpdateAccountInteractor(object):
     def __init__(self, repo: AccountsRepository, operations_repo) -> None:
-        self.repo: AccountsRepository = repo
+        self.repo = repo
         self.operation_repo = operations_repo
         self.pk = 0
 
@@ -133,9 +133,9 @@ class UpdateAccountInteractor(object):
 
 class RemoveAccountInteractor(object):
     def __init__(self, repo: AccountsRepository) -> None:
-        self._repo: AccountsRepository = repo
-        self._owner: Optional[Owner] = None
-        self._pk: int = 0
+        self._repo = repo
+        self._owner = None
+        self._pk = 0
 
     def set_params(self, owner: Owner, pk: int) -> None:
         self._owner = owner

@@ -19,11 +19,11 @@ class App(web.Application):
     def __init__(self, *args, config=None, **kwargs):
         super(App, self).__init__(**kwargs)
 
-        self._config: Config = config
-        self._db: Pool = None
+        self._config = config
+        self._db = None
         self._distribution = pkg_resources.get_distribution('wallet')
-        self._raven: Client = None
-        self._passport: PassportGateway = None
+        self._raven = None
+        self._passport = None
 
     @property
     def config(self) -> Config:
@@ -148,7 +148,7 @@ def configure(config_file: str=None, defaults: Dict=None) -> Config:
         os.path.abspath(__file__)))
 
     if config_file:
-        config.update_from_yaml(config_file)
+        config.update_from_yaml(config_file, True)
 
     for key in iter(config_schema.keys()):
         config.update_from_env_var(key)

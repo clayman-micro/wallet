@@ -2,15 +2,12 @@ from typing import Dict
 
 from wallet.entities import Account, Operation, Owner
 from wallet.interactors import accounts, operations
-from wallet.repositories.accounts import AccountsRepository
-from wallet.repositories.operations import OperationsRepo
 
 
 class OperationsAPIAdapter(object):
-    def __init__(self, accounts_repo: AccountsRepository,
-                 operations_repo: OperationsRepo) -> None:
-        self._accounts_repo: AccountsRepository = accounts_repo
-        self._operations_repo: OperationsRepo = operations_repo
+    def __init__(self, accounts_repo, operations_repo) -> None:
+        self._accounts_repo = accounts_repo
+        self._operations_repo = operations_repo
 
     def serialize(self, operation: Operation) -> Dict:
         return {

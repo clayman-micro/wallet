@@ -95,7 +95,7 @@ class Operation(Entity):
         self.amount = amount
         self.account = account
 
-        self._tags: Set[Tag] = set()
+        self._tags = set()
 
         self.type = optional.pop('type', OperationType.EXPENSE)
         self.description = optional.pop('description', '')

@@ -50,8 +50,7 @@ nosetests.xml
 .scannerwork
 *.tar.gz
 
-conf/certs/**/*.crt
-conf/certs/**/*.key
+conf
 
 ansible/*.retry
 

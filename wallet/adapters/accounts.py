@@ -10,7 +10,7 @@ Name = Optional[str]
 
 class AccountsAPIAdapter(object):
     def __init__(self, repo: AccountsRepository, operations_repo=None) -> None:
-        self.repo: AccountsRepository = repo
+        self.repo = repo
         self.operations_repo = operations_repo
 
     def serialize(self, account: Account) -> Dict:
