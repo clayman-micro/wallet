@@ -27,7 +27,7 @@ class OperationsRepo(object):
         return count > 0
 
     async def fetch_operations(self, account: Account) -> Operations:
-        operations: Operations = []
+        operations = []
 
         query = '''
             SELECT
@@ -51,7 +51,7 @@ class OperationsRepo(object):
         return operations
 
     async def fetch(self, account: Account, year: int, month: int) -> Operations:
-        operations: Operations = []
+        operations = []
 
         query = '''
             SELECT

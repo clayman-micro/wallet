@@ -29,7 +29,7 @@ class AccountsRepository(object):
         pass
 
     async def fetch(self, owner: Owner, name: Optional[str] = None) -> Accounts:
-        accounts: Accounts = []
+        accounts = []
 
         async with self._conn.transaction():
             query = [

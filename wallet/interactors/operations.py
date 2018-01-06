@@ -32,8 +32,8 @@ schema = {
 
 class GetOperationsInteractor(object):
     def __init__(self, repo: OperationsRepo) -> None:
-        self.account: Optional[Account] = None
-        self.repo: OperationsRepo = repo
+        self.account = None
+        self.repo = repo
         self.filters = None
 
     def set_params(self, account: Account, filters=None) -> None:
@@ -53,9 +53,9 @@ class GetOperationsInteractor(object):
 
 class GetOperationInteractor(object):
     def __init__(self, repo: OperationsRepo) -> None:
-        self.repo: OperationsRepo = repo
-        self.account: Optional[Account] = None
-        self.pk: int = 0
+        self.repo = repo
+        self.account = None
+        self.pk = 0
 
     def set_params(self, account: Account, pk: int) -> None:
         self.account = account
@@ -68,7 +68,7 @@ class GetOperationInteractor(object):
 class CreateOperationInteractor(object):
     def __init__(self, accounts_repo, operations_repo: OperationsRepo) -> None:
         self.accounts_repo = accounts_repo
-        self.operations_repo: OperationsRepo = operations_repo
+        self.operations_repo = operations_repo
 
         self.account: Account = None
         self.payload: Dict = {}
@@ -97,11 +97,11 @@ class CreateOperationInteractor(object):
 class UpdateOperationInteractor(object):
     def __init__(self, accounts_repo, operations_repo: OperationsRepo) -> None:
         self.accounts_repo = accounts_repo
-        self.operations_repo: OperationsRepo = operations_repo
+        self.operations_repo = operations_repo
 
         self.pk = 0
-        self.account: Account = None
-        self.payload: Dict = {}
+        self.account = None
+        self.payload = {}
 
         self.validator = Validator(schema)
 
@@ -141,10 +141,10 @@ class UpdateOperationInteractor(object):
 class RemoveOperationInteractor(object):
     def __init__(self, accounts_repo, operations_repo: OperationsRepo) -> None:
         self.accounts_repo = accounts_repo
-        self.operations_repo: OperationsRepo = operations_repo
+        self.operations_repo = operations_repo
 
         self.pk = 0
-        self.account: Account = None
+        self.account = None
 
     def set_params(self, account: Account, pk: int) -> None:
         self.account = account
