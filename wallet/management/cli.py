@@ -11,7 +11,7 @@ from wallet.management.server import server
 
 class Context(object):
 
-    def __init__(self, config):
+    def __init__(self, config=None):
         self.conf = configure(config, {
             'app_name': 'wallet',
 

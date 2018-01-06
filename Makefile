@@ -50,7 +50,7 @@ coverage:
 build: clean-build
 	python setup.py sdist
 
-build-image: clean-image build
+build-image: build
 	docker build --build-arg app_version=`python setup.py --version` -t clayman74/wallet .
 	docker tag clayman74/wallet clayman74/wallet:`python setup.py --version`
 

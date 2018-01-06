@@ -1,6 +1,7 @@
 from aiohttp import web
 
 from wallet.adapters.owner import OwnerAdapter
+from wallet.gateways.owners import BadToken
 from wallet.entities import EntityNotFound
 from wallet.handlers import json_response
 from wallet.validation import ValidationError
@@ -12,6 +13,8 @@ async def catch_exceptions_middleware(request: web.Request, handler):
         return await handler(request)
     except EntityNotFound:
         raise web.HTTPNotFound
+    except BadToken:
+        raise web.HTTPForbidden
     except ValidationError as exc:
         return json_response(exc.errors, status=422)
     except Exception as exc:

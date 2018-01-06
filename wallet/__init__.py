@@ -148,7 +148,7 @@ def configure(config_file: str=None, defaults: Dict=None) -> Config:
         os.path.abspath(__file__)))
 
     if config_file:
-        config.update_from_yaml(config_file)
+        config.update_from_yaml(config_file, True)
 
     for key in iter(config_schema.keys()):
         config.update_from_env_var(key)

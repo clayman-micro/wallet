@@ -97,7 +97,7 @@ class Config(abc.MutableMapping):
         if value:
             self[variable_name] = value
 
-    def update_from_yaml(self, filename: str) -> None:
+    def update_from_yaml(self, filename: str, silent: bool=False) -> None:
         if not filename.endswith('yml'):
             raise RuntimeError('Config should be in yaml format')
 
@@ -106,10 +106,11 @@ class Config(abc.MutableMapping):
                 data = fp.read()
                 conf = yaml.load(data)
         except IOError as exc:
-            exc.strerror = 'Unable to load configuration file `{}`'.format(
-                exc.strerror
-            )
-            raise
-
-        for key, value in iter(conf.items()):
-            self[key] = value
+            if not silent:
+                exc.strerror = 'Unable to load configuration file `{}`'.format(
+                    exc.strerror
+                )
+                raise
+        else:
+            for key, value in iter(conf.items()):
+                self[key] = value

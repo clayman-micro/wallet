@@ -16,12 +16,17 @@ addons:
   apt:
     packages:
     - python-pip
+  sonarcloud:
+    organization: clayman74-github
+    branches:
+      - master
 
 install:
   - pip install tox
 
 script:
-  - make test-all
+  - tox
+  - sonar-scanner
 
 after_success:
   # Build image and publish image
