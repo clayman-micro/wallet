@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, Union
 
 from wallet.validation import Validator
@@ -21,6 +22,12 @@ class OpsFilter(object):
     def __init__(self, year: str=None, month: str=None) -> None:
         self._year = year
         self._month = month
+
+        if not self._year and not self._month:
+            now = datetime.now()
+
+            self._year = now.strftime('%Y')
+            self._month = now.strftime('%m')
 
     @property
     def year(self):
