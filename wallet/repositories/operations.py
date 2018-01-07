@@ -99,15 +99,15 @@ class OperationsRepo(object):
     async def save(self, operation: Operation) -> int:
         query = '''
             INSERT INTO operations (
-                type, amount, account_id, enabled, owner_id, created_on
+                type, amount, description, account_id, enabled, owner_id, created_on
             )
-            VALUES ($1, $2, $3, $4, $5, $6)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id
         '''
 
         pk = await self._conn.fetchval(
             query, operation.type.value.lower(), operation.amount,
-            operation.account.pk, operation.enabled,
+            operation.description, operation.account.pk, operation.enabled,
             operation.account.owner.pk, operation.created_on
         )
 

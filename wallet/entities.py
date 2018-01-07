@@ -105,9 +105,10 @@ class Operation(Entity):
     @classmethod
     def from_dict(cls, props: Dict) -> 'Operation':
         return Operation(
-            props['amount'], props['account'], type=props.get('type', None),
-            description=props.get('description', None), pk=props.get('pk', 0),
-            enabled=props.get('enabled', None),
+            props['amount'], props['account'], pk=props.get('pk', 0),
+            type=props.get('type', OperationType.EXPENSE),
+            description=props.get('description', ''),
+            enabled=props.get('enabled', True),
             created_on=props.get('created_on', None)
         )
 
