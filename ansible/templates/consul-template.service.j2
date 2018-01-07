@@ -2,4 +2,4 @@
 
 exec consul-template \
      -consul=consul:8500 \
-     -template "/etc/consul-templates/{{ app_name }}.conf:/etc/nginx/conf.d/{{ app_name }}.conf:sv hup nginx"
+     -template "/etc/consul-templates/{{ app['name'] }}.conf:/etc/nginx/conf.d/{{ app['name'] }}.conf:sv hup nginx"

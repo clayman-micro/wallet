@@ -1,13 +1,17 @@
-upstream {{ app_name }}_cluster {
+upstream {{ app['name'] }}_cluster {
     least_conn;
-    {% raw %}{{ range service {% endraw %}"v1.{{ app_name }}"{% raw %} }}server {{.Address}}:{{.Port}} max_fails=3 fail_timeout=60 weight=1;
-    {{ else }}server 127.0.0.1:65535; # force a 502 {{end}}
+    {% raw %}
+    {{ range service {% endraw %}"v1.{{ app['name'] }}"{% raw %} }}
+    server {{.Address}}:{{.Port}} max_fails=3 fail_timeout=60 weight=1;
+    {{ else }}
+    server 127.0.0.1:65535; # force a 502
+    {{end}}
     {% endraw %}
 }
 
 server {
     listen 80;
-    server_name {{ app_domain }};
+    server_name {{ app['domain'] }};
 
     location ~ /.well-known {
         root /var/www;
@@ -21,17 +25,17 @@ server {
 
 server {
     listen 443 ssl;
-    server_name {{ app_domain }};
+    server_name {{ app['domain'] }};
 
     charset utf-8;
 
-    ssl_certificate /etc/letsencrypt/live/{{ app_domain }}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/{{ app_domain }}/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/{{ app['domain'] }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ app['domain'] }}/privkey.pem;
     ssl_verify_depth 3;
     ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
 
     location / {
-        proxy_pass http://{{ app_name }}_cluster;
+        proxy_pass http://{{ app['name'] }}_cluster;
 
         proxy_set_header   Host $http_host;
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
