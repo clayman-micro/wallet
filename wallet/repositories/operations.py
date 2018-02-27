@@ -4,7 +4,8 @@ from typing import List
 
 from asyncpg.connection import Connection
 
-from wallet.entities import Account, EntityNotFound, Operation, OperationType
+from wallet.entities import (Account, EntityNotFound, EntityAlreadyExist,
+                             Operation, OperationType, Tag)
 
 
 Operations = List[Operation]
@@ -23,6 +24,8 @@ class OperationsRepo(object):
                 count = int(match.group('count'))
             except ValueError:
                 count = 0
+        else:
+            count = 0
 
         return count > 0
 
@@ -156,4 +159,47 @@ class OperationsRepo(object):
             operation.account.owner.pk
         )
 
+        return self._did_update(result)
+
+    async def fetch_tags(self, operation: Operation) -> List[Tag]:
+        query = """
+            SELECT id, name from tags
+              INNER JOIN operation_tags ON tags.id = operation_tags.tag_id
+            WHERE (
+                operation_id = $1 AND tags.owner_id = $2 AND tags.enabled = TRUE
+            )
+            ORDER BY tags.created_on;
+        """
+
+        tags = []
+        async with self._conn.transaction():
+            async for row in self._conn.cursor(query, operation.pk, operation.account.owner.pk):
+                tag = Tag(row['name'], owner=operation.account.owner, pk=row['id'])
+                tags.append(tag)
+
+        return tags
+
+    async def save_tag(self, operation: Operation, tag: Tag) -> bool:
+        async with self._conn.transaction():
+            exist = await self._conn.fetchval('''
+                SELECT COUNT(operation_id) FROM operation_tags WHERE (
+                    operation_id = $1 AND tag_id = $2
+                );
+            ''', operation.pk, tag.pk)
+            if exist:
+                raise EntityAlreadyExist
+
+            await self._conn.execute('''
+                INSERT INTO operation_tags (operation_id, tag_id)
+                VALUES ($1, $2);
+            ''', operation.pk, tag.pk)
+
+        return True
+
+    async def remove_tag(self, operation: Operation, tag: Tag) -> bool:
+        query = '''
+            DELETE FROM operation_tags WHERE operation_id = $1 AND tag_id = $2;
+        '''
+
+        result = await self._conn.execute(query, operation.pk, tag.pk)
         return self._did_update(result)

@@ -118,6 +118,12 @@ async def init(config: Config, logger: logging.Logger=None,
         add('PUT', '{operation}', operations.update_operation)
         add('DELETE', '{operation}', operations.remove_operation)
 
+    url_prefix = '/api/accounts/{account}/operations/{operation}/tags'
+    with register_handler(app, url_prefix, 'api') as add:
+        add('GET', '', operations.fetch_tags, 'operation_fetch_tags')
+        add('POST', '', operations.add_tag, 'operation_add_tag')
+        add('DELETE', '{tag}', operations.remove_tag, 'operation_remove_tag')
+
     return app
 
 

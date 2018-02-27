@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Dict, List
 
-from wallet.entities import Account, Operation, OperationType
+from wallet.entities import (Account, EntityAlreadyExist, Operation,
+                             OperationType, Tag)
 from wallet.repositories.operations import OperationsRepo
-from wallet.validation import Validator
+from wallet.validation import Validator, ValidationError
 
 
 schema = {
@@ -160,3 +161,33 @@ class RemoveOperationInteractor(object):
 
         removed = await self.operations_repo.remove(operation)
         return removed
+
+
+class OperationAddTagInteractor(object):
+    def __init__(self, operations_repo, tags_repo) -> None:
+        self.operations_repo = operations_repo
+        self.tags_repo = tags_repo
+
+        self.operation = None  # type: Operation
+        self.tag_name = ''
+
+    def set_params(self, operation: Operation, tag_name: str) -> None:
+        self.operation = operation
+        self.tag_name = tag_name
+
+    async def execute(self) -> bool:
+        tags = await self.tags_repo.fetch(self.operation.account.owner,
+                                          name=self.tag_name)
+
+        if tags:
+            tag = tags[0]
+        else:
+            tag = Tag(self.tag_name, self.operation.account.owner)
+            tag.pk = await self.tags_repo.save_tag(tag)
+
+        try:
+            await self.operations_repo.save_tag(self.operation, tag)
+        except EntityAlreadyExist:
+            raise ValidationError(errors={'tag': 'Already exists'})
+
+        return tag

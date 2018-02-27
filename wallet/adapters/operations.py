@@ -1,6 +1,6 @@
 from typing import Dict
 
-from wallet.entities import Account, Operation, Owner
+from wallet.entities import Account, Operation, Owner, Tag
 from wallet.interactors import accounts, operations
 
 
@@ -90,3 +90,58 @@ class OperationsAPIAdapter(object):
         interactor.set_params(account, operation_pk)
 
         await interactor.execute()
+
+
+class OperationTagsAPIAdapter(object):
+    def __init__(self, accounts_repo, operations_repo, tags_repo) -> None:
+        self._accounts_repo = accounts_repo
+        self._operations_repo = operations_repo
+        self._tags_repo = tags_repo
+
+    async def fetch_account(self, owner: Owner, pk: int) -> Account:
+        interactor = accounts.GetAccountInteractor(self._accounts_repo)
+        interactor.set_params(owner, pk)
+        account = await interactor.execute()
+        return account
+
+    async def fetch_operation(self, account: Account, pk: int) -> Operation:
+        interactor = operations.GetOperationInteractor(self._operations_repo)
+        interactor.set_params(account, pk)
+        operation = await interactor.execute()
+        return operation
+
+    def serialize(self, tag: Tag):
+        return {
+            'id': tag.pk,
+            'name': tag.name
+        }
+
+    async def fetch_tags(self, owner: Owner, account_pk, operation_pk):
+        account = await self.fetch_account(owner, account_pk)
+        operation = await self.fetch_operation(account, operation_pk)
+
+        tags = []
+        for tag in await self._operations_repo.fetch_tags(operation):
+            tags.append(tag)
+
+        return {'tags': [self.serialize(tag) for tag in tags]}
+
+    async def add_tag(self, owner: Owner, account_pk, operation_pk, payload):
+        account = await self.fetch_account(owner, account_pk)
+        operation = await self.fetch_operation(account, operation_pk)
+
+        interactor = operations.OperationAddTagInteractor(
+            self._operations_repo, self._tags_repo
+        )
+        interactor.set_params(operation, payload['name'])
+        tag = await interactor.execute()
+
+        return {'tag': self.serialize(tag)}
+
+    async def remove_tag(self, owner: Owner, account_pk, operation_pk, tag_pk):
+        account = await self.fetch_account(owner, account_pk)
+        operation = await self.fetch_operation(account, operation_pk)
+
+        tag = await self._tags_repo.fetch_tag(owner, tag_pk)
+
+        await self._operations_repo.remove_tag(operation, tag)

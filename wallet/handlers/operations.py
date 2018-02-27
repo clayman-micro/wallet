@@ -1,10 +1,11 @@
 from aiohttp import web
 
-from wallet.adapters.operations import OperationsAPIAdapter
-from wallet.entities import Owner
+from wallet.adapters.operations import OperationsAPIAdapter, OperationTagsAPIAdapter
+from wallet.entities import EntityAlreadyExist, Owner, Tag
 from wallet.handlers import get_instance_id, get_payload, json_response
 from wallet.repositories.accounts import AccountsRepository
 from wallet.repositories.operations import OperationsRepo
+from wallet.repositories.tags import TagsRepository
 from wallet.utils.operations import OpsFilter
 
 
@@ -83,3 +84,58 @@ async def remove_operation(owner: Owner, request: web.Request) -> web.Response:
         )
 
     return json_response(response, 200)
+
+
+async def fetch_tags(owner: Owner, request: web.Request) -> web.Response:
+    account_pk = get_instance_id(request, key='account')
+    operation_pk = get_instance_id(request, key='operation')
+
+    async with request.app.db.acquire() as conn:
+        accounts_repo = AccountsRepository(conn=conn)
+        operations_repo = OperationsRepo(conn=conn)
+        tags_repo = TagsRepository(conn=conn)
+
+        adapter = OperationTagsAPIAdapter(
+            accounts_repo, operations_repo, tags_repo
+        )
+        response = await adapter.fetch_tags(owner, account_pk, operation_pk)
+
+    return json_response(response)
+
+
+async def add_tag(owner: Owner, request: web.Request) -> web.Response:
+    payload = await get_payload(request)
+
+    account_pk = get_instance_id(request, key='account')
+    operation_pk = get_instance_id(request, key='operation')
+
+    async with request.app.db.acquire() as conn:
+        accounts_repo = AccountsRepository(conn=conn)
+        operations_repo = OperationsRepo(conn=conn)
+        tags_repo = TagsRepository(conn=conn)
+
+        adapter = OperationTagsAPIAdapter(
+            accounts_repo, operations_repo, tags_repo
+        )
+        response = await adapter.add_tag(owner, account_pk, operation_pk,
+                                         payload)
+
+    return json_response(response, 201)
+
+
+async def remove_tag(owner: Owner, request: web.Request) -> web.Response:
+    account_pk = get_instance_id(request, key='account')
+    operation_pk = get_instance_id(request, key='operation')
+    tag_pk = get_instance_id(request, key='tag')
+
+    async with request.app.db.acquire() as conn:
+        accounts_repo = AccountsRepository(conn=conn)
+        operations_repo = OperationsRepo(conn=conn)
+        tags_repo = TagsRepository(conn=conn)
+
+        adapter = OperationTagsAPIAdapter(
+            accounts_repo, operations_repo, tags_repo
+        )
+        await adapter.remove_tag(owner, account_pk, operation_pk, tag_pk)
+
+    return web.Response()
