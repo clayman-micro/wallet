@@ -4,8 +4,6 @@ from typing import Callable, Dict
 
 import cerberus
 
-from wallet.entities import OperationType
-
 
 class ValidationError(Exception):
     def __init__(self, errors):
@@ -30,20 +28,12 @@ def to_decimal(precision: int) -> Callable:
 
 
 class Validator(cerberus.Validator):
-    def __init__(self, *args, precision: int=2, **kwargs) -> None:
+    def __init__(self, *args, precision: int = 2, **kwargs) -> None:
         super(Validator, self).__init__(*args, **kwargs)
         self.precision = precision
 
     def _validate_type_decimal(self, value):
         return isinstance(value, Decimal)
-
-    def _validate_type_operation_type(self, value):
-        if value and isinstance(value, OperationType):
-            return True
-
-    def _normalize_coerce_operation_type(self, value):
-        if value:
-            return getattr(OperationType, value.upper())
 
     def _normalize_coerce_bool(self, value):
         if isinstance(value, bool):
@@ -64,7 +54,7 @@ class Validator(cerberus.Validator):
     def _normalize_default_setter_utcnow(self, document):
         return datetime.utcnow()
 
-    def validate_payload(self, payload: Dict, update: bool=False) -> Dict:
+    def validate_payload(self, payload: Dict, update: bool = False) -> Dict:
         self.allow_unknown = update
         if not self.validate(payload, update=update):
             raise ValidationError(self.errors)

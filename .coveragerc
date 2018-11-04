@@ -1,12 +1,9 @@
 [run]
 branch = True
 omit =
-    wallet/management/*
+    wallet/adapters/cli/*
 
 source = wallet
 
 [html]
 directory = tests/coverage
-
-[xml]
-output = tests/coverage.xml

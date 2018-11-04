@@ -5,8 +5,8 @@ import logging.config
 import click
 import uvloop
 
-from wallet import configure, init
-from wallet.management.server import server
+from wallet.adapters.cli.server import server
+from wallet.app import configure, init
 
 
 class Context(object):

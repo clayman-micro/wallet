@@ -14,7 +14,7 @@ project = 'wallet'
 
 setup(
     name=project,
-    version='2.2.0',
+    version='2.3.0',
     url='https://wallet.clayman.pro',
     license='MIT',
     author='Kirill Sumorokov',
@@ -31,33 +31,43 @@ setup(
     )],
 
     install_requires=[
-        'aiohttp',
-        'asyncpg',
-        'cerberus',
-        'click',
-        'passlib',
-        'pyjwt',
-        'pyyaml',
-        'raven',
-        'raven-aiohttp',
-        'ujson',
-        'uvloop',
+        'aiodns==1.1.1',
+        'aiohttp==3.3.2',
+        'asyncpg==0.16.0',
+        'attrs==18.1.0',
+        'cchardet==2.1.1',
+        'cerberus==1.2',
+        'click==6.7',
+        'pendulum==2.0.3',
+        'prometheus_client>=0.0.19',
+        'pyyaml==4.2b4',
+        'raven==6.9.0',
+        'raven-aiohttp==0.7.0',
+        'ujson==1.35',
+        'uvloop==0.10.1',
     ],
 
     extras_require={
-        'develop': [
+        'dev': [
             'flake8',
-            'flake8-builtins-unleashed',
             'flake8-bugbear',
+            'flake8-builtins-unleashed',
             'flake8-comprehensions',
             'flake8-import-order',
-            'flake8-mypy',
-            'flake8-pytest'
+            'flake8-pytest',
+
+            'faker',
+            'pytest',
+            'pytest-aiohttp',
+            'pytest-postgres',
+            'coverage',
+            'coveralls',
+            'requests'
         ]
     },
 
     entry_points='''
         [console_scripts]
-        wallet=wallet.management.cli:cli
+        wallet=wallet.adapters.cli:cli
     '''
 )

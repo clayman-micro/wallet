@@ -3,8 +3,8 @@ import pytest
 
 
 @pytest.mark.handlers
-async def test_index(client, passport_gateway):
-    client.server.app.passport = passport_gateway
+async def test_index(aiohttp_client, app):
+    client = await aiohttp_client(app)
     access_token = 'access-token'
 
     resp = await client.get('/', headers={'X-ACCESS-TOKEN': access_token})

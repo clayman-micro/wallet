@@ -97,7 +97,7 @@ class Config(abc.MutableMapping):
         if value:
             self[variable_name] = value
 
-    def update_from_yaml(self, filename: str, silent: bool=False) -> None:
+    def update_from_yaml(self, filename: str, silent: bool = False) -> None:
         if not filename.endswith('yml'):
             raise RuntimeError('Config should be in yaml format')
 

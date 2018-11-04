@@ -29,6 +29,7 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
+.pytest_cache
 .tox
 cover
 tests/coverage
@@ -49,9 +50,8 @@ nosetests.xml
 .mypy_cache
 .scannerwork
 *.tar.gz
-
-conf
-
-ansible/*.retry
+.vscode
+.env
+venv
 
 backups
