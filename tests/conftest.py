@@ -4,11 +4,7 @@ import faker
 import pytest
 
 from wallet.app import configure, init
-
-
-@pytest.fixture(scope='session')
-def fake():
-    return faker.Faker()
+from wallet.domain.entities import User
 
 
 @pytest.fixture(scope='session')
@@ -43,3 +39,13 @@ def app(loop, pg_server, config):
 
 
     loop.run_until_complete(app.cleanup())
+
+
+@pytest.fixture(scope='session')
+def fake():
+    return faker.Faker()
+
+
+@pytest.fixture(scope='function')
+def user(fake: Any) -> User:
+    return User(fake.free_email(), key=1)
