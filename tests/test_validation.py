@@ -1,10 +1,11 @@
 from datetime import datetime
 
-import pytest
+import pytest  # type: ignore
 
 from wallet.validation import Validator
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize('payload', ('True', 'true', '1', 'yes'))
 def test_validator_coerce_boolean(payload):
     schema = {'enabled': {'type': 'boolean', 'coerce': 'bool'}}
@@ -16,6 +17,7 @@ def test_validator_coerce_boolean(payload):
     assert document['enabled']
 
 
+@pytest.mark.unit
 def test_validator_coerce_datetime():
     schema = {'created_on': {'type': 'datetime', 'coerce': 'datetime'}}
 
@@ -25,6 +27,7 @@ def test_validator_coerce_datetime():
     assert isinstance(document['created_on'], datetime)
 
 
+@pytest.mark.unit
 @pytest.mark.parametrize('payload', ({}, {'foo': 'bar'}))
 def test_validator_utcnow_default_setter(payload):
     validator = Validator({'created_on': {
@@ -34,6 +37,5 @@ def test_validator_utcnow_default_setter(payload):
     }})
     document = validator.validate_payload(payload, update=True)
 
-    print(document)
     assert 'created_on' in document
     assert isinstance(document['created_on'], datetime)

@@ -32,7 +32,7 @@ setup(
 
     install_requires=[
         'aiodns==1.1.1',
-        'aiohttp==3.3.2',
+        'aiohttp==3.4.4',
         'asyncpg==0.16.0',
         'attrs==18.1.0',
         'cchardet==2.1.1',
@@ -55,6 +55,8 @@ setup(
             'flake8-comprehensions',
             'flake8-import-order',
             'flake8-pytest',
+            'flake8-print',
+            'mypy==0.641',
 
             'faker',
             'pytest',

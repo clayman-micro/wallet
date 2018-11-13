@@ -1,12 +1,13 @@
 from decimal import Decimal
 from typing import List
 
-import pendulum
-import pytest
+import pendulum  # type: ignore
+import pytest  # type: ignore
 
 from wallet.domain.entities import Account, Balance, Operation, OperationType
 
 
+@pytest.mark.unit
 @pytest.fixture(scope='module')
 def operations_factory(fake):
     def build(raw) -> List[Operation]:
@@ -20,7 +21,7 @@ def operations_factory(fake):
             created_on = fake.date_time_between_dates(datetime_start=start,
                                                       datetime_end=end)
 
-            operation = Operation(Decimal(amount), account, key=index,
+            operation = Operation(index, Decimal(amount), account,
                                   type=OperationType(operation_type),
                                   created_on=created_on)
             operations.append(operation)
@@ -29,8 +30,9 @@ def operations_factory(fake):
     return build
 
 
+@pytest.mark.unit
 def test_initial_balance(fake, user):
-    account = Account(fake.credit_card_provider(), user)
+    account = Account(1, fake.credit_card_provider(), user)
 
     created = pendulum.today()
     assert account.balance == [
@@ -39,6 +41,7 @@ def test_initial_balance(fake, user):
     ]
 
 
+@pytest.mark.unit
 def test_skip_balance_initialization(fake, user):
     created = pendulum.yesterday()
 
@@ -47,14 +50,15 @@ def test_skip_balance_initialization(fake, user):
                 incomes=Decimal('0'), month=created.start_of('month').date())
     ]
 
-    account = Account(fake.credit_card_provider(), user, balance=balance)
+    account = Account(1, fake.credit_card_provider(), user, balance=balance)
     assert account.balance == balance
 
 
+@pytest.mark.unit
 def test_apply_operation_to_current_month(fake, user, operations_factory):
     today = pendulum.today().date()
 
-    account = Account(fake.credit_card_provider(), user)
+    account = Account(1, fake.credit_card_provider(), user)
     operations = operations_factory((
         ('632.81', account, 'expense', today),
     ))
@@ -67,11 +71,12 @@ def test_apply_operation_to_current_month(fake, user, operations_factory):
     ]
 
 
+@pytest.mark.unit
 def test_apply_operations_two_month_earlier_missing_month(fake, user, operations_factory):
     today = pendulum.today().date()
     month = today.start_of('month')
 
-    account = Account(fake.credit_card_provider(), user, balance=[
+    account = Account(1, fake.credit_card_provider(), user, balance=[
         Balance(rest=Decimal('5421.55'), expenses=Decimal('4578.45'),
                 incomes=Decimal('10000'), month=month)
     ])
@@ -90,11 +95,12 @@ def test_apply_operations_two_month_earlier_missing_month(fake, user, operations
     ]
 
 
+@pytest.mark.unit
 def test_apply_operation_two_month_earlier_existing_month(fake, user, operations_factory):
     today = pendulum.today().date()
     month = today.start_of('month')
 
-    account = Account(fake.credit_card_provider(), user, balance=[
+    account = Account(1, fake.credit_card_provider(), user, balance=[
         Balance(rest=Decimal('5421.55'), expenses=Decimal('4578.45'),
                 incomes=Decimal('10000'), month=month.subtract(months=2)),
         Balance(rest=Decimal('10247.05'), expenses=Decimal('3874.50'),
@@ -118,10 +124,11 @@ def test_apply_operation_two_month_earlier_existing_month(fake, user, operations
     ]
 
 
+@pytest.mark.unit
 def test_rollback_operation_from_current_month(fake, user, operations_factory):
     created = pendulum.yesterday()
 
-    account = Account(fake.credit_card_provider(), user)
+    account = Account(1, fake.credit_card_provider(), user)
     operations = operations_factory((
         ('632.81', account, 'expense', created),
     ))
@@ -134,10 +141,11 @@ def test_rollback_operation_from_current_month(fake, user, operations_factory):
     ]
 
 
+@pytest.mark.unit
 def test_rollback_operation_two_month_earlier(fake, user, operations_factory):
     today = pendulum.today()
 
-    account = Account(fake.credit_card_provider(), user, balance=[
+    account = Account(1, fake.credit_card_provider(), user, balance=[
         Balance(
             rest=Decimal('1867.19'), expenses=Decimal('632.81'),
             incomes=Decimal('2500'),

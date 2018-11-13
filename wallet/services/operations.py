@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from wallet.domain.commands import AddOperationToAccount
-from wallet.domain.entities import Operation
+from wallet.domain.entities import Account, Operation
 from wallet.domain.storage import Storage
 
 
@@ -12,19 +12,28 @@ class AddOperationToAccountHandler:
         self._storage = storage
 
     async def handle(self, cmd: AddOperationToAccount) -> None:
-        account = cmd.account
+        account: Account = cmd.account
 
         description = cmd.description
         if not description:
             description = ''
 
-        created_on = cmd.created_on
-        if not cmd.created_on:
-            created_on = datetime.now()
-
-        operation = Operation(cmd.amount, account, type=cmd.type,
-                              description=description, created_on=created_on)
+        created_on = datetime.now()
+        if cmd.created_on:
+            created_on = cmd.created_on
 
         async with self._storage as store:
-            await store.operations.add(operation)
+            operation = Operation(
+                key=0,
+                amount=cmd.amount,
+                account=account,
+                description=description,
+                type=cmd.type,
+                created_on=created_on
+            )
+            operation.key = await store.operations.add(operation)
+
+            account.apply_operation(operation)
+
+            await store.accounts.update(account, balance=account.balance)
             await store.commit()

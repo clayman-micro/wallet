@@ -1,7 +1,10 @@
 import logging
+from typing import Any
+# import subprocess
+# from pathlib import Path
 
-import faker
-import pytest
+import faker  # type: ignore
+import pytest  # type: ignore
 
 from wallet.app import configure, init
 from wallet.domain.entities import User
@@ -34,9 +37,26 @@ def app(loop, pg_server, config):
 
     app = loop.run_until_complete(init(config, logger))
 
+    # cwd = Path(config['app_root'])
+    # sql_root = cwd / 'repositories' / 'sql'
+    #
+    # cmd = 'cat {schema} | PGPASSWORD=\'{password}\' psql -h {host} -p {port} -d {database} -U {user}'  # noqa
+    #
+    # subprocess.call([cmd.format(
+    #     schema=(sql_root / 'upgrade_schema.sql').as_posix(),
+    #     database=config['db_name'],
+    #     host=config['db_host'], port=config['db_port'],
+    #     user=config['db_user'], password=config['db_password'],
+    # )], shell=True, cwd=cwd.as_posix())
 
     yield app
 
+    # subprocess.call([cmd.format(
+    #     schema=(sql_root / 'downgrade_schema.sql').as_posix(),
+    #     database=config['db_name'],
+    #     host=config['db_host'], port=config['db_port'],
+    #     user=config['db_user'], password=config['db_password'],
+    # )], shell=True, cwd=cwd.as_posix())
 
     loop.run_until_complete(app.cleanup())
 
@@ -48,4 +68,4 @@ def fake():
 
 @pytest.fixture(scope='function')
 def user(fake: Any) -> User:
-    return User(fake.free_email(), key=1)
+    return User(1, fake.free_email())

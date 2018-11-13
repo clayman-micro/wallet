@@ -11,7 +11,7 @@ class AddTagHandler:
         self._storage = storage
 
     async def handle(self, cmd: AddTag) -> None:
-        tag = Tag(name=cmd.name, user=cmd.user)
+        tag = Tag(0, cmd.name, cmd.user)
 
         async with self._storage as store:
             spec = UniqueTagNameSpecification(repo=store.tags)

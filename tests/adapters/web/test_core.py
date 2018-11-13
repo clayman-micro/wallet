@@ -1,8 +1,8 @@
 import pkg_resources
-import pytest
+import pytest  # type: ignore
 
 
-@pytest.mark.handlers
+@pytest.mark.integration
 async def test_index(aiohttp_client, app):
     client = await aiohttp_client(app)
     access_token = 'access-token'

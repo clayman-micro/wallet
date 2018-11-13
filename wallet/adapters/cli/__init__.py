@@ -3,7 +3,7 @@ import logging
 import logging.config
 
 import click
-import uvloop
+import uvloop  # type: ignore
 
 from wallet.adapters.cli.server import server
 from wallet.app import configure, init

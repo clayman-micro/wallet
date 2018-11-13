@@ -1,19 +1,19 @@
 import logging
 import os
-from typing import Dict
+from typing import AsyncGenerator, Dict
 
 import pkg_resources
 from aiohttp import web
-from asyncpg.pool import create_pool
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
-from raven import Client as Raven
-from raven_aiohttp import AioHttpTransport
+from asyncpg.pool import create_pool  # type: ignore
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram  # type: ignore
+from raven import Client as Raven  # type: ignore
+from raven_aiohttp import AioHttpTransport  # type: ignore
 
 from wallet.adapters.web import catch_exceptions_middleware, core, prometheus_middleware
 from wallet.config import Config
 
 
-async def db_engine(app) -> None:
+async def db_engine(app: web.Application) -> AsyncGenerator:
     config = app['config']
 
     app['db'] = await create_pool(

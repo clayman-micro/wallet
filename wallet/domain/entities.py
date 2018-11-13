@@ -1,18 +1,16 @@
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List
 
 import attr
-import pendulum
-
-from wallet.domain import Entity
+import pendulum  # type: ignore
 
 
 @attr.s(auto_attribs=True, slots=True)
-class User(Entity):
+class User:
+    key: int
     email: str
-    key: Optional[int] = 0
 
 
 @attr.s(slots=True)
@@ -24,10 +22,10 @@ class Balance:
 
 
 @attr.s(auto_attribs=True, slots=True)
-class Account(Entity):
+class Account:
+    key: int
     name: str
     user: User
-    key: Optional[int] = 0
     balance: List[Any] = []
 
     def __attrs_post_init__(self):
@@ -49,7 +47,7 @@ class Account(Entity):
 
         result = []
 
-        rest = 0
+        rest = Decimal('0')
         current = first
         while current <= last:
             item = balance.get(current, Balance(rest=rest, month=current))
@@ -94,10 +92,10 @@ class Account(Entity):
 
 
 @attr.s(auto_attribs=True, slots=True)
-class Tag(Entity):
+class Tag:
+    key: int
     name: str
     user: User
-    key: Optional[int] = 0
 
 
 class OperationType(Enum):
@@ -106,11 +104,11 @@ class OperationType(Enum):
 
 
 @attr.s(auto_attribs=True, slots=True)
-class Operation(Entity):
+class Operation:
+    key: int
     amount: Decimal
     account: Account
-    key: int = attr.ib(default=0)
     description: str = attr.ib(default='')
     type: OperationType = attr.ib(default=OperationType.expense)
     tags: List[Tag] = attr.ib(default=attr.Factory(set))
-    created_on: Optional[datetime] = attr.ib(factory=lambda: datetime.now())
+    created_on: datetime = attr.ib(factory=lambda: datetime.now())

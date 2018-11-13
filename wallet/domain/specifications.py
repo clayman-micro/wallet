@@ -1,12 +1,12 @@
-from wallet.domain import EntityAlreadyExist, Specification
+from wallet.domain import EntityAlreadyExist, Repo, Specification
 from wallet.domain.entities import Account, Tag
-from wallet.domain.storage import AccountQuery, AccountsRepo, TagQuery, TagsRepo
+from wallet.domain.storage import AccountQuery, TagQuery
 
 
-class UniqueAccountNameSpecification(Specification):
+class UniqueAccountNameSpecification(Specification[Account]):
     __slots__ = ('_repo', )
 
-    def __init__(self, repo: AccountsRepo) -> None:
+    def __init__(self, repo: Repo) -> None:
         self._repo = repo
 
     async def is_satisfied_by(self, instance: Account) -> bool:
@@ -19,10 +19,10 @@ class UniqueAccountNameSpecification(Specification):
         return True
 
 
-class UniqueTagNameSpecification(Specification):
+class UniqueTagNameSpecification(Specification[Tag]):
     __slots__ = ('_repo', )
 
-    def __init__(self, repo: TagsRepo) -> None:
+    def __init__(self, repo: Repo) -> None:
         self._repo = repo
 
     async def is_satisfied_by(self, instance: Tag) -> bool:

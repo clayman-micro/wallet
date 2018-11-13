@@ -1,8 +1,4 @@
-from typing import List, Optional
-
-
-class Entity:
-    pass
+from typing import Generic, List, Optional, TypeVar
 
 
 class EntityNotFound(Exception):
@@ -13,8 +9,12 @@ class EntityAlreadyExist(Exception):
     pass
 
 
-class Specification:
-    def is_satisfied_by(self, instance: Entity) -> bool:
+E = TypeVar('E')
+Q = TypeVar('Q')
+
+
+class Specification(Generic[E]):
+    async def is_satisfied_by(self, instance: E) -> bool:
         raise NotImplementedError
 
 
@@ -25,11 +25,17 @@ class Query:
         self.key = key
 
 
-class Repository:
-    async def find(self, query: Query) -> List[Entity]:
+class Repo(Generic[E, Q]):
+    async def find(self, query: Q) -> List[E]:
         raise NotImplementedError
 
-    async def add(self, instance: Entity) -> int:
+    async def add(self, instance: E) -> int:
+        raise NotImplementedError
+
+    async def update(self, instance: E) -> bool:
+        raise NotImplementedError
+
+    async def remove(self, instance: E) -> bool:
         raise NotImplementedError
 
 
@@ -40,8 +46,8 @@ class UnitOfWork:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         raise NotImplementedError
 
-    def commit(self):
+    async def commit(self):
         raise NotImplementedError
 
-    def rollback(self):
+    async def rollback(self):
         raise NotImplementedError

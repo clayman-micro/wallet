@@ -29,6 +29,7 @@ install: clean
 
 lint:
 	flake8 wallet tests
+	mypy wallet tests
 
 test:
 	py.test

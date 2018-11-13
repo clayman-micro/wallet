@@ -1,28 +1,30 @@
 from collections import defaultdict
-from typing import List
+from typing import Any, Dict, List, TypeVar
 
-import pytest
+import pytest  # type: ignore
 
-from wallet.domain.entities import Account, Operation, Tag
-from wallet.domain.storage import (
-    AccountQuery, AccountsRepo, OperationQuery, OperationsRepo,
-    Storage, TagQuery, TagsRepo
-)
+from wallet.domain import Repo
+from wallet.domain.entities import Account, Operation, Tag, User
+from wallet.domain.storage import AccountQuery, OperationQuery, Storage, TagQuery
 
 
-class FakeAccountsRepo(AccountsRepo):
-    def __init__(self):
-        self._entities = defaultdict(list)
+Entity = TypeVar('Entity', Account, Tag)
+Query = TypeVar('Query', AccountQuery, TagQuery)
 
-    async def add(self, account: Account) -> Account:
-        self._entities[account.user.key].append(account)
-        return account
 
-    async def find(self, query: AccountQuery) -> List[Account]:
+class FakeRepo(Repo[Entity, Query]):
+    def __init__(self) -> None:
+        self._entities: Dict[int, List[Entity]] = defaultdict(list)
+
+    @property
+    def entities(self) -> Dict[int, List[Entity]]:
+        return self._entities
+
+    async def find(self, query: Query) -> List[Entity]:
         try:
             if query.key:
                 result = list(filter(lambda item: item.key == query.key, self._entities[query.user.key]))
-            elif query.name:
+            elif query.name is not None:
                 result = list(filter(
                     lambda item: item.name.lower() == query.name.lower(),
                     self._entities[query.user.key]
@@ -34,71 +36,49 @@ class FakeAccountsRepo(AccountsRepo):
 
         return result
 
-    @property
-    def entities(self):
-        return self._entities
+    async def add(self, instance: Entity) -> int:
+        self._entities[instance.user.key].append(instance)
+        return instance.key
+
+    async def update(self, instance: Entity) -> bool:
+        pass
+
+    async def remove(self, instance: Entity) -> bool:
+        pass
 
 
-class FakeTagsRepo(TagsRepo):
-    def __init__(self):
-        self._entities = defaultdict(list)
-
-    async def add(self, tag: Tag) -> Tag:
-        self._entities[tag.user.key].append(tag)
-        return tag
-
-    async def find(self, query: TagQuery) -> List[Tag]:
-        try:
-            if query.key:
-                result = list(filter(lambda item: item.key == query.key, self._entities[query.user.key]))
-            elif query.name:
-                result = list(filter(
-                    lambda item: item.name.lower() == query.name.lower(),
-                    self._entities[query.user.key]
-                ))
-            else:
-                result = self._entities[query.user.key]
-        except KeyError:
-            result = []
-
-        return result
+class FakeOperationRepo(Repo[Operation, OperationQuery]):
+    def __init__(self) -> None:
+        self._entities: Dict[int, List[Operation]] = defaultdict(list)
 
     @property
-    def entities(self):
+    def entities(self) -> Dict[int, List[Operation]]:
         return self._entities
 
-
-class FakeOperationsRepo(OperationsRepo):
-    def __init__(self):
-        self._entities = defaultdict(list)
-
-    async def add(self, operation: Operation) -> Operation:
-        self._entities[operation.account.key].append(operation)
-        return operation
+    async def add(self, instance: Operation) -> int:
+        self._entities[instance.account.key].append(instance)
+        return instance.key
 
     async def find(self, query: OperationQuery) -> List[Operation]:
+        result: List[Operation] = []
         try:
             if query.key:
-                result = list(filter(lambda item: item.key == query.key, self._entities[query.account.key]))
-            else:
-                result = self._entities[query.account.key]
+                result = list(filter(
+                    lambda item: item.key == query.key,
+                    self._entities[query.account.key]
+                ))
         except KeyError:
-            result = []
+            pass
 
         return result
-
-    @property
-    def entities(self):
-        return self._entities
 
 
 class FakeStorage(Storage):
-    def __init__(self):
-        super(FakeStorage, self).__init__()
+    def __init__(self, accounts: Repo[Account, AccountQuery],
+                 operations: FakeOperationRepo,
+                 tags: Repo[Tag, TagQuery]) -> None:
 
-        self._accounts = FakeAccountsRepo()
-        self._operations = FakeOperationsRepo()
-        self._tags = FakeTagsRepo()
+        super(FakeStorage, self).__init__(accounts, operations, tags)
 
         self.was_committed = False
         self.was_rolled_back = False
@@ -111,25 +91,40 @@ class FakeStorage(Storage):
         self.exc_val = exc_val
         self.exc_tb = exc_tb
 
+        await self.rollback()
+
     async def commit(self):
         self.was_committed = True
 
     async def rollback(self):
         self.was_rolled_back = True
 
-    @property
-    def accounts(self):
-        return self._accounts
 
-    @property
-    def operations(self):
-        return self._operations
-
-    @property
-    def tags(self):
-        return self._tags
+@pytest.fixture(scope='function')
+def account(fake: Any, user: User) -> Account:
+    return Account(1, fake.credit_card_provider(), user=user)
 
 
 @pytest.fixture(scope='function')
-def storage():
-    return FakeStorage()
+def tag(fake: Any, user: User) -> Tag:
+    return Tag(1, fake.safe_color_name(), user=user)
+
+
+@pytest.fixture(scope='function')
+def accounts_repo():
+    return FakeRepo[Account, AccountQuery]()
+
+
+@pytest.fixture(scope='function')
+def operations_repo():
+    return FakeOperationRepo()
+
+
+@pytest.fixture(scope='function')
+def tags_repo():
+    return FakeRepo[Tag, TagQuery]()
+
+
+@pytest.fixture(scope='function')
+def storage(accounts_repo, operations_repo, tags_repo):
+    return FakeStorage(accounts_repo, operations_repo, tags_repo)

@@ -1,8 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
-import cerberus
+import cerberus  # type: ignore
 
 
 class ValidationError(Exception):
@@ -18,10 +18,10 @@ def to_decimal(precision: int) -> Callable:
     quant = ''.join(('0.', ''.join(map(lambda x: '0',
                                        range(precision - 1))), '1'))
 
-    def wrapped(value: str) -> Decimal:
+    def wrapped(value: str) -> Optional[Decimal]:
         try:
-            value = float(value)
-            return Decimal(value).quantize(Decimal(quant))
+            v = float(value)
+            return Decimal(v).quantize(Decimal(quant))
         except ValueError:
             return None
     return wrapped
