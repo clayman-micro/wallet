@@ -1,22 +1,25 @@
-from wallet.domain.commands import AddTag
-from wallet.domain.entities import Tag
-from wallet.domain.specifications import UniqueTagNameSpecification
-from wallet.domain.storage import Storage
+from wallet.domain import EntityAlreadyExist
+from wallet.domain.entities import Tag, User
+from wallet.domain.storage import Storage, TagQuery
 
 
-class AddTagHandler:
+class TagsService:
     __slots__ = ('_storage', )
 
     def __init__(self, storage: Storage) -> None:
         self._storage = storage
 
-    async def handle(self, cmd: AddTag) -> None:
-        tag = Tag(0, cmd.name, cmd.user)
+    async def add(self, name: str, user: User) -> Tag:
+        tag = Tag(key=0, name=name, user=user)
 
         async with self._storage as store:
-            spec = UniqueTagNameSpecification(repo=store.tags)
+            query = TagQuery(user=user, name=name)
+            existed = await store.tags.find(query)
 
-            satisfied = await spec.is_satisfied_by(tag)
-            if satisfied:
-                await store.tags.add(tag)
-                await store.commit()
+            if existed:
+                raise EntityAlreadyExist()
+
+            tag.key = await store.tags.add(tag)
+            await store.commit()
+
+        return tag

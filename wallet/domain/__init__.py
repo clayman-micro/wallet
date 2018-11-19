@@ -13,11 +13,6 @@ E = TypeVar('E')
 Q = TypeVar('Q')
 
 
-class Specification(Generic[E]):
-    async def is_satisfied_by(self, instance: E) -> bool:
-        raise NotImplementedError
-
-
 class Query:
     __slots__ = ('key', )
 
