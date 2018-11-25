@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, Iterable, List, Optional, TypeVar
 
 
 class EntityNotFound(Exception):
@@ -27,7 +27,7 @@ class Repo(Generic[E, Q]):
     async def add(self, instance: E) -> int:
         raise NotImplementedError
 
-    async def update(self, instance: E) -> bool:
+    async def update(self, instance: E, fields: Iterable[str]) -> bool:
         raise NotImplementedError
 
     async def remove(self, instance: E) -> bool:

@@ -1,10 +1,11 @@
 import logging
+import subprocess
+from pathlib import Path
 from typing import Any
-# import subprocess
-# from pathlib import Path
 
 import faker  # type: ignore
 import pytest  # type: ignore
+from aiohttp import web
 
 from wallet.app import configure, init
 from wallet.domain.entities import User
@@ -36,29 +37,32 @@ def app(loop, pg_server, config):
                   db_port=pg_server['params']['port'])
 
     app = loop.run_until_complete(init(config, logger))
+    runner = web.AppRunner(app)
 
-    # cwd = Path(config['app_root'])
-    # sql_root = cwd / 'repositories' / 'sql'
-    #
-    # cmd = 'cat {schema} | PGPASSWORD=\'{password}\' psql -h {host} -p {port} -d {database} -U {user}'  # noqa
-    #
-    # subprocess.call([cmd.format(
-    #     schema=(sql_root / 'upgrade_schema.sql').as_posix(),
-    #     database=config['db_name'],
-    #     host=config['db_host'], port=config['db_port'],
-    #     user=config['db_user'], password=config['db_password'],
-    # )], shell=True, cwd=cwd.as_posix())
+    cwd = Path(config['app_root'])
+    sql_root = cwd / 'storage' / 'sql'
+
+    cmd = 'cat {schema} | PGPASSWORD=\'{password}\' psql -h {host} -p {port} -d {database} -U {user}'  # noqa
+
+    subprocess.call([cmd.format(
+        schema=(sql_root / 'upgrade_schema.sql').as_posix(),
+        database=config['db_name'],
+        host=config['db_host'], port=config['db_port'],
+        user=config['db_user'], password=config['db_password'],
+    )], shell=True, cwd=cwd.as_posix())
+
+    loop.run_until_complete(runner.setup())
 
     yield app
 
-    # subprocess.call([cmd.format(
-    #     schema=(sql_root / 'downgrade_schema.sql').as_posix(),
-    #     database=config['db_name'],
-    #     host=config['db_host'], port=config['db_port'],
-    #     user=config['db_user'], password=config['db_password'],
-    # )], shell=True, cwd=cwd.as_posix())
+    loop.run_until_complete(runner.cleanup())
 
-    loop.run_until_complete(app.cleanup())
+    subprocess.call([cmd.format(
+        schema=(sql_root / 'downgrade_schema.sql').as_posix(),
+        database=config['db_name'],
+        host=config['db_host'], port=config['db_port'],
+        user=config['db_user'], password=config['db_password'],
+    )], shell=True, cwd=cwd.as_posix())
 
 
 @pytest.fixture(scope='session')

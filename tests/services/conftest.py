@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, List, TypeVar
+from typing import Any, Dict, Iterable, List, TypeVar
 
 import pytest  # type: ignore
 
@@ -40,7 +40,7 @@ class FakeRepo(Repo[Entity, Query]):
         self._entities[instance.user.key].append(instance)
         return instance.key
 
-    async def update(self, instance: Entity) -> bool:
+    async def update(self, instance: Entity, fields: Iterable[str]) -> bool:
         pass
 
     async def remove(self, instance: Entity) -> bool:
