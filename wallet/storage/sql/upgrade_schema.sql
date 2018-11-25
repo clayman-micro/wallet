@@ -53,7 +53,6 @@ CREATE TABLE IF NOT EXISTS operations (
     description VARCHAR(500) NULL,
     account_id INTEGER NOT NULL REFERENCES accounts (id) ON DELETE CASCADE,
     enabled BOOLEAN DEFAULT TRUE,
-    user_id INTEGER,
     created_on TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
