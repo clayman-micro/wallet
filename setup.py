@@ -27,7 +27,7 @@ setup(
     include_package_data=True,
 
     data_files=[item for item in static_files(
-        '%s/repositories/sql' % project, 'usr/share/%s' % project
+        '%s/storage/sql' % project, 'usr/share/%s' % project
     )],
 
     install_requires=[

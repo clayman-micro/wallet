@@ -1,5 +1,6 @@
 [run]
 branch = True
+data_file = tests/.coverage
 omit =
     wallet/adapters/cli/*
 

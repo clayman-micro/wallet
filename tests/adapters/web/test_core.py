@@ -3,7 +3,8 @@ import pytest  # type: ignore
 
 
 @pytest.mark.integration
-async def test_index(aiohttp_client, app):
+async def test_index(aiohttp_client, app, passport):
+    app['passport'] = passport
     client = await aiohttp_client(app)
     access_token = 'access-token'
 
