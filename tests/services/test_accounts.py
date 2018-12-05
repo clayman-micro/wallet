@@ -5,7 +5,28 @@ import pytest  # type: ignore
 
 from wallet.domain import EntityAlreadyExist
 from wallet.domain.entities import Account
-from wallet.services.accounts import AccountsService
+from wallet.services.accounts import AccountsService, AccountValidator
+from wallet.validation import ValidationError
+
+
+class TestAccountValidator:
+
+    @pytest.mark.unit
+    def test_valid_payload(self, fake):
+        validator = AccountValidator()
+        result = validator.validate_payload({'name': fake.credit_card_provider()})
+        assert result is not None
+
+    @pytest.mark.unit
+    @pytest.mark.parametrize('payload', (
+        {},
+        {'name': ''},
+        {'foo': 'bar'}
+    ))
+    def test_invalid_payload(self, payload):
+        with pytest.raises(ValidationError):
+            validator = AccountValidator()
+            validator.validate_payload(payload)
 
 
 class TestAccountsService:

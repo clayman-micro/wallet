@@ -1,6 +1,16 @@
 from wallet.domain import EntityAlreadyExist
 from wallet.domain.entities import Account, User
 from wallet.domain.storage import AccountQuery, Storage
+from wallet.validation import Validator
+
+
+class AccountValidator(Validator):
+    def __init__(self, *args, **kwargs) -> None:
+        schema = {
+            'name': {'required': True, 'empty': False, 'type': 'string'}
+        }
+
+        super(AccountValidator, self).__init__(schema, *args, **kwargs)
 
 
 class AccountsService:

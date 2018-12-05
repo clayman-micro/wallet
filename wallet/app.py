@@ -9,7 +9,7 @@ from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram  # ty
 from raven import Client as Raven  # type: ignore
 from raven_aiohttp import AioHttpTransport  # type: ignore
 
-from wallet.adapters.web import catch_exceptions_middleware, core, prometheus_middleware
+from wallet.adapters.web import accounts, core, users
 from wallet.config import Config
 
 
@@ -29,10 +29,13 @@ async def db_engine(app: web.Application) -> AsyncGenerator:
 
 async def init(config: Config, logger: logging.Logger = None):
     app = web.Application(logger=logger, middlewares=[
-        catch_exceptions_middleware, prometheus_middleware,
+        core.catch_exceptions_middleware, core.prometheus_middleware,
+        users.auth_middleware
     ])
 
     app['config'] = config
+
+    app['passport'] = users.PassportProvider(config['passport_dsn'])
 
     if config.get('sentry_dsn', None):
         app['raven'] = Raven(config['sentry_dsn'], transport=AioHttpTransport)
@@ -62,6 +65,10 @@ async def init(config: Config, logger: logging.Logger = None):
         web.get('/', core.index, name='index'),
         web.get('/-/health', core.health, name='health'),
         web.get('/-/metrics', core.metrics, name='metrics')
+    ])
+
+    app.router.add_routes([
+        web.post('/api/accounts', accounts.register, name='api.accounts.register')
     ])
 
     return app

@@ -13,6 +13,11 @@ class User:
     email: str
 
 
+class UserProvider:
+    async def identify(self, token: str) -> User:
+        raise NotImplementedError
+
+
 @attr.s(slots=True)
 class Balance:
     rest: Decimal = attr.ib(default=Decimal('0'))
