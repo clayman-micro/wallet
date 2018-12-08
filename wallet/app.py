@@ -68,7 +68,10 @@ async def init(config: Config, logger: logging.Logger = None):
     ])
 
     app.router.add_routes([
-        web.post('/api/accounts', accounts.register, name='api.accounts.register')
+        web.get('/api/accounts', accounts.search, name='api.accounts'),
+        web.post('/api/accounts', accounts.register, name='api.accounts.register'),
+        web.put(r'/api/accounts/{account_key:\d+}', accounts.update, name='api.accounts.update'),
+        web.delete(r'/api/accounts/{account_key:\d+}', accounts.remove, name='api.accounts.remove')
     ])
 
     return app
