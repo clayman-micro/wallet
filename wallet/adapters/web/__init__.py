@@ -8,22 +8,21 @@ Handler = Callable[[web.Request], Awaitable[web.Response]]
 
 
 async def get_payload(request: web.Request) -> Dict:
-    if 'application/json' in request.content_type:
+    if "application/json" in request.content_type:
         payload = await request.json()
     else:
         payload = await request.post()
     return dict(payload)
 
 
-def get_instance_id(request, key='instance_id'):
+def get_instance_id(request, key="instance_id"):
     if key not in request.match_info:
-        raise web.HTTPInternalServerError(text='`%s` could not be found' % key)
+        raise web.HTTPInternalServerError(text="`%s` could not be found" % key)
 
     try:
         instance_id = int(request.match_info[key])
     except ValueError:
-        raise web.HTTPBadRequest(
-            text='`%s` should be numeric' % request.match_info[key])
+        raise web.HTTPBadRequest(text="`%s` should be numeric" % request.match_info[key])
 
     return instance_id
 

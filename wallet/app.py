@@ -5,12 +5,7 @@ from typing import AsyncGenerator, Dict, Optional
 import pkg_resources
 from aiohttp import web
 from asyncpg.pool import create_pool  # type: ignore
-from prometheus_client import (  # type: ignore
-    CollectorRegistry,
-    Counter,
-    Gauge,
-    Histogram,
-)
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram  # type: ignore
 from raven import Client as Raven  # type: ignore
 from raven_aiohttp import AioHttpTransport  # type: ignore
 
@@ -92,14 +87,10 @@ async def init(config: Config, logger: logging.Logger) -> web.Application:
             web.get("/api/accounts", accounts.search, name="api.accounts"),
             web.post("/api/accounts", accounts.register, name="api.accounts.register"),
             web.put(
-                r"/api/accounts/{account_key:\d+}",
-                accounts.update,
-                name="api.accounts.update",
+                r"/api/accounts/{account_key:\d+}", accounts.update, name="api.accounts.update"
             ),
             web.delete(
-                r"/api/accounts/{account_key:\d+}",
-                accounts.remove,
-                name="api.accounts.remove",
+                r"/api/accounts/{account_key:\d+}", accounts.remove, name="api.accounts.remove"
             ),
         ]
     )

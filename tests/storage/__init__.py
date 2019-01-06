@@ -6,9 +6,7 @@ from asyncpg.connection import Connection  # type: ignore
 from wallet.domain.entities import Account, Operation, Tag
 
 
-async def prepare_accounts(
-    conn: Connection, accounts: Iterable[Account]
-) -> Iterable[Account]:
+async def prepare_accounts(conn: Connection, accounts: Iterable[Account]) -> Iterable[Account]:
     now = pendulum.today()
 
     for account in accounts:
@@ -16,9 +14,7 @@ async def prepare_accounts(
           INSERT INTO accounts (name, user_id, enabled, created_on)
           VALUES ($1, $2, $3, $4) RETURNING id;
         """
-        account.key = await conn.fetchval(
-            query, account.name, account.user.key, True, now
-        )
+        account.key = await conn.fetchval(query, account.name, account.user.key, True, now)
 
         query = """
           INSERT INTO balance (rest, expenses, incomes, month, account_id)

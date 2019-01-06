@@ -66,9 +66,7 @@ class AccountsDBRepo(Repo[Account, AccountQuery]):
                     rest=item["rest"],
                     expenses=item["expenses"],
                     incomes=item["incomes"],
-                    month=pendulum.date(
-                        item["month"].year, item["month"].month, item["month"].day
-                    ),
+                    month=pendulum.date(item["month"].year, item["month"].month, item["month"].day),
                 )
                 for item in group
             ]

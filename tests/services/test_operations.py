@@ -9,13 +9,12 @@ from wallet.domain.entities import Account, Operation, OperationType
 from wallet.services.operations import OperationsService
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def account(fake, user) -> Account:
     return Account(1, fake.credit_card_provider(), user=user)
 
 
 class TestOperationsService:
-
     @pytest.mark.unit
     async def test_add_operation_to_account(self, account, storage):
         now = datetime.now()
@@ -31,12 +30,11 @@ class TestOperationsService:
         storage.operations.add = mock.MagicMock(return_value=add)
 
         service = OperationsService(storage)
-        operation = await service.add_to_account(account, Decimal('838'),
-                                                 created_on=now)
+        operation = await service.add_to_account(account, Decimal("838"), created_on=now)
 
-        assert operation == Operation(1, Decimal('838'), account,
-                                      type=OperationType.expense,
-                                      created_on=now)
+        assert operation == Operation(
+            1, Decimal("838"), account, type=OperationType.expense, created_on=now
+        )
 
         storage.operations.add.assert_called()
         storage.accounts.update.assert_called()

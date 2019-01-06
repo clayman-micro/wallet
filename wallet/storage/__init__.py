@@ -7,10 +7,12 @@ from wallet.storage.tags import TagsDBRepo
 
 
 class DBStorage(Storage):
-    __slots__ = ('_conn', '_tr', '_accounts', '_operations', '_tags')
+    __slots__ = ("_conn", "_tr", "_accounts", "_operations", "_tags")
 
     def __init__(self, conn: Connection) -> None:
-        super(DBStorage, self).__init__(AccountsDBRepo(conn), OperationsDBRepo(conn), TagsDBRepo(conn))
+        super(DBStorage, self).__init__(
+            AccountsDBRepo(conn), OperationsDBRepo(conn), TagsDBRepo(conn)
+        )
 
         self._conn = conn
 

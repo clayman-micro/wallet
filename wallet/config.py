@@ -13,9 +13,7 @@ class ImproperlyConfigured(Exception):
 
 
 class Config(abc.MutableMapping):
-    def __init__(
-        self, schema: Dict[str, str], initial: Optional[Dict[str, str]] = None
-    ) -> None:
+    def __init__(self, schema: Dict[str, str], initial: Optional[Dict[str, str]] = None) -> None:
         self._fields = {
             "app_hostname": socket.gethostname(),
             "access_log": '%a %s %Tf %b "%r" "%{Referrer}i" "%{User-Agent}i"',
@@ -43,16 +41,8 @@ class Config(abc.MutableMapping):
                     }
                 },
                 "loggers": {
-                    "aiohttp": {
-                        "level": "INFO",
-                        "handlers": ["console"],
-                        "propagate": False,
-                    },
-                    "app": {
-                        "level": "INFO",
-                        "handlers": ["console"],
-                        "propagate": False,
-                    },
+                    "aiohttp": {"level": "INFO", "handlers": ["console"], "propagate": False},
+                    "app": {"level": "INFO", "handlers": ["console"], "propagate": False},
                 },
             },
         }
@@ -105,9 +95,7 @@ class Config(abc.MutableMapping):
                 conf = yaml.load(data)
         except IOError as exc:
             if not silent:
-                exc.strerror = "Unable to load configuration file `{}`".format(
-                    exc.strerror
-                )
+                exc.strerror = "Unable to load configuration file `{}`".format(exc.strerror)
                 raise
         else:
             for key, value in iter(conf.items()):

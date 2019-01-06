@@ -10,19 +10,14 @@ from wallet.validation import ValidationError
 
 
 class TestAccountValidator:
-
     @pytest.mark.unit
     def test_valid_payload(self, fake):
         validator = AccountValidator()
-        result = validator.validate_payload({'name': fake.credit_card_provider()})
+        result = validator.validate_payload({"name": fake.credit_card_provider()})
         assert result is not None
 
     @pytest.mark.unit
-    @pytest.mark.parametrize('payload', (
-        {},
-        {'name': ''},
-        {'foo': 'bar'}
-    ))
+    @pytest.mark.parametrize("payload", ({}, {"name": ""}, {"foo": "bar"}))
     def test_invalid_payload(self, payload):
         with pytest.raises(ValidationError):
             validator = AccountValidator()
@@ -30,7 +25,6 @@ class TestAccountValidator:
 
 
 class TestAccountsService:
-
     @pytest.mark.unit
     async def test_register_account(self, fake, user, storage):
         name = fake.credit_card_provider()

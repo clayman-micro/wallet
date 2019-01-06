@@ -32,10 +32,7 @@ def account(fake, user):
     month = now.start_of("month")
 
     account = Account(
-        key=0,
-        name=fake.credit_card_number(),
-        user=user,
-        balance=[Balance(month=month.date())],
+        key=0, name=fake.credit_card_number(), user=user, balance=[Balance(month=month.date())]
     )
 
     return account
@@ -119,13 +116,7 @@ class TestFetchAccountOperations(AccountMixin):
         await assert_valid_response(
             resp,
             content_type="application/json; charset=utf-8",
-            schema={
-                "operations": {
-                    "required": True,
-                    "type": "list",
-                    "schema": operation_schema,
-                }
-            },
+            schema={"operations": {"required": True, "type": "list", "schema": operation_schema}},
         )
 
 

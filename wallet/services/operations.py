@@ -17,11 +17,7 @@ class OperationValidator(Validator):
                 "default_setter": "expense",
             },
             "description": {"type": "string", "maxlength": 255, "empty": True},
-            "created_on": {
-                "type": "datetime",
-                "coerce": "datetime",
-                "default_setter": "utcnow",
-            },
+            "created_on": {"type": "datetime", "coerce": "datetime", "default_setter": "utcnow"},
         }
 
         super(OperationValidator, self).__init__(schema, *args, **kwargs)

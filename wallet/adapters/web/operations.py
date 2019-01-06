@@ -74,9 +74,7 @@ async def search(request: web.Request) -> web.Response:
         ops_query = OperationQuery(account=accounts[0])
         operations = await storage.operations.find(query=ops_query)
 
-    response = {
-        "operations": [serialize_operation(operation) for operation in operations]
-    }
+    response = {"operations": [serialize_operation(operation) for operation in operations]}
 
     return json_response(response)
 

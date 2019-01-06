@@ -10,10 +10,7 @@ from wallet.storage import DBStorage
 
 
 def serialize_tag(instance: Tag) -> Dict[str, Any]:
-    return {
-        'id': instance.key,
-        'name': instance.name
-    }
+    return {"id": instance.key, "name": instance.name}
 
 
 @user_required
@@ -23,36 +20,34 @@ async def add(request: web.Request) -> web.Response:
     validator = TagValidator()
     document = validator.validate_payload(payload)
 
-    async with request.app['db'].acquire() as conn:
+    async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
         service = TagsService(storage)
-        tag = await service.add(name=document['name'], user=request['user'])
+        tag = await service.add(name=document["name"], user=request["user"])
 
-    return json_response({'tag': serialize_tag(tag)}, status=201)
+    return json_response({"tag": serialize_tag(tag)}, status=201)
 
 
 @user_required
 async def fetch(request: web.Request) -> web.Response:
-    async with request.app['db'].acquire() as conn:
+    async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = TagQuery(user=request['user'])
+        query = TagQuery(user=request["user"])
         tags = await storage.tags.find(query=query)
 
-    return json_response({
-        'tags': list(map(serialize_tag, tags))
-    })
+    return json_response({"tags": list(map(serialize_tag, tags))})
 
 
 @user_required
 async def remove(request: web.Request) -> web.Response:
-    tag_key = get_instance_id(request, 'tag_key')
+    tag_key = get_instance_id(request, "tag_key")
 
-    async with request.app['db'].acquire() as conn:
+    async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = TagQuery(user=request['user'], key=tag_key)
+        query = TagQuery(user=request["user"], key=tag_key)
         tags = await storage.tags.find(query=query)
         if not tags:
             raise web.HTTPNotFound()

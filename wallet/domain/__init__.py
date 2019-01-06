@@ -9,12 +9,12 @@ class EntityAlreadyExist(Exception):
     pass
 
 
-E = TypeVar('E')
-Q = TypeVar('Q')
+E = TypeVar("E")
+Q = TypeVar("Q")
 
 
 class Query:
-    __slots__ = ('key', )
+    __slots__ = ("key",)
 
     def __init__(self, key: Optional[int] = None):
         self.key = key

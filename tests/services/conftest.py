@@ -8,8 +8,8 @@ from wallet.domain.entities import Account, Operation, Tag, User
 from wallet.domain.storage import AccountQuery, OperationQuery, Storage, TagQuery
 
 
-Entity = TypeVar('Entity', Account, Tag)
-Query = TypeVar('Query', AccountQuery, TagQuery)
+Entity = TypeVar("Entity", Account, Tag)
+Query = TypeVar("Query", AccountQuery, TagQuery)
 
 
 class FakeRepo(Repo[Entity, Query]):
@@ -23,12 +23,16 @@ class FakeRepo(Repo[Entity, Query]):
     async def find(self, query: Query) -> List[Entity]:
         try:
             if query.key:
-                result = list(filter(lambda item: item.key == query.key, self._entities[query.user.key]))
+                result = list(
+                    filter(lambda item: item.key == query.key, self._entities[query.user.key])
+                )
             elif query.name is not None:
-                result = list(filter(
-                    lambda item: item.name.lower() == query.name.lower(),
-                    self._entities[query.user.key]
-                ))
+                result = list(
+                    filter(
+                        lambda item: item.name.lower() == query.name.lower(),
+                        self._entities[query.user.key],
+                    )
+                )
             else:
                 result = self._entities[query.user.key]
         except KeyError:
@@ -63,10 +67,9 @@ class FakeOperationRepo(Repo[Operation, OperationQuery]):
         result: List[Operation] = []
         try:
             if query.key:
-                result = list(filter(
-                    lambda item: item.key == query.key,
-                    self._entities[query.account.key]
-                ))
+                result = list(
+                    filter(lambda item: item.key == query.key, self._entities[query.account.key])
+                )
         except KeyError:
             pass
 
@@ -74,9 +77,12 @@ class FakeOperationRepo(Repo[Operation, OperationQuery]):
 
 
 class FakeStorage(Storage):
-    def __init__(self, accounts: Repo[Account, AccountQuery],
-                 operations: FakeOperationRepo,
-                 tags: Repo[Tag, TagQuery]) -> None:
+    def __init__(
+        self,
+        accounts: Repo[Account, AccountQuery],
+        operations: FakeOperationRepo,
+        tags: Repo[Tag, TagQuery],
+    ) -> None:
 
         super(FakeStorage, self).__init__(accounts, operations, tags)
 
@@ -100,31 +106,31 @@ class FakeStorage(Storage):
         self.was_rolled_back = True
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def account(fake: Any, user: User) -> Account:
     return Account(1, fake.credit_card_provider(), user=user)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def tag(fake: Any, user: User) -> Tag:
     return Tag(1, fake.safe_color_name(), user=user)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def accounts_repo():
     return FakeRepo[Account, AccountQuery]()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def operations_repo():
     return FakeOperationRepo()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def tags_repo():
     return FakeRepo[Tag, TagQuery]()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def storage(accounts_repo, operations_repo, tags_repo):
     return FakeStorage(accounts_repo, operations_repo, tags_repo)

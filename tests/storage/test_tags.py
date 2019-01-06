@@ -17,9 +17,7 @@ async def test_add_tag(fake, app, user):
 
         assert key == 1
 
-        query = (
-            "SELECT name FROM tags WHERE enabled = True AND user_id = $1 AND id = $2"
-        )
+        query = "SELECT name FROM tags WHERE enabled = True AND user_id = $1 AND id = $2"
         name = await conn.fetchval(query, user.key, key)
 
         assert name == tag.name
@@ -45,11 +43,7 @@ async def test_find_account_by_key(fake, app, user):
         repo = TagsDBRepo(conn)
 
         expected = await prepare_tags(
-            conn,
-            [
-                Tag(key=0, name=fake.word(), user=user),
-                Tag(key=0, name=fake.word(), user=user),
-            ],
+            conn, [Tag(key=0, name=fake.word(), user=user), Tag(key=0, name=fake.word(), user=user)]
         )
 
         query = TagQuery(user, key=expected[0].key)
@@ -64,11 +58,7 @@ async def test_find_account_by_name(fake, app, user):
         repo = TagsDBRepo(conn)
 
         expected = await prepare_tags(
-            conn,
-            [
-                Tag(key=0, name=fake.word(), user=user),
-                Tag(key=0, name=fake.word(), user=user),
-            ],
+            conn, [Tag(key=0, name=fake.word(), user=user), Tag(key=0, name=fake.word(), user=user)]
         )
 
         query = TagQuery(user, name=expected[0].name)
@@ -81,11 +71,7 @@ async def test_find_account_by_name(fake, app, user):
 async def test_rename_tag_name(fake, app, user):
     async with app["db"].acquire() as conn:
         tags = await prepare_tags(
-            conn,
-            [
-                Tag(key=0, name=fake.word(), user=user),
-                Tag(key=0, name=fake.word(), user=user),
-            ],
+            conn, [Tag(key=0, name=fake.word(), user=user), Tag(key=0, name=fake.word(), user=user)]
         )
 
         tag = tags[0]
@@ -96,9 +82,7 @@ async def test_rename_tag_name(fake, app, user):
 
         assert result is True
 
-        query = (
-            "SELECT name FROM tags WHERE enabled = TRUE AND user_id = $1 AND id = $2"
-        )
+        query = "SELECT name FROM tags WHERE enabled = TRUE AND user_id = $1 AND id = $2"
         name = await conn.fetchval(query, user.key, tag.key)
 
         assert name == tag.name
@@ -108,11 +92,7 @@ async def test_rename_tag_name(fake, app, user):
 async def test_update_tag_duplicate_name(fake, app, user):
     async with app["db"].acquire() as conn:
         tags = await prepare_tags(
-            conn,
-            [
-                Tag(key=0, name=fake.word(), user=user),
-                Tag(key=0, name=fake.word(), user=user),
-            ],
+            conn, [Tag(key=0, name=fake.word(), user=user), Tag(key=0, name=fake.word(), user=user)]
         )
 
         tag = tags[0]

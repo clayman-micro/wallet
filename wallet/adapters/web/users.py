@@ -20,8 +20,8 @@ class PassportProvider(UserProvider):
         self._dsn = dsn
 
     async def identify(self, token: str) -> User:
-        headers = {'X-ACCESS-TOKEN': token}
-        url = f'{self._dsn}/api/identify'
+        headers = {"X-ACCESS-TOKEN": token}
+        url = f"{self._dsn}/api/identify"
 
         async with ClientSession() as session:
             async with session.get(url, headers=headers) as resp:
@@ -34,7 +34,7 @@ class PassportProvider(UserProvider):
             except KeyError:
                 raise BrokenPassportResponse()
             else:
-                user = User(data['owner']['id'], data['owner']['email'])
+                user = User(data["owner"]["id"], data["owner"]["email"])
         elif status == 401:
             raise BadToken()
         else:
@@ -46,7 +46,7 @@ class PassportProvider(UserProvider):
 def user_required(f):
     @wraps(f)
     async def wrapped(request: web.Request) -> web.Response:
-        if 'user' in request and isinstance(request['user'], User):
+        if "user" in request and isinstance(request["user"], User):
             return await f(request)
         else:
             raise web.HTTPUnauthorized
@@ -56,11 +56,11 @@ def user_required(f):
 
 @web.middleware
 async def auth_middleware(request: web.Request, handler: Handler) -> web.Response:
-    token = request.headers.get('X-Access-Token', None)
+    token = request.headers.get("X-Access-Token", None)
     if token:
         try:
-            user = await request.app['passport'].identify(token)
-            request['user'] = user
+            user = await request.app["passport"].identify(token)
+            request["user"] = user
         except BadToken:
             raise web.HTTPUnauthorized
 

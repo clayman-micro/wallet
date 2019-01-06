@@ -13,13 +13,13 @@ def serialize_account(instance: Account) -> Dict[str, Any]:
     balance = instance.balance[0]
 
     return {
-        'id': instance.key,
-        'name': instance.name,
-        'balance': {
-            'incomes': float(balance.incomes),
-            'expenses': float(balance.expenses),
-            'rest': float(balance.rest)
-        }
+        "id": instance.key,
+        "name": instance.name,
+        "balance": {
+            "incomes": float(balance.incomes),
+            "expenses": float(balance.expenses),
+            "rest": float(balance.rest),
+        },
     }
 
 
@@ -30,61 +30,59 @@ async def register(request: web.Request) -> web.Response:
     validator = AccountValidator()
     document = validator.validate_payload(payload)
 
-    async with request.app['db'].acquire() as conn:
+    async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
         service = AccountsService(storage)
-        account = await service.register(name=document['name'], user=request['user'])
+        account = await service.register(name=document["name"], user=request["user"])
 
-    return json_response({'account': serialize_account(account)}, status=201)
+    return json_response({"account": serialize_account(account)}, status=201)
 
 
 @user_required
 async def search(request: web.Request) -> web.Response:
-    async with request.app['db'].acquire() as conn:
+    async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = AccountQuery(user=request['user'])
+        query = AccountQuery(user=request["user"])
         accounts = await storage.accounts.find(query=query)
 
-    return json_response({
-        'accounts': [serialize_account(account) for account in accounts]
-    })
+    return json_response({"accounts": [serialize_account(account) for account in accounts]})
 
 
 @user_required
 async def update(request: web.Request) -> web.Response:
-    account_key = get_instance_id(request, 'account_key')
+    account_key = get_instance_id(request, "account_key")
 
     payload = await get_payload(request)
 
     validator = AccountValidator()
     document = validator.validate_payload(payload)
 
-    async with request.app['db'].acquire() as conn:
+    async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = AccountQuery(user=request['user'], key=account_key)
+        query = AccountQuery(user=request["user"], key=account_key)
         accounts = await storage.accounts.find(query=query)
         if not accounts:
             raise web.HTTPNotFound()
 
         account = accounts[0]
-        if 'name' in document:
-            account.name = document['name']
-            await storage.accounts.update(account, fields=('name', ))
+        if "name" in document:
+            account.name = document["name"]
+            await storage.accounts.update(account, fields=("name",))
 
     return web.Response(status=204)
 
 
 @user_required
 async def remove(request: web.Request) -> web.Response:
-    account_key = get_instance_id(request, 'account_key')
+    account_key = get_instance_id(request, "account_key")
 
-    async with request.app['db'].acquire() as conn:
+    async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = AccountQuery(user=request['user'], key=account_key)
+        query = AccountQuery(user=request["user"], key=account_key)
         accounts = await storage.accounts.find(query=query)
         if not accounts:
             raise web.HTTPNotFound()

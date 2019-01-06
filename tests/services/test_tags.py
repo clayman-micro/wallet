@@ -9,7 +9,6 @@ from wallet.services.tags import TagsService
 
 
 class TestTagsService:
-
     @pytest.mark.unit
     async def test_add_tag(self, fake, user, storage):
         name = fake.safe_color_name()

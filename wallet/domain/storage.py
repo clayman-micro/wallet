@@ -6,9 +6,9 @@ from wallet.domain.entities import Account, Operation, Tag, User
 
 
 class AccountQuery(Query):
-    __slots__ = ('user', 'key', 'name')
+    __slots__ = ("user", "key", "name")
 
-    def __init__(self, user: User, name: str = '', key: int = 0) -> None:
+    def __init__(self, user: User, name: str = "", key: int = 0) -> None:
 
         super(AccountQuery, self).__init__(key)
 
@@ -17,9 +17,9 @@ class AccountQuery(Query):
 
 
 class TagQuery(Query):
-    __slots__ = ('user', 'key', 'name')
+    __slots__ = ("user", "key", "name")
 
-    def __init__(self, user: User, name: str = '', key: int = 0) -> None:
+    def __init__(self, user: User, name: str = "", key: int = 0) -> None:
 
         super(TagQuery, self).__init__(key)
 
@@ -28,10 +28,9 @@ class TagQuery(Query):
 
 
 class OperationQuery(Query):
-    __slots__ = ('account', 'key', 'month')
+    __slots__ = ("account", "key", "month")
 
-    def __init__(self, account: Account, key: int = 0,
-                 month: Optional[date] = None) -> None:
+    def __init__(self, account: Account, key: int = 0, month: Optional[date] = None) -> None:
 
         super(OperationQuery, self).__init__(key)
 
@@ -40,11 +39,14 @@ class OperationQuery(Query):
 
 
 class Storage(UnitOfWork):
-    __slots__ = ('_accounts', '_operations', '_tags')
+    __slots__ = ("_accounts", "_operations", "_tags")
 
-    def __init__(self, accounts: Repo[Account, AccountQuery],
-                 operations: Repo[Operation, OperationQuery],
-                 tags: Repo[Tag, TagQuery]) -> None:
+    def __init__(
+        self,
+        accounts: Repo[Account, AccountQuery],
+        operations: Repo[Operation, OperationQuery],
+        tags: Repo[Tag, TagQuery],
+    ) -> None:
 
         self._accounts = accounts
         self._operations = operations

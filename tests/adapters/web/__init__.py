@@ -6,10 +6,7 @@ from wallet.validation import Validator
 
 
 async def assert_valid_response(
-    response,
-    status: int = 200,
-    content_type: Optional[str] = None,
-    schema: Optional[Dict] = None,
+    response, status: int = 200, content_type: Optional[str] = None, schema: Optional[Dict] = None
 ) -> None:
     assert response.status == status
 

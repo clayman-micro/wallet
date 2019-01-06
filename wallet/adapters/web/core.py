@@ -15,12 +15,12 @@ async def catch_exceptions_middleware(request: web.Request, handler: Handler) ->
     except ValidationError as exc:
         return json_response(exc.errors, status=422)
     except Exception as exc:
-        if isinstance(exc, (web.HTTPClientError, )):
+        if isinstance(exc, (web.HTTPClientError,)):
             raise
 
         # send error to sentry
-        if 'raven' in request.app:
-            request.app['raven'].captureException()
+        if "raven" in request.app:
+            request.app["raven"].captureException()
         else:
             raise exc
 
@@ -28,40 +28,44 @@ async def catch_exceptions_middleware(request: web.Request, handler: Handler) ->
 
 
 async def index(request: web.Request) -> web.Response:
-    return json_response({
-        'project': request.app['distribution'].project_name,
-        'version': request.app['distribution'].version
-    })
+    return json_response(
+        {
+            "project": request.app["distribution"].project_name,
+            "version": request.app["distribution"].version,
+        }
+    )
 
 
 async def health(request: web.Request) -> web.Response:
-    return web.Response(body=b'Healthy')
+    return web.Response(body=b"Healthy")
 
 
 async def metrics(request: web.Request) -> web.Response:
-    resp = web.Response(body=prometheus_client.generate_latest(
-        registry=request.app['metrics_registry']
-    ))
+    resp = web.Response(
+        body=prometheus_client.generate_latest(registry=request.app["metrics_registry"])
+    )
     resp.content_type = CONTENT_TYPE_LATEST
     return resp
 
 
 @web.middleware
 async def prometheus_middleware(request: web.Request, handler: Handler) -> web.Response:
-    app_name = request.app['config']['app_name']
+    app_name = request.app["config"]["app_name"]
 
     start_time = time.time()
-    request.app['metrics']['REQUEST_IN_PROGRESS'].labels(
-        app_name, request.path, request.method).inc()
+    request.app["metrics"]["REQUEST_IN_PROGRESS"].labels(
+        app_name, request.path, request.method
+    ).inc()
 
     response = await handler(request)
 
     resp_time = time.time() - start_time
-    request.app['metrics']['REQUEST_LATENCY'].labels(
-        app_name, request.path).observe(resp_time)
-    request.app['metrics']['REQUEST_IN_PROGRESS'].labels(
-        app_name, request.path, request.method).dec()
-    request.app['metrics']['REQUEST_COUNT'].labels(
-        app_name, request.method, request.path, response.status).inc()
+    request.app["metrics"]["REQUEST_LATENCY"].labels(app_name, request.path).observe(resp_time)
+    request.app["metrics"]["REQUEST_IN_PROGRESS"].labels(
+        app_name, request.path, request.method
+    ).dec()
+    request.app["metrics"]["REQUEST_COUNT"].labels(
+        app_name, request.method, request.path, response.status
+    ).inc()
 
     return response
