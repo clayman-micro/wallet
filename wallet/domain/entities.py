@@ -20,10 +20,10 @@ class UserProvider:
 
 @attr.s(slots=True)
 class Balance:
-    rest: Decimal = attr.ib(default=Decimal('0'))
-    expenses: Decimal = attr.ib(default=Decimal('0'))
-    incomes: Decimal = attr.ib(default=Decimal('0'))
-    month: date = attr.ib(factory=lambda: pendulum.today().start_of('month'))
+    rest: Decimal = attr.ib(default=Decimal("0"))
+    expenses: Decimal = attr.ib(default=Decimal("0"))
+    incomes: Decimal = attr.ib(default=Decimal("0"))
+    month: date = attr.ib(factory=lambda: pendulum.today().start_of("month"))
 
 
 @attr.s(auto_attribs=True, slots=True)
@@ -35,48 +35,52 @@ class Account:
 
     def __attrs_post_init__(self):
         if not self.balance:
-            month = pendulum.today().start_of('month').date()
+            month = pendulum.today().start_of("month").date()
 
             self.balance = [Balance(month=month)]
 
-    def apply_operation(self, operation: 'Operation') -> None:
-        month = pendulum.date(year=operation.created_on.year,
-                              month=operation.created_on.month, day=1)
+    def apply_operation(self, operation: "Operation") -> None:
+        month = pendulum.date(
+            year=operation.created_on.year, month=operation.created_on.month, day=1
+        )
 
         balance = {item.month: item for item in self.balance}
 
         today = pendulum.today().date()
-        first, last = min(balance.keys()), max(balance.keys())
-        first = min(first, month)
-        last = max((last, month, today))
+        months = {month, today, *balance.keys()}
+        first, last = min(months), max(months)
 
         result = []
 
-        rest = Decimal('0')
+        rest = Decimal("0")
         current = first
         while current <= last:
-            item = balance.get(current, Balance(rest=rest, month=current))
+            if current not in balance:
+                balance[current] = Balance(rest=rest, month=current)
+            else:
+                rest = balance[current].rest
 
             if current == month:
                 if operation.type == OperationType.expense:
-                    item.expenses += operation.amount
+                    balance[current].expenses += operation.amount
                 elif operation.type == OperationType.income:
-                    item.incomes += operation.amount
+                    balance[current].incomes += operation.amount
 
             if current >= month:
                 if operation.type == OperationType.expense:
-                    item.rest -= operation.amount
+                    balance[current].rest -= operation.amount
                 elif operation.type == OperationType.income:
-                    item.rest += operation.amount
+                    balance[current].rest += operation.amount
 
-            result.append(item)
+            result.append(balance[current])
             current = current.add(months=1)
 
         self.balance = result
 
-    def rollback_operation(self, operation: 'Operation'):
-        month = pendulum.date(year=operation.created_on.year,
-                              month=operation.created_on.month, day=1)
+    def rollback_operation(self, operation: "Operation"):
+        month = pendulum.date(
+            year=operation.created_on.year, month=operation.created_on.month, day=1
+        )
 
         balance = sorted(self.balance, key=lambda item: item.month)
 
@@ -104,8 +108,8 @@ class Tag:
 
 
 class OperationType(Enum):
-    expense = 'expense'
-    income = 'income'
+    expense = "expense"
+    income = "income"
 
 
 @attr.s(auto_attribs=True, slots=True)
@@ -113,7 +117,7 @@ class Operation:
     key: int
     amount: Decimal
     account: Account
-    description: str = attr.ib(default='')
+    description: str = attr.ib(default="")
     type: OperationType = attr.ib(default=OperationType.expense)
     tags: List[Tag] = attr.ib(default=attr.Factory(set))
     created_on: datetime = attr.ib(factory=lambda: datetime.now())

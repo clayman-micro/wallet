@@ -27,18 +27,18 @@ async def catch_exceptions_middleware(request: web.Request, handler: Handler) ->
         raise web.HTTPInternalServerError
 
 
-async def index(request):
+async def index(request: web.Request) -> web.Response:
     return json_response({
         'project': request.app['distribution'].project_name,
         'version': request.app['distribution'].version
     })
 
 
-async def health(request):
+async def health(request: web.Request) -> web.Response:
     return web.Response(body=b'Healthy')
 
 
-async def metrics(request):
+async def metrics(request: web.Request) -> web.Response:
     resp = web.Response(body=prometheus_client.generate_latest(
         registry=request.app['metrics_registry']
     ))

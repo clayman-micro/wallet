@@ -6,15 +6,13 @@ from wallet.validation import Validator
 
 class AccountValidator(Validator):
     def __init__(self, *args, **kwargs) -> None:
-        schema = {
-            'name': {'required': True, 'empty': False, 'type': 'string'}
-        }
+        schema = {"name": {"required": True, "empty": False, "type": "string"}}
 
         super(AccountValidator, self).__init__(schema, *args, **kwargs)
 
 
 class AccountsService:
-    __slots__ = ('_storage', )
+    __slots__ = ("_storage",)
 
     def __init__(self, storage: Storage) -> None:
         self._storage = storage

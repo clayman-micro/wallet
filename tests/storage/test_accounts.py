@@ -4,31 +4,11 @@ import pendulum  # type: ignore
 import pytest  # type: ignore
 # import ujson  # type: ignore
 
+from tests.storage import prepare_accounts
 from wallet.domain import EntityAlreadyExist
 from wallet.domain.entities import Account, Balance
 from wallet.domain.storage import AccountQuery
 from wallet.storage.accounts import AccountsDBRepo
-
-
-async def prepare_accounts(conn, accounts):
-    now = pendulum.today()
-
-    for account in accounts:
-        account.key = await conn.fetchval("""
-          INSERT INTO accounts (name, user_id, enabled, created_on)
-          VALUES ($1, $2, $3, $4) RETURNING id;
-        """, account.name, account.user.key, True, now)
-
-        query = """
-          INSERT INTO balance (rest, expenses, incomes, month, account_id)
-          VALUES ($1, $2, $3, $4, $5);
-        """
-        await conn.executemany(query, [
-            (item.rest, item.expenses, item.incomes, item.month, account.key)
-            for item in account.balance
-        ])
-
-    return accounts
 
 
 @pytest.mark.integration

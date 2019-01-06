@@ -1,6 +1,7 @@
 import os
 import socket
 from collections import abc
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -12,51 +13,48 @@ class ImproperlyConfigured(Exception):
 
 
 class Config(abc.MutableMapping):
-
-    def __init__(self, schema, initial=None):
+    def __init__(
+        self, schema: Dict[str, str], initial: Optional[Dict[str, str]] = None
+    ) -> None:
         self._fields = {
-            'app_hostname': socket.gethostname(),
-
-            'access_log': '%a %s %Tf %b "%r" "%{Referrer}i" "%{User-Agent}i"',
-
-            'db_name': 'postgres',
-            'db_user': 'postgres',
-            'db_password': 'postgres',
-            'db_host': 'localhost',
-            'db_port': 5432,
-
-            'consul_host': 'localhost',
-            'consul_port': 8500,
-
-            'logging': {
-                'version': 1,
-                'formatters': {
-                    'simple': {
-                        'format': '%(asctime)s | %(levelname)s | %(name)s | %(message)s',  # noqa
-                        'datefmt': '%Y-%m-%d %H:%M:%S'
-                    },
-                },
-                'handlers': {
-                    'console': {
-                        'level': 'INFO',
-                        'class': 'logging.StreamHandler',
-                        'formatter': 'simple',
-                        'stream': 'ext://sys.stdout'
+            "app_hostname": socket.gethostname(),
+            "access_log": '%a %s %Tf %b "%r" "%{Referrer}i" "%{User-Agent}i"',
+            "db_name": "postgres",
+            "db_user": "postgres",
+            "db_password": "postgres",
+            "db_host": "localhost",
+            "db_port": 5432,
+            "consul_host": "localhost",
+            "consul_port": 8500,
+            "logging": {
+                "version": 1,
+                "formatters": {
+                    "simple": {
+                        "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s",  # noqa
+                        "datefmt": "%Y-%m-%d %H:%M:%S",
                     }
                 },
-                'loggers': {
-                    'aiohttp': {
-                        'level': 'INFO',
-                        'handlers': ['console', ],
-                        'propagate': False
-                    },
-                    'app': {
-                        'level': 'INFO',
-                        'handlers': ['console', ],
-                        'propagate': False
+                "handlers": {
+                    "console": {
+                        "level": "INFO",
+                        "class": "logging.StreamHandler",
+                        "formatter": "simple",
+                        "stream": "ext://sys.stdout",
                     }
                 },
-            }
+                "loggers": {
+                    "aiohttp": {
+                        "level": "INFO",
+                        "handlers": ["console"],
+                        "propagate": False,
+                    },
+                    "app": {
+                        "level": "INFO",
+                        "handlers": ["console"],
+                        "propagate": False,
+                    },
+                },
+            },
         }
         self._schema = schema
 
@@ -64,22 +62,22 @@ class Config(abc.MutableMapping):
             for key, value in iter(initial.items()):
                 self[key] = value
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: str) -> None:
         self._fields[key] = value
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return self._fields[key]
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         del self._fields[key]
 
     def __iter__(self):
         return iter(self._fields)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._fields)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._fields)
 
     def validate(self) -> None:
@@ -98,16 +96,16 @@ class Config(abc.MutableMapping):
             self[variable_name] = value
 
     def update_from_yaml(self, filename: str, silent: bool = False) -> None:
-        if not filename.endswith('yml'):
-            raise RuntimeError('Config should be in yaml format')
+        if not filename.endswith("yml"):
+            raise RuntimeError("Config should be in yaml format")
 
         try:
-            with open(filename, 'r') as fp:
+            with open(filename, "r") as fp:
                 data = fp.read()
                 conf = yaml.load(data)
         except IOError as exc:
             if not silent:
-                exc.strerror = 'Unable to load configuration file `{}`'.format(
+                exc.strerror = "Unable to load configuration file `{}`".format(
                     exc.strerror
                 )
                 raise

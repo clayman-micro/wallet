@@ -125,6 +125,39 @@ def test_apply_operation_two_month_earlier_existing_month(fake, user, operations
 
 
 @pytest.mark.unit
+def test_apply_operation_two_month_in_future(fake, user, operations_factory):
+    today = pendulum.today().date()
+    month = today.start_of('month')
+
+    account = Account(1, fake.credit_card_provider(), user, balance=[
+        Balance(rest=Decimal('5421.55'), expenses=Decimal('4578.45'),
+                incomes=Decimal('10000'), month=month.subtract(months=2)),
+        Balance(rest=Decimal('10247.05'), expenses=Decimal('3874.50'),
+                incomes=Decimal('8700'), month=month.subtract(months=1)),
+        Balance(rest=Decimal('8393.65'), expenses=Decimal('6853.40'),
+                incomes=Decimal('5000'), month=month)
+    ])
+    operations = operations_factory((
+        ('632.81', account, 'income', today.add(months=2)),
+    ))
+
+    account.apply_operation(operations[0])
+
+    assert account.balance == [
+        Balance(rest=Decimal('5421.55'), expenses=Decimal('4578.45'),
+                incomes=Decimal('10000'), month=month.subtract(months=2)),
+        Balance(rest=Decimal('10247.05'), expenses=Decimal('3874.50'),
+                incomes=Decimal('8700'), month=month.subtract(months=1)),
+        Balance(rest=Decimal('8393.65'), expenses=Decimal('6853.40'),
+                incomes=Decimal('5000'), month=month),
+        Balance(rest=Decimal('8393.65'), expenses=Decimal('0'),
+                incomes=Decimal('0'), month=month.add(months=1)),
+        Balance(rest=Decimal('9026.46'), expenses=Decimal('0.0'),
+                incomes=Decimal('632.81'), month=month.add(months=2))
+    ]
+
+
+@pytest.mark.unit
 def test_rollback_operation_from_current_month(fake, user, operations_factory):
     created = pendulum.yesterday()
 
