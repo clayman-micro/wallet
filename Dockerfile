@@ -12,7 +12,7 @@ RUN apk add --update --no-cache make libc-dev python3-dev linux-headers gcc g++ 
     rm /root/wallet-${app_version}.tar.gz && \
     apk del make libc-dev python3-dev linux-headers gcc g++
 
-RUN mkdir -p /usr/share/wallet && cp /usr/local/lib/python3.7/site-packages/wallet/repositories/sql/* /usr/share/wallet
+RUN mkdir -p /usr/share/wallet && cp /usr/local/lib/python3.7/site-packages/wallet/storage/sql/* /usr/share/wallet
 
 EXPOSE 5000
 
