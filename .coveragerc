@@ -8,3 +8,6 @@ source = wallet
 
 [html]
 directory = tests/coverage
+
+[xml]
+output = tests/coverage.xml

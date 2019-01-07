@@ -1,6 +1,6 @@
 Wallet
 ==========
 
-[![Build Status](https://travis-ci.org/clayman74/wallet.svg?branch=master)](https://travis-ci.org/clayman74/wallet) [![Coverage Status](https://coveralls.io/repos/clayman74/wallet/badge.svg?branch=master&service=github)](https://coveralls.io/github/clayman74/wallet?branch=master)
-
-Experimental project to learn how to use `asyncio`, `aiohttp` and some other stuffs.
+[![Build Status](https://travis-ci.org/clayman74/wallet.svg?branch=master)](https://travis-ci.org/clayman74/wallet)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=wallet.clayman.pro&metric=alert_status)](https://sonarcloud.io/dashboard?id=wallet.clayman.pro)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=wallet.clayman.pro&metric=coverage)](https://sonarcloud.io/dashboard?id=wallet.clayman.pro)
