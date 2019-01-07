@@ -25,7 +25,7 @@ jobs:
         - sonar-scanner
     - stage: "build"
       name: "Build"
-      if: tag is present
+      if: branch == master
       script:
         - make build-image
         - make publish-image
