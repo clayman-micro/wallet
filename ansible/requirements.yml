@@ -1,7 +1,0 @@
----
-
-- src: clayman74.consul
-- src: clayman74.digitalocean-provision
-- src: clayman74.docker
-- src: clayman74.loadbalancer
-- src: clayman74.postgresql

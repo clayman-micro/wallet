@@ -1,12 +1,10 @@
 [run]
 branch = True
+data_file = tests/.coverage
 omit =
-    wallet/management/*
+    wallet/adapters/cli/*
 
 source = wallet
 
 [html]
 directory = tests/coverage
-
-[xml]
-output = tests/coverage.xml
