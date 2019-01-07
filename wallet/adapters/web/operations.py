@@ -3,9 +3,10 @@ from typing import Any, Dict
 from aiohttp import web
 
 from wallet.adapters.web import get_instance_id, get_payload, json_response
+from wallet.adapters.web.accounts import get_account
 from wallet.adapters.web.users import user_required
-from wallet.domain.entities import Operation
-from wallet.domain.storage import AccountQuery, OperationQuery
+from wallet.domain.entities import Account, Operation
+from wallet.domain.storage import OperationQuery
 from wallet.services.operations import OperationsService, OperationValidator
 from wallet.storage import DBStorage
 
@@ -28,107 +29,75 @@ def serialize_operation(instance: Operation) -> Dict[str, Any]:
 
 @user_required
 async def add(request: web.Request) -> web.Response:
-    account_key = get_instance_id(request, "account_key")
+    validator = OperationValidator()
 
     payload = await get_payload(request)
-
-    validator = OperationValidator()
     document = validator.validate_payload(payload)
 
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = AccountQuery(user=request["user"], key=account_key)
-        accounts = await storage.accounts.find(query=query)
-
-        if not accounts:
-            raise web.HTTPNotFound()
+        account = await get_account(request, storage, "account_key")
 
         service = OperationsService(storage)
         operation = await service.add_to_account(
-            account=accounts[0],
+            account=account,
             amount=document["amount"],
             description=document.get("description", ""),
             operation_type=document["type"],
             created_on=document["created_on"],
         )
 
-    response = {"operation": serialize_operation(operation)}
-
-    return json_response(response, status=201)
+    return json_response({"operation": serialize_operation(operation)}, status=201)
 
 
 @user_required
 async def search(request: web.Request) -> web.Response:
-    account_key = get_instance_id(request, "account_key")
-
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = AccountQuery(user=request["user"], key=account_key)
-        accounts = await storage.accounts.find(query=query)
+        account = await get_account(request, storage, "account_key")
 
-        if not accounts:
-            raise web.HTTPNotFound()
+        query = OperationQuery(account=account)
+        operations = await storage.operations.find(query=query)
 
-        ops_query = OperationQuery(account=accounts[0])
-        operations = await storage.operations.find(query=ops_query)
+    return json_response(
+        {"operations": [serialize_operation(operation) for operation in operations]}
+    )
 
-    response = {"operations": [serialize_operation(operation) for operation in operations]}
 
-    return json_response(response)
+async def get_operation(
+    request: web.Request, storage: DBStorage, account: Account, key: str
+) -> Operation:
+    query = OperationQuery(account=account, key=get_instance_id(request, key))
+    operations = await storage.operations.find(query=query)
+
+    if not operations:
+        raise web.HTTPNotFound()
+
+    return operations[0]
 
 
 @user_required
 async def fetch(request: web.Request) -> web.Response:
-    account_key = get_instance_id(request, "account_key")
-    operation_key = get_instance_id(request, "operation_key")
-
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        accounts = await storage.accounts.find(
-            query=AccountQuery(user=request["user"], key=account_key)
-        )
+        account = await get_account(request, storage, "account_key")
+        operation = await get_operation(request, storage, account, "operation_key")
 
-        if not accounts:
-            raise web.HTTPNotFound()
-
-        operations = await storage.operations.find(
-            query=OperationQuery(account=accounts[0], key=operation_key)
-        )
-
-        if not operations:
-            raise web.HTTPNotFound()
-
-        response = {"operation": serialize_operation(operations[0])}
-
-    return json_response(response)
+    return json_response({"operation": serialize_operation(operation)})
 
 
 @user_required
 async def remove(request: web.Request) -> web.Response:
-    account_key = get_instance_id(request, "account_key")
-    operation_key = get_instance_id(request, "operation_key")
-
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        accounts = await storage.accounts.find(
-            query=AccountQuery(user=request["user"], key=account_key)
-        )
-
-        if not accounts:
-            raise web.HTTPNotFound()
-
-        operations = await storage.operations.find(
-            query=OperationQuery(account=accounts[0], key=operation_key)
-        )
-
-        if not operations:
-            raise web.HTTPNotFound()
+        account = await get_account(request, storage, "account_key")
+        operation = await get_operation(request, storage, account, "operation_key")
 
         service = OperationsService(storage)
-        await service.remove_from_account(accounts[0], operations[0])
+        await service.remove_from_account(account, operation)
 
     return web.Response(status=204)

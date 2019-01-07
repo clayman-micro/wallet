@@ -34,7 +34,7 @@ async def db_engine(app: web.Application) -> AsyncGenerator:
 async def init(config: Config, logger: logging.Logger) -> web.Application:
     app = web.Application(
         logger=logger,
-        middlewares=[
+        middlewares=[  # type: ignore
             core.catch_exceptions_middleware,
             core.prometheus_middleware,
             users.auth_middleware,
@@ -86,6 +86,11 @@ async def init(config: Config, logger: logging.Logger) -> web.Application:
         [
             web.get("/api/accounts", accounts.search, name="api.accounts"),
             web.post("/api/accounts", accounts.register, name="api.accounts.register"),
+            web.get(
+                r"/api/accounts/{account_key:\d+}/balance",
+                accounts.balance,
+                name="api.accounts.balance",
+            ),
             web.put(
                 r"/api/accounts/{account_key:\d+}", accounts.update, name="api.accounts.update"
             ),
@@ -137,7 +142,6 @@ config_schema = {
     "app_hostname": {"type": "string"},
     "app_host": {"type": "string"},
     "app_port": {"type": "string"},
-    "secret_key": {"type": "string", "required": True},
     "access_log": {"type": "string", "required": True},
     "db_name": {"type": "string", "required": True},
     "db_user": {"type": "string", "required": True},

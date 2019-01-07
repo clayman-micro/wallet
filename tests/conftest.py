@@ -15,7 +15,6 @@ from wallet.domain.entities import User
 def config():
     conf = configure(
         defaults={
-            "secret_key": "secret",
             "passport_dsn": "foo",
             "app_name": "wallet",
             "app_host": "localhost",

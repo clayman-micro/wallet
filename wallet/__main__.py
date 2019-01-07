@@ -15,7 +15,6 @@ class Context(object):
             config,
             {
                 "app_name": "wallet",
-                "secret_key": "secret",
                 "db_name": "wallet",
                 "db_user": "wallet",
                 "db_password": "wallet",

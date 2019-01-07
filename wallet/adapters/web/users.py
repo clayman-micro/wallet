@@ -1,4 +1,5 @@
 from functools import wraps
+from typing import Optional
 
 import ujson  # type: ignore
 from aiohttp import ClientSession, web
@@ -46,10 +47,12 @@ class PassportProvider(UserProvider):
 def user_required(f):
     @wraps(f)
     async def wrapped(request: web.Request) -> web.Response:
-        if "user" in request and isinstance(request["user"], User):
-            return await f(request)
-        else:
+        user: Optional[User] = request.get("user", None)
+
+        if not user:
             raise web.HTTPUnauthorized
+
+        return await f(request)
 
     return wrapped
 
