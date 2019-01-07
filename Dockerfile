@@ -16,4 +16,4 @@ RUN mkdir -p /usr/share/wallet && cp /usr/local/lib/python3.7/site-packages/wall
 
 EXPOSE 5000
 
-CMD ["wallet", "--config=/root/config.yml", "server", "run", "--host=0.0.0.0", "--consul"]
+CMD ["python3", "-m", "wallet", "server", "run", "--host=0.0.0.0", "--consul"]

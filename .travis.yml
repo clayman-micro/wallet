@@ -1,11 +1,7 @@
 ---
 language: python
 python:
-  - "3.6"
-
-branches:
-  only:
-  - master
+  - "3.7-dev"
 
 sudo: required
 
@@ -21,19 +17,17 @@ addons:
     branches:
       - master
 
-install:
-  - pip install tox
-
-script:
-  - tox
-  - sonar-scanner
-
-after_success:
-  # Build image and publish image
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    make build-image;
-    make publish-image;
-    fi
-
-notifications:
-  slack: claymanpro:5w9rLMZvWaCzlzUJPrUChXY5
+jobs:
+  include:
+    - stage: "test"
+      name: "Test"
+      script:
+        - pip install tox
+        - tox -- --pg-image=postgres:10-alpine
+        - sonar-scanner
+    - stage: "build"
+      name: "Build"
+      if: branch = master
+      script:
+        - make build-image
+        - make publish-image
