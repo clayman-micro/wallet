@@ -14,8 +14,6 @@ addons:
     - python-pip
   sonarcloud:
     organization: clayman74-github
-    branches:
-      - master
 
 jobs:
   include:
@@ -29,7 +27,5 @@ jobs:
       name: "Build"
       if: tag is present
       script:
-        - docker build --build-arg app_version=$(TRAVIS_TAG) -t registry.clayman.pro/wallet .
-        - docker tag registry.clayman.pro/wallet registry.clayman.pro/wallet:$(TRAVIS_TAG)
-        - docker login -u $(DOCKER_USER) -p $(DOCKER_PASS) registry.clayman.pro
-        - docker push registry.clayman.pro/wallet
+        - make build-image
+        - make publish-image
