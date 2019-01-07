@@ -27,5 +27,6 @@ jobs:
       name: "Build"
       if: branch == master
       script:
+        - pip install flit
         - make build-image
         - make publish-image
