@@ -1,3 +1,3 @@
 """ Personal finance service """
 
-__version__ = "2.3rc1"
+__version__ = "2.3rc2"

@@ -5,7 +5,8 @@ from typing import AsyncGenerator, Dict, Optional
 import pkg_resources
 from aiohttp import web
 from asyncpg.pool import create_pool  # type: ignore
-from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram  # type: ignore
+from prometheus_client import Counter, Gauge, Histogram  # type: ignore
+from prometheus_client.registry import CollectorRegistry  # type: ignore
 from raven import Client as Raven  # type: ignore
 from raven_aiohttp import AioHttpTransport  # type: ignore
 

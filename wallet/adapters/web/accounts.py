@@ -4,9 +4,11 @@ from aiohttp import web
 
 from wallet.adapters.web import get_instance_id, get_payload, json_response
 from wallet.adapters.web.users import user_required
+from wallet.domain import EntityAlreadyExist
 from wallet.domain.entities import Account
 from wallet.services.accounts import AccountQuery, AccountsService, AccountValidator
 from wallet.storage import DBStorage
+from wallet.validation import ValidationError
 
 
 def serialize_account(instance: Account) -> Dict[str, Any]:
@@ -33,8 +35,11 @@ async def register(request: web.Request) -> web.Response:
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        service = AccountsService(storage)
-        account = await service.register(name=document["name"], user=request["user"])
+        try:
+            service = AccountsService(storage)
+            account = await service.register(name=document["name"], user=request["user"])
+        except EntityAlreadyExist:
+            raise ValidationError({"name": "Already exist"})
 
     return json_response({"account": serialize_account(account)}, status=201)
 

@@ -4,7 +4,6 @@ import pendulum  # type: ignore
 import pytest  # type: ignore
 
 from tests.adapters.web import assert_valid_response, prepare_payload
-from tests.adapters.web.test_accounts import AccountMixin
 from tests.storage import prepare_accounts, prepare_operations
 from wallet.domain.entities import Account, Balance, Operation
 
@@ -38,7 +37,7 @@ def account(fake, user):
     return account
 
 
-class TestAddOperationToAccount(AccountMixin):
+class TestAddOperationToAccount:
     @pytest.mark.integration
     @pytest.mark.parametrize("json", (True, False))
     async def test_unauthorized(self, aiohttp_client, app, passport, json, account):
@@ -81,7 +80,7 @@ class TestAddOperationToAccount(AccountMixin):
         )
 
 
-class TestFetchAccountOperations(AccountMixin):
+class TestFetchAccountOperations:
     @pytest.mark.integration
     async def test_unauthorized(self, aiohttp_client, app, passport, account):
         app["passport"] = passport
@@ -120,7 +119,7 @@ class TestFetchAccountOperations(AccountMixin):
         )
 
 
-class TestFetchOperationFromAccount(AccountMixin):
+class TestFetchOperationFromAccount:
     @pytest.mark.integration
     async def test_unauthorized(self, aiohttp_client, app, passport, account):
         app["passport"] = passport
@@ -177,7 +176,7 @@ class TestFetchOperationFromAccount(AccountMixin):
         )
 
 
-class TestRemoveOperationFromAccount(AccountMixin):
+class TestRemoveOperationFromAccount:
     @pytest.mark.integration
     async def test_unauthorized(self, aiohttp_client, app, passport, account):
         app["passport"] = passport
