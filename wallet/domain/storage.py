@@ -17,14 +17,15 @@ class AccountQuery(Query):
 
 
 class TagQuery(Query):
-    __slots__ = ("user", "key", "name")
+    __slots__ = ("user", "key", "name", "operation")
 
-    def __init__(self, user: User, name: str = "", key: int = 0) -> None:
+    def __init__(self, user: User, name: str = "", key: int = 0, operation: Optional[Operation] = None) -> None:
 
         super(TagQuery, self).__init__(key)
 
         self.user = user
         self.name = name
+        self.operation = operation
 
 
 class OperationQuery(Query):
@@ -38,16 +39,19 @@ class OperationQuery(Query):
         self.month = month
 
 
+class OperationRepo(Repo[Operation, OperationQuery]):
+    async def add_tag(self, instance: Operation, tag: Tag) -> bool:
+        raise NotImplementedError
+
+    async def remove_tag(self, instance: Operation, tag: Tag) -> bool:
+        raise NotImplementedError
+
+
 class Storage(UnitOfWork):
     __slots__ = ("_accounts", "_operations", "_tags")
 
-    def __init__(
-        self,
-        accounts: Repo[Account, AccountQuery],
-        operations: Repo[Operation, OperationQuery],
-        tags: Repo[Tag, TagQuery],
-    ) -> None:
-
+    def __init__(self, accounts: Repo[Account, AccountQuery], operations: OperationRepo,
+                 tags: Repo[Tag, TagQuery]) -> None:
         self._accounts = accounts
         self._operations = operations
         self._tags = tags
@@ -57,7 +61,7 @@ class Storage(UnitOfWork):
         return self._accounts
 
     @property
-    def operations(self) -> Repo:
+    def operations(self) -> OperationRepo:
         return self._operations
 
     @property

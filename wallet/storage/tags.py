@@ -59,13 +59,10 @@ class TagsDBRepo(Repo[Tag, TagQuery]):
 
         parts.append("AND user_id = $1")
 
-        rows = await self._conn.fetch(
-            f"""
+        rows = await self._conn.fetch(f"""
           SELECT id, name FROM tags WHERE ({' '.join(parts)})
           ORDER BY tags.created_on ASC;
-        """,
-            *args,
-        )
+        """, *args)
 
         return [Tag(row["id"], row["name"], query.user) for row in rows]
 

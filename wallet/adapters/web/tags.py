@@ -40,18 +40,22 @@ async def fetch(request: web.Request) -> web.Response:
     return json_response({"tags": list(map(serialize_tag, tags))})
 
 
+async def get_tag(request: web.Request, storage: DBStorage, key: str) -> Tag:
+    query = TagQuery(user=request["user"], key=get_instance_id(request, key))
+    tags = await storage.tags.find(query=query)
+
+    if not tags:
+        raise web.HTTPNotFound()
+
+    return tags[0]
+
+
 @user_required
 async def remove(request: web.Request) -> web.Response:
-    tag_key = get_instance_id(request, "tag_key")
-
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = TagQuery(user=request["user"], key=tag_key)
-        tags = await storage.tags.find(query=query)
-        if not tags:
-            raise web.HTTPNotFound()
-
-        await storage.tags.remove(tags[0])
+        tag = await get_tag(request, storage, "tag_key")
+        await storage.tags.remove(tag)
 
     return web.Response(status=204)

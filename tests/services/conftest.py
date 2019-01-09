@@ -5,7 +5,7 @@ import pytest  # type: ignore
 
 from wallet.domain import Repo
 from wallet.domain.entities import Account, Operation, Tag, User
-from wallet.domain.storage import AccountQuery, OperationQuery, Storage, TagQuery
+from wallet.domain.storage import AccountQuery, OperationQuery, OperationRepo, Storage, TagQuery
 
 
 Entity = TypeVar("Entity", Account, Tag)
@@ -51,7 +51,7 @@ class FakeRepo(Repo[Entity, Query]):
         pass
 
 
-class FakeOperationRepo(Repo[Operation, OperationQuery]):
+class FakeOperationRepo(OperationRepo):
     def __init__(self) -> None:
         self._entities: Dict[int, List[Operation]] = defaultdict(list)
 

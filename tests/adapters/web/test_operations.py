@@ -4,8 +4,8 @@ import pendulum  # type: ignore
 import pytest  # type: ignore
 
 from tests.adapters.web import assert_valid_response, prepare_payload
-from tests.storage import prepare_accounts, prepare_operations
-from wallet.domain.entities import Account, Balance, Operation
+from tests.storage import prepare_accounts, prepare_operations, prepare_tags
+from wallet.domain.entities import Account, Balance, Operation, Tag
 
 
 operation_schema = {
@@ -35,6 +35,11 @@ def account(fake, user):
     )
 
     return account
+
+
+@pytest.fixture(scope="function")
+def tag(fake, user):
+    return Tag(0, fake.word(), user)
 
 
 class TestAddOperationToAccount:
@@ -223,6 +228,131 @@ class TestRemoveOperationFromAccount:
 
         url = app.router.named_resources()["api.operations.remove"].url_for(
             account_key=str(account.key), operation_key=str(operation.key)
+        )
+        resp = await client.delete(url, headers={"X-ACCESS-TOKEN": "token"})
+
+        await assert_valid_response(resp, status=204)
+
+
+class TestAddTagToOperation:
+    @pytest.mark.integration
+    @pytest.mark.parametrize('json', (True, False))
+    async def test_unauthorized(self, aiohttp_client, app, passport, account, tag, json):
+        app["passport"] = passport
+        client = await aiohttp_client(app)
+
+        operation = Operation(0, Decimal("838.0"), account, created_on=pendulum.today())
+
+        async with app["db"].acquire() as conn:
+            await prepare_accounts(conn, [account])
+            await prepare_operations(conn, [operation])
+            await prepare_tags(conn, [tag])
+
+        url = app.router.named_resources()["api.operations.add_tag"].url_for(
+            account_key=str(account.key), operation_key=str(operation.key)
+        )
+        payload, headers = prepare_payload({'id': tag.key}, json=json)
+        resp = await client.post(url, data=payload, headers=headers)
+
+        await assert_valid_response(resp, status=401)
+
+    @pytest.mark.integration
+    @pytest.mark.parametrize('json', (True, False))
+    async def test_missing(self, aiohttp_client, app, passport, account, tag, json):
+        app["passport"] = passport
+        client = await aiohttp_client(app)
+
+        async with app["db"].acquire() as conn:
+            await prepare_accounts(conn, [account])
+            await prepare_tags(conn, [tag])
+
+        url = app.router.named_resources()["api.operations.add_tag"].url_for(
+            account_key=str(account.key), operation_key="1"
+        )
+        payload, headers = prepare_payload({'id': tag.key}, {"X-ACCESS-TOKEN": "token"}, json)
+        resp = await client.post(url, data=payload, headers=headers)
+
+        await assert_valid_response(resp, status=404)
+
+    @pytest.mark.integration
+    @pytest.mark.parametrize('json', (True, False))
+    async def test_success(self, aiohttp_client, app, passport, account, tag, json):
+        app["passport"] = passport
+        client = await aiohttp_client(app)
+
+        operation = Operation(0, Decimal("838.0"), account, created_on=pendulum.today())
+
+        async with app["db"].acquire() as conn:
+            await prepare_accounts(conn, [account])
+            await prepare_operations(conn, [operation])
+            await prepare_tags(conn, [tag])
+
+        url = app.router.named_resources()["api.operations.add_tag"].url_for(
+            account_key=str(account.key), operation_key=str(operation.key)
+        )
+        payload, headers = prepare_payload({'id': tag.key}, {"X-ACCESS-TOKEN": "token"}, json)
+        resp = await client.post(url, data=payload, headers=headers)
+
+        await assert_valid_response(resp, status=204)
+
+
+class TestRemoveTagFromOperation:
+    @pytest.mark.integration
+    async def test_unauthorized(self, aiohttp_client, app, passport, account, tag):
+        app["passport"] = passport
+        client = await aiohttp_client(app)
+
+        operation = Operation(0, Decimal("838.0"), account, created_on=pendulum.today())
+
+        async with app["db"].acquire() as conn:
+            await prepare_accounts(conn, [account])
+            await prepare_operations(conn, [operation])
+            await prepare_tags(conn, [tag])
+
+        url = app.router.named_resources()["api.operations.remove_tag"].url_for(
+            account_key=str(account.key), operation_key=str(operation.key),
+            tag_key=str(tag.key)
+        )
+        resp = await client.delete(url)
+
+        await assert_valid_response(resp, status=401)
+
+    @pytest.mark.integration
+    async def test_missing(self, aiohttp_client, app, passport, account, tag):
+        app["passport"] = passport
+        client = await aiohttp_client(app)
+
+        async with app["db"].acquire() as conn:
+            await prepare_accounts(conn, [account])
+            await prepare_tags(conn, [tag])
+
+        url = app.router.named_resources()["api.operations.remove_tag"].url_for(
+            account_key=str(account.key), operation_key="1",
+            tag_key=str(tag.key)
+        )
+        resp = await client.delete(url, headers={"X-ACCESS-TOKEN": "token"})
+
+        await assert_valid_response(resp, status=404)
+
+    @pytest.mark.integration
+    async def test_success(self, aiohttp_client, app, passport, account, tag):
+        app["passport"] = passport
+        client = await aiohttp_client(app)
+
+        operation = Operation(0, Decimal("838.0"), account, created_on=pendulum.today())
+
+        async with app["db"].acquire() as conn:
+            await prepare_accounts(conn, [account])
+            await prepare_operations(conn, [operation])
+            await prepare_tags(conn, [tag])
+
+            await conn.execute("""
+              INSERT INTO operation_tags (operation_id, tag_id) VALUES ($1, $2);
+            """, operation.key, tag.key)
+
+        url = app.router.named_resources()["api.operations.remove_tag"].url_for(
+            account_key=str(account.key), operation_key=str(operation.key),
+            tag_key=str(tag.key)
         )
         resp = await client.delete(url, headers={"X-ACCESS-TOKEN": "token"})
 

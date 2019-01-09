@@ -75,64 +75,46 @@ async def init(config: Config, logger: logging.Logger) -> web.Application:
 
     app.cleanup_ctx.append(db_engine)
 
-    app.router.add_routes(
-        [
-            web.get("/", core.index, name="index"),
-            web.get("/-/health", core.health, name="health"),
-            web.get("/-/metrics", core.metrics, name="metrics"),
-        ]
-    )
+    # fmt: off
+    app.router.add_routes([
+        web.get("/", core.index, name="index"),
+        web.get("/-/health", core.health, name="health"),
+        web.get("/-/metrics", core.metrics, name="metrics"),
+    ])
 
-    app.router.add_routes(
-        [
-            web.get("/api/accounts", accounts.search, name="api.accounts"),
-            web.post("/api/accounts", accounts.register, name="api.accounts.register"),
-            web.get(
-                r"/api/accounts/{account_key:\d+}/balance",
-                accounts.balance,
-                name="api.accounts.balance",
-            ),
-            web.put(
-                r"/api/accounts/{account_key:\d+}", accounts.update, name="api.accounts.update"
-            ),
-            web.delete(
-                r"/api/accounts/{account_key:\d+}", accounts.remove, name="api.accounts.remove"
-            ),
-        ]
-    )
+    app.router.add_routes([
+        web.get("/api/accounts", accounts.search, name="api.accounts"),
+        web.post("/api/accounts", accounts.register, name="api.accounts.register"),
+        web.get(r"/api/accounts/{account_key:\d+}/balance", accounts.balance,
+                name="api.accounts.balance"),
+        web.put(r"/api/accounts/{account_key:\d+}", accounts.update,
+                name="api.accounts.update"),
+        web.delete(r"/api/accounts/{account_key:\d+}", accounts.remove,
+                   name="api.accounts.remove")
+    ])
 
-    app.router.add_routes(
-        [
-            web.get(
-                r"/api/accounts/{account_key:\d+}/operations",
-                operations.search,
-                name="api.operations.search",
-            ),
-            web.post(
-                r"/api/accounts/{account_key:\d+}/operations",
-                operations.add,
-                name="api.operations.add",
-            ),
-            web.get(
-                r"/api/accounts/{account_key:\d+}/operations/{operation_key:\d+}",
-                operations.fetch,
-                name="api.operations.fetch",
-            ),
-            web.delete(
-                r"/api/accounts/{account_key:\d+}/operations/{operation_key:\d+}",
-                operations.remove,
-                name="api.operations.remove",
-            ),
-        ]
-    )
+    app.router.add_routes([
+        web.get(r"/api/accounts/{account_key:\d+}/operations", operations.search,
+                name="api.operations.search"),
+        web.post(r"/api/accounts/{account_key:\d+}/operations", operations.add,
+                 name="api.operations.add"),
+        web.get(r"/api/accounts/{account_key:\d+}/operations/{operation_key:\d+}",
+                operations.fetch, name="api.operations.fetch"),
+        web.delete(r"/api/accounts/{account_key:\d+}/operations/{operation_key:\d+}",
+                   operations.remove, name="api.operations.remove"),
 
-    app.router.add_routes(
-        [
-            web.get("/api/tags", tags.fetch, name="api.tags.fetch"),
-            web.post("/api/tags", tags.add, name="api.tags.add"),
-            web.delete(r"/api/tags/{tag_key:\d+}", tags.remove, name="api.tags.remove"),
-        ]
-    )
+        web.post(r"/api/accounts/{account_key:\d+}/operations/{operation_key:\d+}/tags",
+                 operations.add_tag, name="api.operations.add_tag"),
+        web.delete(r"/api/accounts/{account_key:\d+}/operations/{operation_key:\d+}/tags/{tag_key:\d+}",
+                   operations.remove_tag, name="api.operations.remove_tag")
+    ])
+
+    app.router.add_routes([
+        web.get("/api/tags", tags.fetch, name="api.tags.fetch"),
+        web.post("/api/tags", tags.add, name="api.tags.add"),
+        web.delete(r"/api/tags/{tag_key:\d+}", tags.remove, name="api.tags.remove"),
+    ])
+    # fmt: on
 
     return app
 

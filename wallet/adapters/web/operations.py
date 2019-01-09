@@ -6,9 +6,10 @@ from wallet.adapters.web import get_instance_id, get_payload, json_response
 from wallet.adapters.web.accounts import get_account
 from wallet.adapters.web.users import user_required
 from wallet.domain.entities import Account, Operation
-from wallet.domain.storage import OperationQuery
+from wallet.domain.storage import OperationQuery, TagQuery
 from wallet.services.operations import OperationsService, OperationValidator
 from wallet.storage import DBStorage
+from wallet.validation import ValidationError, Validator
 
 
 def serialize_operation(instance: Operation) -> Dict[str, Any]:
@@ -101,3 +102,47 @@ async def remove(request: web.Request) -> web.Response:
         await service.remove_from_account(account, operation)
 
     return web.Response(status=204)
+
+
+@user_required
+async def add_tag(request: web.Request) -> web.Response:
+    validator = Validator(schema={"id": {"required": True, "type": "integer", "coerce": int}})
+
+    payload = await get_payload(request)
+    document = validator.validate_payload(payload)
+
+    async with request.app["db"].acquire() as conn:
+        storage = DBStorage(conn)
+
+        account = await get_account(request, storage, "account_key")
+        operation = await get_operation(request, storage, account, "operation_key")
+
+        query = TagQuery(user=request["user"], key=document['id'])
+        tags = await storage.tags.find(query=query)
+
+        if not tags:
+            raise ValidationError({'tag': 'Does not exist'})
+
+        done = await storage.operations.add_tag(operation, tags[0])
+
+    return web.Response(status=204 if done else 400)
+
+
+@user_required
+async def remove_tag(request: web.Request) -> web.Response:
+    async with request.app["db"].acquire() as conn:
+        storage = DBStorage(conn)
+
+        account = await get_account(request, storage, "account_key")
+        operation = await get_operation(request, storage, account, "operation_key")
+
+        query = TagQuery(user=request["user"], key=get_instance_id(request, "tag_key"),
+                         operation=operation)
+        tags = await storage.tags.find(query=query)
+
+        if not tags:
+            raise web.HTTPNotFound
+
+        done = await storage.operations.remove_tag(operation, tags[0])
+
+    return web.Response(status=204 if done else 400)
