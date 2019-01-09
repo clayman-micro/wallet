@@ -6,9 +6,11 @@ from wallet.validation import Validator
 
 class TagValidator(Validator):
     def __init__(self, *args, **kwargs) -> None:
-        schema = {"name": {"required": True, "empty": False, "type": "string"}}
+        kwargs.setdefault("schema", {
+            "name": {"required": True, "empty": False, "type": "string"}
+        })
 
-        super(TagValidator, self).__init__(schema, *args, **kwargs)
+        super(TagValidator, self).__init__(*args, **kwargs)
 
 
 class TagsService:

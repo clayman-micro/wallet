@@ -14,7 +14,7 @@ from wallet.storage import DBStorage
 def serialize_operation(instance: Operation) -> Dict[str, Any]:
     result = {
         "id": instance.key,
-        "amount": round(instance.amount),
+        "amount": float(instance.amount),
         "type": instance.type.value,
         "description": instance.description,
         "account": {"id": instance.account.key},

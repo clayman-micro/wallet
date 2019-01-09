@@ -9,7 +9,7 @@ from wallet.validation import Validator
 
 class OperationValidator(Validator):
     def __init__(self, *args, **kwargs) -> None:
-        schema = {
+        kwargs.setdefault("schema", {
             "amount": {"required": True, "type": "decimal", "coerce": "decimal"},
             "type": {
                 "type": "operation_type",
@@ -18,9 +18,9 @@ class OperationValidator(Validator):
             },
             "description": {"type": "string", "maxlength": 255, "empty": True},
             "created_on": {"type": "datetime", "coerce": "datetime", "default_setter": "utcnow"},
-        }
+        })
 
-        super(OperationValidator, self).__init__(schema, *args, **kwargs)
+        super(OperationValidator, self).__init__(*args, **kwargs)
 
     def _validate_type_operation_type(self, value):
         if value and isinstance(value, OperationType):
