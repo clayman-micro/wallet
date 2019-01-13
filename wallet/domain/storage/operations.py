@@ -8,7 +8,7 @@ class OperationRepo:
     async def find(self, account: Account, month: Optional[date] = None) -> List[Operation]:
         raise NotImplementedError
 
-    async def find_by_key(self, account: Account, key: int) -> List[Operation]:
+    async def find_by_key(self, account: Account, key: int) -> Operation:
         raise NotImplementedError
 
     async def add(self, operation: Operation) -> int:

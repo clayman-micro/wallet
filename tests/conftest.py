@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import faker  # type: ignore
+import pendulum  # type: ignore
 import pytest  # type: ignore
 from aiohttp import web
 
@@ -87,6 +88,16 @@ def app(loop, pg_server, config):
 @pytest.fixture(scope="session")
 def fake():
     return faker.Faker()
+
+
+@pytest.fixture(scope='session')
+def today():
+    return pendulum.today()
+
+
+@pytest.fixture(scope='session')
+def month(today):
+    return today.start_of("month").date()
 
 
 @pytest.fixture(scope="function")

@@ -1,16 +1,13 @@
 import pytest  # type: ignore
 
-from tests.storage import prepare_tags
-from wallet.domain import EntityAlreadyExist
-from wallet.domain.entities import Tag
-from wallet.domain.storage import TagQuery
+from tests.storage import prepare_accounts, prepare_operations, prepare_tags
+from wallet.domain import Tag
+from wallet.domain.storage import EntityAlreadyExist
 from wallet.storage.tags import TagsDBRepo
 
 
 @pytest.mark.integration
-async def test_add_tag(fake, app, user):
-    tag = Tag(0, fake.word(), user)
-
+async def test_add_tag(fake, app, user, tag):
     async with app["db"].acquire() as conn:
         repo = TagsDBRepo(conn)
         key = await repo.add(tag)
@@ -24,11 +21,12 @@ async def test_add_tag(fake, app, user):
 
 
 @pytest.mark.integration
-async def test_add_tag_failed(fake, app, user):
+async def test_add_tag_failed(fake, app, user, tag):
     name = fake.word()
+    tag.name = name
 
     async with app["db"].acquire() as conn:
-        await prepare_tags(conn, [Tag(key=0, name=name, user=user)])
+        await prepare_tags(conn, [tag])
 
         with pytest.raises(EntityAlreadyExist):
             tag = Tag(0, name, user)
@@ -38,43 +36,49 @@ async def test_add_tag_failed(fake, app, user):
 
 
 @pytest.mark.integration
-async def test_find_account_by_key(fake, app, user):
+async def test_find_tag_by_key(fake, app, user, tag):
     async with app["db"].acquire() as conn:
+        await prepare_tags(conn, [tag])
+
         repo = TagsDBRepo(conn)
+        result = await repo.find_by_key(user, key=tag.key)
 
-        expected = await prepare_tags(
-            conn, [Tag(key=0, name=fake.word(), user=user), Tag(key=0, name=fake.word(), user=user)]
-        )
-
-        query = TagQuery(user, key=expected[0].key)
-        tags = await repo.find(query)
-
-        assert tags == [expected[0]]
+        assert result == tag
 
 
 @pytest.mark.integration
-async def test_find_account_by_name(fake, app, user):
+async def test_find_tag_by_name(fake, app, user, tag):
     async with app["db"].acquire() as conn:
+        await prepare_tags(conn, [tag])
+
         repo = TagsDBRepo(conn)
+        result = await repo.find_by_name(user, name=tag.name)
 
-        expected = await prepare_tags(
-            conn, [Tag(key=0, name=fake.word(), user=user), Tag(key=0, name=fake.word(), user=user)]
-        )
-
-        query = TagQuery(user, name=expected[0].name)
-        tags = await repo.find(query)
-
-        assert tags == [expected[0]]
+        assert result == [tag]
 
 
 @pytest.mark.integration
-async def test_rename_tag_name(fake, app, user):
+async def test_find_tags_by_operations(fake, app, user, account, operation, tag):
     async with app["db"].acquire() as conn:
-        tags = await prepare_tags(
-            conn, [Tag(key=0, name=fake.word(), user=user), Tag(key=0, name=fake.word(), user=user)]
-        )
+        await prepare_accounts(conn, [account])
+        await prepare_operations(conn, [operation])
+        await prepare_tags(conn, [tag])
 
-        tag = tags[0]
+        await conn.execute("""
+          INSERT INTO operation_tags (operation_id, tag_id) VALUES ($1, $2);
+        """, operation.key, tag.key)
+
+        repo = TagsDBRepo(conn)
+        tags = await repo.find_by_operations(user, (operation.key,))
+
+        assert tags == {operation.key: [tag]}
+
+
+@pytest.mark.integration
+async def test_rename_tag_name(fake, app, user, tag):
+    async with app["db"].acquire() as conn:
+        await prepare_tags(conn, [tag])
+
         tag.name = fake.word()
 
         repo = TagsDBRepo(conn)
@@ -89,14 +93,13 @@ async def test_rename_tag_name(fake, app, user):
 
 
 @pytest.mark.integration
-async def test_update_tag_duplicate_name(fake, app, user):
-    async with app["db"].acquire() as conn:
-        tags = await prepare_tags(
-            conn, [Tag(key=0, name=fake.word(), user=user), Tag(key=0, name=fake.word(), user=user)]
-        )
+async def test_update_tag_duplicate_name(fake, app, user, tag):
+    another_tag = Tag(key=0, name=fake.word(), user=user)
 
-        tag = tags[0]
-        tag.name = tags[1].name
+    async with app["db"].acquire() as conn:
+        await prepare_tags(conn, [tag, another_tag])
+
+        tag.name = another_tag.name
 
         repo = TagsDBRepo(conn)
         result = await repo.update(tag, fields=("name",))
@@ -105,12 +108,12 @@ async def test_update_tag_duplicate_name(fake, app, user):
 
 
 @pytest.mark.integration
-async def test_remove_tag(fake, app, user):
+async def test_remove_tag(fake, app, user, tag):
     async with app["db"].acquire() as conn:
-        tags = await prepare_tags(conn, [Tag(key=0, name=fake.word(), user=user)])
+        await prepare_tags(conn, [tag])
 
         repo = TagsDBRepo(conn)
-        result = await repo.remove(tags[0])
+        result = await repo.remove(tag)
 
         assert result is True
 
@@ -121,9 +124,9 @@ async def test_remove_tag(fake, app, user):
 
 
 @pytest.mark.integration
-async def test_remove_tag_failed(fake, app, user):
+async def test_remove_tag_failed(fake, app, user, tag):
     async with app["db"].acquire() as conn:
-        tag = Tag(key=1, name=fake.word(), user=user)
+        tag.key = 1
 
         repo = TagsDBRepo(conn)
         result = await repo.remove(tag)

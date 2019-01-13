@@ -1,16 +1,16 @@
 import re
+from collections import defaultdict
 from datetime import datetime
-from typing import Iterable, List
+from typing import Dict, Iterable, List
 
 from asyncpg.connection import Connection  # type: ignore
 from asyncpg.exceptions import UniqueViolationError  # type: ignore
 
-from wallet.domain import EntityAlreadyExist, Repo
-from wallet.domain.entities import Tag
-from wallet.domain.storage import TagQuery
+from wallet.domain import Tag, User
+from wallet.domain.storage import EntityAlreadyExist, EntityNotFound, TagsRepo
 
 
-class TagsDBRepo(Repo[Tag, TagQuery]):
+class TagsDBRepo(TagsRepo):
     __slots__ = ("_conn",)
 
     def __init__(self, connection: Connection) -> None:
@@ -27,7 +27,18 @@ class TagsDBRepo(Repo[Tag, TagQuery]):
 
         return count > 0
 
-    async def add(self, instance: Tag) -> int:
+    async def _fetch(self, filters: str, user: User, *args) -> Dict[int, Tag]:
+        result = {}
+
+        query = f"SELECT id, name FROM tags WHERE ({filters}) ORDER BY tags.created_on ASC"
+        rows = await self._conn.fetch(query, user.key, *args)
+
+        for row in rows:
+            result[row["id"]] = Tag(key=row["id"], name=row["name"], user=user)
+
+        return result
+
+    async def add(self, tag: Tag) -> int:
         now = datetime.now()
 
         try:
@@ -36,8 +47,8 @@ class TagsDBRepo(Repo[Tag, TagQuery]):
               INSERT INTO tags (name, user_id, enabled, created_on)
               VALUES ($1, $2, $3, $4) RETURNING id;
             """,
-                instance.name,
-                instance.user.key,
+                tag.name,
+                tag.user.key,
                 True,
                 now,
             )
@@ -46,27 +57,49 @@ class TagsDBRepo(Repo[Tag, TagQuery]):
 
         return key
 
-    async def find(self, query: TagQuery) -> List[Tag]:
-        parts = ["enabled = TRUE"]
+    async def find(self, user: User) -> List[Tag]:
+        filters = "enabled = TRUE AND user_id = $1"
+        result = await self._fetch(filters, user)
 
-        args = [query.user.key]
-        if query.key:
-            args.append(query.key)
-            parts.append(f"AND id = $2")
-        else:
-            if query.name:
-                parts.append(f"AND name LIKE '{query.name}%'")
+        return list(result.values())
 
-        parts.append("AND user_id = $1")
+    async def find_by_key(self, user: User, key: int) -> Tag:
+        filters = "enabled = TRUE AND user_id = $1 AND id = $2"
+        result = await self._fetch(filters, user, key)
 
-        rows = await self._conn.fetch(f"""
-          SELECT id, name FROM tags WHERE ({' '.join(parts)})
-          ORDER BY tags.created_on ASC;
-        """, *args)
+        if key not in result:
+            raise EntityNotFound
 
-        return [Tag(row["id"], row["name"], query.user) for row in rows]
+        return result[key]
 
-    async def update(self, instance: Tag, fields: Iterable[str]) -> bool:
+    async def find_by_name(self, user: User, name: str) -> List[Tag]:
+        filters = f"enabled = TRUE AND user_id = $1 AND name LIKE '{name}%'"
+        result = await self._fetch(filters, user)
+
+        return list(result.values())
+
+    async def find_by_operations(self, user: User, operations: Iterable[int]) -> Dict[int, List[Tag]]:
+        result: Dict[int, List[Tag]] = defaultdict(list)
+
+        query = """
+            SELECT 
+              tags.id, 
+              tags.name, 
+              operation_tags.operation_id 
+            FROM tags
+              INNER JOIN operation_tags ON operation_tags.tag_id = tags.id 
+            WHERE (
+                tags.enabled = TRUE AND tags.user_id = $1 AND operation_tags.operation_id = any($2::integer[])
+            )
+        """
+        rows = await self._conn.fetch(query, user.key, operations)
+
+        for row in rows:
+            result[row["operation_id"]].append(Tag(row["id"], row["name"], user))
+
+        return result
+
+    async def update(self, tag: Tag, fields: Iterable[str]) -> bool:
         updated = False
 
         if "name" in fields:
@@ -76,9 +109,9 @@ class TagsDBRepo(Repo[Tag, TagQuery]):
                   UPDATE tags SET name = $3
                   WHERE id = $1 AND user_id = $2 AND enabled = TRUE
                 """,
-                    instance.key,
-                    instance.user.key,
-                    instance.name,
+                    tag.key,
+                    tag.user.key,
+                    tag.name,
                 )
             except UniqueViolationError:
                 result = "UPDATE 0"
@@ -87,14 +120,14 @@ class TagsDBRepo(Repo[Tag, TagQuery]):
 
         return updated
 
-    async def remove(self, instance: Tag) -> bool:
+    async def remove(self, tag: Tag) -> bool:
         result = await self._conn.execute(
             """
           UPDATE tags SET enabled = FALSE
           WHERE id = $1 AND user_id = $2 AND enabled = TRUE
         """,
-            instance.key,
-            instance.user.key,
+            tag.key,
+            tag.user.key,
         )
 
         return self._check_update(result)

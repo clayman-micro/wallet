@@ -1,12 +1,12 @@
-from typing import Iterable
+from typing import Iterable, List
 
 import pendulum  # type: ignore
 from asyncpg.connection import Connection  # type: ignore
 
-from wallet.domain.entities import Account, Operation, Tag
+from wallet.domain import Account, Operation, Tag
 
 
-async def prepare_accounts(conn: Connection, accounts: Iterable[Account]) -> Iterable[Account]:
+async def prepare_accounts(conn: Connection, accounts: List[Account]) -> List[Account]:
     now = pendulum.today()
 
     for account in accounts:
