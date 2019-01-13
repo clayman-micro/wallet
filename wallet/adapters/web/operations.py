@@ -58,7 +58,9 @@ async def search(request: web.Request) -> web.Response:
         storage = DBStorage(conn)
 
         account = await get_account(request, storage, "account_key")
-        operations = await storage.operations.find(account=account)
+
+        service = OperationsService(storage)
+        operations = await service.fetch(account=account)
 
     return json_response(
         {"operations": [serialize_operation(operation) for operation in operations]}
@@ -67,7 +69,8 @@ async def search(request: web.Request) -> web.Response:
 
 async def get_operation(request: web.Request, storage: DBStorage, account: Account, key: str) -> Operation:
     try:
-        operation = await storage.operations.find_by_key(
+        service = OperationsService(storage)
+        operation = await service.fetch_by_key(
             account=account,
             key=get_instance_id(request, key)
         )

@@ -21,6 +21,16 @@ operation_schema = {
             "type": "dict",
             "schema": {"id": {"required": True, "type": "integer"}},
         },
+        "tags": {
+            "type": "list",
+            "schema": {
+                "type": "dict",
+                "schema": {
+                    "id": {"required": True, "type": "integer"},
+                    "name": {"required": True, "type": "string"}
+                }
+            },
+        }
     }
 }
 
@@ -75,14 +85,15 @@ class TestFetchAccountOperations:
         await assert_valid_response(resp, status=401)
 
     @pytest.mark.integration
-    async def test_success(self, aiohttp_client, app, passport, account):
+    async def test_success(self, aiohttp_client, app, passport, account, operation, tag):
         app["passport"] = passport
         client = await aiohttp_client(app)
 
-        operation = Operation(0, Decimal("838.0"), account, created_on=pendulum.today())
-
         async with app["db"].acquire() as conn:
             await prepare_accounts(conn, [account])
+            await prepare_tags(conn, [tag])
+
+            operation.tags = [tag]
             await prepare_operations(conn, [operation])
 
         url = app.router.named_resources()["api.operations.add"].url_for(account_key=str(account.key))

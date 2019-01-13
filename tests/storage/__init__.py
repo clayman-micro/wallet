@@ -50,6 +50,11 @@ async def prepare_operations(
             operation.created_on,
         )
 
+        if operation.tags:
+            await conn.executemany("""
+              INSERT INTO operation_tags (operation_id, tag_id) VALUES ($1, $2);
+            """, [(operation.key, tag.key) for tag in operation.tags])
+
     return operations
 
 

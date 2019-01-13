@@ -45,12 +45,6 @@ class TestOperationValidator:
             validator.validate_payload(payload)
 
 
-@pytest.fixture(scope="function")
-def operation(fake, account) -> Operation:
-    now = datetime.now()
-    return Operation(1, Decimal("838"), account, type=OperationType.expense, created_on=now)
-
-
 class TestOperationsService:
     @pytest.mark.unit
     async def test_add_operation_to_account(self, account, storage):
@@ -95,3 +89,42 @@ class TestOperationsService:
         storage.operations.remove.assert_called()
         storage.accounts.update.assert_called()
         assert storage.was_committed
+
+    @pytest.mark.unit
+    async def test_fetch_operations(self, account, operation, tag, storage):
+        operation.tags = [tag]
+
+        find_by_operations = asyncio.Future()
+        find_by_operations.set_result({operation.key: [tag]})
+
+        storage.tags.find_by_operations = mock.MagicMock(return_value=find_by_operations)
+
+        find = asyncio.Future()
+        find.set_result([operation])
+
+        storage.operations.find = mock.MagicMock(return_value=find)
+
+        service = OperationsService(storage)
+        result = await service.fetch(account)
+
+        assert len(result) == 1
+        assert result[0] == operation
+
+    @pytest.mark.unit
+    async def test_fetch_operation(self, account, operation, tag, storage):
+        operation.tags = [tag]
+
+        find_by_operations = asyncio.Future()
+        find_by_operations.set_result({operation.key: [tag]})
+
+        storage.tags.find_by_operations = mock.MagicMock(return_value=find_by_operations)
+
+        find = asyncio.Future()
+        find.set_result(operation)
+
+        storage.operations.find_by_key = mock.MagicMock(return_value=find)
+
+        service = OperationsService(storage)
+        result = await service.fetch_by_key(account, key=operation.key)
+
+        assert result == operation

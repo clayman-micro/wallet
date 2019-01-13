@@ -1,8 +1,9 @@
+from decimal import Decimal
 from typing import Any
 
 import pytest  # type: ignore
 
-from wallet.domain import Account, Tag, User
+from wallet.domain import Account, Operation, Tag, User
 from wallet.domain.storage import AccountsRepo, OperationRepo, Storage, TagsRepo
 
 
@@ -33,6 +34,17 @@ class FakeStorage(Storage):
 @pytest.fixture(scope="function")
 def account(fake: Any, user: User) -> Account:
     return Account(1, fake.credit_card_provider(), user=user)
+
+
+@pytest.fixture(scope="function")
+def operation(fake, today, account):
+    return Operation(
+        key=1,
+        amount=Decimal("838.00"),
+        account=account,
+        description="Fuel",
+        created_on=today
+    )
 
 
 @pytest.fixture(scope="function")

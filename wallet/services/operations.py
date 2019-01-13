@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 from wallet.domain import Account, Operation, OperationType
 from wallet.domain.storage import Storage
@@ -87,3 +87,28 @@ class OperationsService:
                 await store.rollback()
 
         return removed
+
+    async def fetch(self, account: Account) -> List[Operation]:
+        async with self._storage as store:
+            operations = await store.operations.find(account)
+
+            tags = await store.tags.find_by_operations(
+                account.user, operations=[item.key for item in operations]
+            )
+
+            for operation in operations:
+                if operation.key in tags:
+                    operation.tags = tags[operation.key]
+
+        return operations
+
+    async def fetch_by_key(self, account: Account, key: int) -> Operation:
+        async with self._storage as store:
+            operation = await store.operations.find_by_key(account, key)
+
+            tags = await store.tags.find_by_operations(account.user, operations=(operation.key,))
+
+            if operation.key in tags:
+                operation.tags = tags[operation.key]
+
+        return operation
