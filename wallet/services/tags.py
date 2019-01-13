@@ -1,6 +1,5 @@
-from wallet.domain import EntityAlreadyExist
-from wallet.domain.entities import Tag, User
-from wallet.domain.storage import Storage, TagQuery
+from wallet.domain import Tag, User
+from wallet.domain.storage import EntityAlreadyExist, Storage
 from wallet.validation import Validator
 
 
@@ -23,8 +22,7 @@ class TagsService:
         tag = Tag(key=0, name=name, user=user)
 
         async with self._storage as store:
-            query = TagQuery(user=user, name=name)
-            existed = await store.tags.find(query)
+            existed = await store.tags.find_by_name(user, name)
 
             if existed:
                 raise EntityAlreadyExist()

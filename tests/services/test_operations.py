@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from wallet.domain.entities import Account, Operation, OperationType
+from wallet.domain import Account, Operation, OperationType
 from wallet.services.operations import OperationsService, OperationValidator
 from wallet.validation import ValidationError
 
@@ -43,11 +43,6 @@ class TestOperationValidator:
         with pytest.raises(ValidationError):
             validator = OperationValidator()
             validator.validate_payload(payload)
-
-
-@pytest.fixture(scope="function")
-def account(fake, user) -> Account:
-    return Account(1, fake.credit_card_provider(), user=user)
 
 
 @pytest.fixture(scope="function")

@@ -1,6 +1,5 @@
-from wallet.domain import EntityAlreadyExist
-from wallet.domain.entities import Account, User
-from wallet.domain.storage import AccountQuery, Storage
+from wallet.domain import Account, User
+from wallet.domain.storage import EntityAlreadyExist, Storage
 from wallet.validation import Validator
 
 
@@ -23,8 +22,7 @@ class AccountsService:
         account = Account(key=0, name=name, user=user)
 
         async with self._storage as store:
-            query = AccountQuery(user=user, name=name)
-            existed = await store.accounts.find(query)
+            existed = await store.accounts.find_by_name(user, name)
 
             if len(existed) > 0:
                 raise EntityAlreadyExist()

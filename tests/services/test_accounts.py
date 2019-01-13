@@ -3,8 +3,8 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from wallet.domain import EntityAlreadyExist
-from wallet.domain.entities import Account
+from wallet.domain import Account
+from wallet.domain.storage import EntityAlreadyExist
 from wallet.services.accounts import AccountsService, AccountValidator
 from wallet.validation import ValidationError
 
@@ -32,7 +32,11 @@ class TestAccountsService:
         add = asyncio.Future()
         add.set_result(1)
 
+        find = asyncio.Future()
+        find.set_result([])
+
         storage.accounts.add = mock.MagicMock(return_value=add)
+        storage.accounts.find_by_name = mock.MagicMock(return_value=find)
 
         service = AccountsService(storage)
         account = await service.register(name=name, user=user)
@@ -48,10 +52,10 @@ class TestAccountsService:
         find = asyncio.Future()
         find.set_result([Account(key=1, name=name, user=user)])
 
-        storage.accounts.find = mock.MagicMock(return_value=find)
+        storage.accounts.find_by_name = mock.MagicMock(return_value=find)
 
         with pytest.raises(EntityAlreadyExist):
             service = AccountsService(storage)
             await service.register(name, user)
 
-        storage.accounts.find.assert_called()
+        storage.accounts.find_by_name.assert_called()

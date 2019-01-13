@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from wallet.domain.entities import Account, Operation, OperationType
+from wallet.domain import Account, Operation, OperationType
 from wallet.domain.storage import Storage
 from wallet.validation import Validator
 
@@ -87,3 +87,4 @@ class OperationsService:
                 await store.rollback()
 
         return removed
+

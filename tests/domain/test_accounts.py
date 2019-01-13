@@ -4,7 +4,7 @@ from typing import List
 import pendulum  # type: ignore
 import pytest  # type: ignore
 
-from wallet.domain.entities import Account, Balance, Operation, OperationType
+from wallet.domain import Account, Balance, Operation, OperationType
 
 
 @pytest.mark.unit

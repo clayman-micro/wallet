@@ -1,89 +1,13 @@
-from collections import defaultdict
-from typing import Any, Dict, Iterable, List, TypeVar
+from typing import Any
 
 import pytest  # type: ignore
 
-from wallet.domain import Repo
-from wallet.domain.entities import Account, Operation, Tag, User
-from wallet.domain.storage import AccountQuery, OperationQuery, OperationRepo, Storage, TagQuery
-
-
-Entity = TypeVar("Entity", Account, Tag)
-Query = TypeVar("Query", AccountQuery, TagQuery)
-
-
-class FakeRepo(Repo[Entity, Query]):
-    def __init__(self) -> None:
-        self._entities: Dict[int, List[Entity]] = defaultdict(list)
-
-    @property
-    def entities(self) -> Dict[int, List[Entity]]:
-        return self._entities
-
-    async def find(self, query: Query) -> List[Entity]:
-        try:
-            if query.key:
-                result = list(
-                    filter(lambda item: item.key == query.key, self._entities[query.user.key])
-                )
-            elif query.name is not None:
-                result = list(
-                    filter(
-                        lambda item: item.name.lower() == query.name.lower(),
-                        self._entities[query.user.key],
-                    )
-                )
-            else:
-                result = self._entities[query.user.key]
-        except KeyError:
-            result = []
-
-        return result
-
-    async def add(self, instance: Entity) -> int:
-        self._entities[instance.user.key].append(instance)
-        return instance.key
-
-    async def update(self, instance: Entity, fields: Iterable[str]) -> bool:
-        pass
-
-    async def remove(self, instance: Entity) -> bool:
-        pass
-
-
-class FakeOperationRepo(OperationRepo):
-    def __init__(self) -> None:
-        self._entities: Dict[int, List[Operation]] = defaultdict(list)
-
-    @property
-    def entities(self) -> Dict[int, List[Operation]]:
-        return self._entities
-
-    async def add(self, instance: Operation) -> int:
-        self._entities[instance.account.key].append(instance)
-        return instance.key
-
-    async def find(self, query: OperationQuery) -> List[Operation]:
-        result: List[Operation] = []
-        try:
-            if query.key:
-                result = list(
-                    filter(lambda item: item.key == query.key, self._entities[query.account.key])
-                )
-        except KeyError:
-            pass
-
-        return result
+from wallet.domain import Account, Tag, User
+from wallet.domain.storage import AccountsRepo, OperationRepo, Storage, TagsRepo
 
 
 class FakeStorage(Storage):
-    def __init__(
-        self,
-        accounts: Repo[Account, AccountQuery],
-        operations: FakeOperationRepo,
-        tags: Repo[Tag, TagQuery],
-    ) -> None:
-
+    def __init__(self, accounts: AccountsRepo, operations: OperationRepo, tags: TagsRepo) -> None:
         super(FakeStorage, self).__init__(accounts, operations, tags)
 
         self.was_committed = False
@@ -118,17 +42,17 @@ def tag(fake: Any, user: User) -> Tag:
 
 @pytest.fixture(scope="function")
 def accounts_repo():
-    return FakeRepo[Account, AccountQuery]()
+    return AccountsRepo()
 
 
 @pytest.fixture(scope="function")
 def operations_repo():
-    return FakeOperationRepo()
+    return OperationRepo()
 
 
 @pytest.fixture(scope="function")
 def tags_repo():
-    return FakeRepo[Tag, TagQuery]()
+    return TagsRepo
 
 
 @pytest.fixture(scope="function")

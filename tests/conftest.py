@@ -8,7 +8,7 @@ import pytest  # type: ignore
 from aiohttp import web
 
 from wallet.app import configure, init
-from wallet.domain.entities import User
+from wallet.domain import User
 
 
 @pytest.fixture(scope="session")
