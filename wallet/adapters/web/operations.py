@@ -116,7 +116,7 @@ async def add_tag(request: web.Request) -> web.Response:
         operation = await get_operation(request, storage, account, "operation_key")
 
         try:
-            tag = await storage.tags.find_by_key(user=request.get("user"), key=document['id'])
+            tag = await storage.tags.find_by_key(user=request["user"], key=document['id'])
         except EntityNotFound:
             raise ValidationError({'tag': 'Does not exist'})
 

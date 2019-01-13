@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest  # type: ignore
 
-from wallet.domain import Account, Operation, OperationType
+from wallet.domain import Operation, OperationType
 from wallet.services.operations import OperationsService, OperationValidator
 from wallet.validation import ValidationError
 

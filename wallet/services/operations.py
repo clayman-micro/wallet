@@ -87,4 +87,3 @@ class OperationsService:
                 await store.rollback()
 
         return removed
-

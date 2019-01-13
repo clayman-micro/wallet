@@ -1,7 +1,6 @@
 import pytest  # type: ignore
 
 from tests.storage import prepare_accounts, prepare_operations, prepare_tags
-from wallet.domain import Operation, Tag
 from wallet.domain.storage import EntityAlreadyExist
 from wallet.storage.operations import OperationsDBRepo
 

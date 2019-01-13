@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from itertools import groupby
-from typing import Any, Dict, Iterable, List
+from typing import Dict, Iterable, List
 
 import pendulum  # type: ignore
 from asyncpg.connection import Connection  # type: ignore

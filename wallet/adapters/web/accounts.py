@@ -48,7 +48,7 @@ async def register(request: web.Request) -> web.Response:
 async def search(request: web.Request) -> web.Response:
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
-        accounts = await storage.accounts.find(user=request.get('user'))
+        accounts = await storage.accounts.find(user=request['user'])
 
     return json_response({"accounts": [serialize_account(account) for account in accounts]})
 
@@ -56,7 +56,7 @@ async def search(request: web.Request) -> web.Response:
 async def get_account(request: web.Request, storage: DBStorage, key: str) -> Account:
     try:
         account = await storage.accounts.find_by_key(
-            user=request.get("user"),
+            user=request['user'],
             key=get_instance_id(request, key)
         )
     except EntityNotFound:

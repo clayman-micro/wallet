@@ -82,15 +82,15 @@ class TagsDBRepo(TagsRepo):
         result: Dict[int, List[Tag]] = defaultdict(list)
 
         query = """
-            SELECT 
-              tags.id, 
-              tags.name, 
-              operation_tags.operation_id 
-            FROM tags
-              INNER JOIN operation_tags ON operation_tags.tag_id = tags.id 
-            WHERE (
-                tags.enabled = TRUE AND tags.user_id = $1 AND operation_tags.operation_id = any($2::integer[])
-            )
+          SELECT
+            tags.id,
+            tags.name,
+            operation_tags.operation_id
+          FROM tags
+            INNER JOIN operation_tags ON operation_tags.tag_id = tags.id
+          WHERE (
+            tags.enabled = TRUE AND tags.user_id = $1 AND operation_tags.operation_id = any($2::integer[])
+          )
         """
         rows = await self._conn.fetch(query, user.key, operations)
 

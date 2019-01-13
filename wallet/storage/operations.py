@@ -1,6 +1,6 @@
 import re
 from datetime import date
-from typing import Iterable, Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from asyncpg.connection import Connection  # type: ignore
 from asyncpg.exceptions import UniqueViolationError  # type: ignore

@@ -43,7 +43,7 @@ async def fetch(request: web.Request) -> web.Response:
 async def get_tag(request: web.Request, storage: DBStorage, key: str) -> Tag:
     try:
         tag = await storage.tags.find_by_key(
-            user=request.get("user"),
+            user=request['user'],
             key=get_instance_id(request, key)
         )
     except EntityNotFound:

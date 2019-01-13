@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest  # type: ignore
 
-from wallet.domain import Account, Tag, User
+from wallet.domain import Account, User
 
 
 @pytest.fixture(scope="function")
