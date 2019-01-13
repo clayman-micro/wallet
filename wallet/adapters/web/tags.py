@@ -4,8 +4,9 @@ from aiohttp import web
 
 from wallet.adapters.web import get_instance_id, get_payload, json_response
 from wallet.adapters.web.users import user_required
-from wallet.domain.entities import Tag
-from wallet.services.tags import TagQuery, TagsService, TagValidator
+from wallet.domain import Tag
+from wallet.domain.storage import EntityNotFound
+from wallet.services.tags import TagsService, TagValidator
 from wallet.storage import DBStorage
 
 
@@ -34,20 +35,21 @@ async def fetch(request: web.Request) -> web.Response:
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
-        query = TagQuery(user=request["user"])
-        tags = await storage.tags.find(query=query)
+        tags = await storage.tags.find(user=request["user"])
 
     return json_response({"tags": list(map(serialize_tag, tags))})
 
 
 async def get_tag(request: web.Request, storage: DBStorage, key: str) -> Tag:
-    query = TagQuery(user=request["user"], key=get_instance_id(request, key))
-    tags = await storage.tags.find(query=query)
-
-    if not tags:
+    try:
+        tag = await storage.tags.find_by_key(
+            user=request.get("user"),
+            key=get_instance_id(request, key)
+        )
+    except EntityNotFound:
         raise web.HTTPNotFound()
 
-    return tags[0]
+    return tag
 
 
 @user_required

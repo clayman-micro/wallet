@@ -5,8 +5,8 @@ from aiohttp import web
 from wallet.adapters.web import get_instance_id, get_payload, json_response
 from wallet.adapters.web.accounts import get_account
 from wallet.adapters.web.users import user_required
-from wallet.domain.entities import Account, Operation
-from wallet.domain.storage import OperationQuery, TagQuery
+from wallet.domain import Account, Operation
+from wallet.domain.storage import EntityNotFound
 from wallet.services.operations import OperationsService, OperationValidator
 from wallet.storage import DBStorage
 from wallet.validation import ValidationError, Validator
@@ -58,25 +58,23 @@ async def search(request: web.Request) -> web.Response:
         storage = DBStorage(conn)
 
         account = await get_account(request, storage, "account_key")
-
-        query = OperationQuery(account=account)
-        operations = await storage.operations.find(query=query)
+        operations = await storage.operations.find(account=account)
 
     return json_response(
         {"operations": [serialize_operation(operation) for operation in operations]}
     )
 
 
-async def get_operation(
-    request: web.Request, storage: DBStorage, account: Account, key: str
-) -> Operation:
-    query = OperationQuery(account=account, key=get_instance_id(request, key))
-    operations = await storage.operations.find(query=query)
-
-    if not operations:
+async def get_operation(request: web.Request, storage: DBStorage, account: Account, key: str) -> Operation:
+    try:
+        operation = await storage.operations.find_by_key(
+            account=account,
+            key=get_instance_id(request, key)
+        )
+    except EntityNotFound:
         raise web.HTTPNotFound()
 
-    return operations[0]
+    return operation
 
 
 @user_required
@@ -117,32 +115,38 @@ async def add_tag(request: web.Request) -> web.Response:
         account = await get_account(request, storage, "account_key")
         operation = await get_operation(request, storage, account, "operation_key")
 
-        query = TagQuery(user=request["user"], key=document['id'])
-        tags = await storage.tags.find(query=query)
-
-        if not tags:
+        try:
+            tag = await storage.tags.find_by_key(user=request.get("user"), key=document['id'])
+        except EntityNotFound:
             raise ValidationError({'tag': 'Does not exist'})
 
-        done = await storage.operations.add_tag(operation, tags[0])
+        done = await storage.operations.add_tag(operation, tag)
 
     return web.Response(status=204 if done else 400)
 
 
 @user_required
 async def remove_tag(request: web.Request) -> web.Response:
+    tag_key = get_instance_id(request, "tag_key")
+
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
 
         account = await get_account(request, storage, "account_key")
         operation = await get_operation(request, storage, account, "operation_key")
 
-        query = TagQuery(user=request["user"], key=get_instance_id(request, "tag_key"),
-                         operation=operation)
-        tags = await storage.tags.find(query=query)
+        result = await storage.tags.find_by_operations(user=request["user"], operations=(operation.key,))
 
-        if not tags:
+        tag = None
+        tags = result[operation.key]
+        for item in tags:
+            if item.key == tag_key:
+                tag = item
+                break
+
+        if not tag:
             raise web.HTTPNotFound
 
-        done = await storage.operations.remove_tag(operation, tags[0])
+        done = await storage.operations.remove_tag(operation, tag)
 
     return web.Response(status=204 if done else 400)

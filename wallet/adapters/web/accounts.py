@@ -4,9 +4,9 @@ from aiohttp import web
 
 from wallet.adapters.web import get_instance_id, get_payload, json_response
 from wallet.adapters.web.users import user_required
-from wallet.domain import EntityAlreadyExist
-from wallet.domain.entities import Account
-from wallet.services.accounts import AccountQuery, AccountsService, AccountValidator
+from wallet.domain import Account
+from wallet.domain.storage import EntityAlreadyExist, EntityNotFound
+from wallet.services.accounts import AccountsService, AccountValidator
 from wallet.storage import DBStorage
 from wallet.validation import ValidationError
 
@@ -48,21 +48,21 @@ async def register(request: web.Request) -> web.Response:
 async def search(request: web.Request) -> web.Response:
     async with request.app["db"].acquire() as conn:
         storage = DBStorage(conn)
-
-        query = AccountQuery(user=request["user"])
-        accounts = await storage.accounts.find(query=query)
+        accounts = await storage.accounts.find(user=request.get('user'))
 
     return json_response({"accounts": [serialize_account(account) for account in accounts]})
 
 
 async def get_account(request: web.Request, storage: DBStorage, key: str) -> Account:
-    query = AccountQuery(user=request["user"], key=get_instance_id(request, key))
-    accounts = await storage.accounts.find(query=query)
-
-    if not accounts:
+    try:
+        account = await storage.accounts.find_by_key(
+            user=request.get("user"),
+            key=get_instance_id(request, key)
+        )
+    except EntityNotFound:
         raise web.HTTPNotFound()
 
-    return accounts[0]
+    return account
 
 
 @user_required

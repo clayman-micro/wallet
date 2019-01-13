@@ -5,7 +5,7 @@ import ujson  # type: ignore
 from aiohttp import ClientSession, web
 
 from wallet.adapters.web import Handler
-from wallet.domain.entities import User, UserProvider
+from wallet.domain import User, UserProvider
 
 
 class BadToken(Exception):
