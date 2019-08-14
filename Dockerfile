@@ -1,19 +1,32 @@
-FROM python:3.7-alpine3.8
+FROM python:3.7-alpine3.9 as build
 
-ARG app_version
+RUN apk add --update --no-cache --quiet make libc-dev python3-dev py-cffi linux-headers gcc g++ git postgresql-dev && \
+    python3 -m pip install --no-cache-dir --quiet -U pip && \
+    python3 -m pip install --no-cache-dir --quiet pipenv
 
-# Copy application distribution package
-COPY dist/wallet-${app_version}.tar.gz /root/
+ADD . /app
 
-# Install required packages
-RUN apk add --update --no-cache make libc-dev python3-dev linux-headers gcc g++ postgresql-client && \
-    pip install --no-cache-dir -U pip && \
-    pip install --no-cache-dir /root/wallet-${app_version}.tar.gz && \
-    rm /root/wallet-${app_version}.tar.gz && \
-    apk del make libc-dev python3-dev linux-headers gcc g++
+WORKDIR /app
 
-RUN mkdir -p /usr/share/wallet && cp /usr/local/lib/python3.7/site-packages/wallet/storage/sql/* /usr/share/wallet
+# RUN pipenv install --dev
+    # && \
+    # pipenv lock -r > requirements.txt
+    # && \
+    # pipenv run python setup.py bdist_wheel
 
-EXPOSE 5000
 
-CMD ["python3", "-m", "wallet", "server", "run", "--host=0.0.0.0", "--consul"]
+# FROM python:3.7-alpine3.9
+
+# COPY --from=build /app/dist/*.whl .
+
+# RUN apk add --update --no-cache --quiet make libc-dev python3-dev linux-headers gcc g++ postgresql-client && \
+#     python3 -m pip install --no-cache-dir --quiet -U pip && \
+#     python3 -m pip install --no-cache-dir --quiet *.whl && \
+#     mkdir -p /usr/share/wallet && \
+#     cp /usr/local/lib/python3.7/site-packages/wallet/storage/sql/* /usr/share/wallet && \
+#     rm -f *.whl && \
+#     apk del --quiet make libc-dev python3-dev linux-headers gcc g++ git
+
+# EXPOSE 5000
+
+# CMD ["python3", "-m", "wallet", "server", "run", "--host=0.0.0.0", "--consul"]

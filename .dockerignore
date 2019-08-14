@@ -1,5 +1,6 @@
 .cache
 .git
+.eggs
 .idea
 .mypy_cache
 .pytest_cache
@@ -7,6 +8,8 @@
 .sonarlint
 .tox
 .vscode
+build
+dist
+wallet.egg-info
 backups
-wallet
 tests

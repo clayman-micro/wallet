@@ -12,8 +12,6 @@ addons:
   apt:
     packages:
     - python-pip
-  sonarcloud:
-    organization: clayman74-github
 
 jobs:
   include:
@@ -22,11 +20,9 @@ jobs:
       script:
         - pip install tox
         - tox -- --pg-image=postgres:10-alpine
-        - sonar-scanner
     - stage: "build"
       name: "Build"
-      if: branch == master
+      if: tag IS present
       script:
-        - pip install flit
-        - make build-image
-        - make publish-image
+        - make build
+        - make publish

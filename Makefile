@@ -25,25 +25,22 @@ clean-test:
 	rm -f tests/coverage.xml
 
 install: clean
-	flit install -s --python $WORKON_HOME/wallet
+	pipenv install --dev -e .
 
 lint:
-	flake8 wallet tests
-	mypy wallet tests
+	pipenv run flake8 wallet tests
+	pipenv run mypy wallet tests
 
 test:
 	py.test
 
 test-all:
-	tox -- --pg-image=postgres:alpine
+	tox -- --pg-image=postgres:11-alpine
 
-build: clean-build
-	flit build --format sdist
+build:
+	docker build -t $(DOCKER_USER)/wallet .
+	docker tag $(DOCKER_USER)/wallet $(DOCKER_USER)/wallet:$(TRAVIS_TAG)
 
-build-image: build
-	docker build --build-arg app_version=`python -c "from wallet import __version__; print(__version__)"` -t registry.clayman.pro/wallet .
-	docker tag registry.clayman.pro/wallet registry.clayman.pro/wallet:`python -c "from wallet import __version__; print(__version__)"`
-
-publish-image:
-	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS) registry.clayman.pro
-	docker push registry.clayman.pro/wallet
+publish:
+	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
+	docker push $(DOCKER_USER)/wallet
