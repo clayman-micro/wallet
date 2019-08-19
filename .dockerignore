@@ -1,5 +1,4 @@
 .cache
-.git
 .eggs
 .idea
 .mypy_cache

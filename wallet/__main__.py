@@ -10,16 +10,13 @@ from wallet.app import configure, init
 
 
 class Context(object):
-    def __init__(self, config=None):
-        self.conf = configure(
-            config,
-            {
-                "app_name": "wallet",
-                "db_name": "wallet",
-                "db_user": "wallet",
-                "db_password": "wallet",
-            },
-        )
+    def __init__(self):
+        self.conf = configure({
+            "app_name": "wallet",
+            "db_name": "wallet",
+            "db_user": "wallet",
+            "db_password": "wallet",
+        })
         self.init_app = init
 
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -31,10 +28,9 @@ class Context(object):
 
 
 @click.group()
-@click.option("-c", "--config", default="config.yml")
 @click.pass_context
-def cli(context, config: str):
-    context.obj = Context(config)
+def cli(context) -> None:
+    context.obj = Context()
 
 
 cli.add_command(server, name="server")

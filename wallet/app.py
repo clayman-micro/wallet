@@ -3,12 +3,11 @@ import os
 from typing import AsyncGenerator, Dict, Optional
 
 import pkg_resources
+import sentry_sdk
 from aiohttp import web
+from aiohttp_metrics import setup as setup_metrics  # type: ignore
 from asyncpg.pool import create_pool  # type: ignore
-from prometheus_client import Counter, Gauge, Histogram  # type: ignore
-from prometheus_client.registry import CollectorRegistry  # type: ignore
-from raven import Client as Raven  # type: ignore
-from raven_aiohttp import AioHttpTransport  # type: ignore
+from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 
 from wallet.adapters.web import accounts, core, operations, tags, users
 from wallet.config import Config
@@ -37,49 +36,28 @@ async def init(config: Config, logger: logging.Logger) -> web.Application:
         logger=logger,
         middlewares=[  # type: ignore
             core.catch_exceptions_middleware,
-            core.prometheus_middleware,
             users.auth_middleware,
         ],
     )
+
+    app['app_name'] = 'wallet'
 
     app["config"] = config
 
     app["passport"] = users.PassportProvider(config["passport_dsn"])
 
     if config.get("sentry_dsn", None):
-        app["raven"] = Raven(config["sentry_dsn"], transport=AioHttpTransport)
+        sentry_sdk.init(dsn=config["sentry_dsn"], integrations=[AioHttpIntegration()])
 
     app["distribution"] = pkg_resources.get_distribution("wallet")
 
-    app["metrics_registry"] = CollectorRegistry()
-    app["metrics"] = {
-        "REQUEST_COUNT": Counter(
-            "requests_total",
-            "Total request count",
-            ["app_name", "method", "endpoint", "http_status"],
-            registry=app["metrics_registry"],
-        ),
-        "REQUEST_LATENCY": Histogram(
-            "requests_latency_seconds",
-            "Request latency",
-            ["app_name", "endpoint"],
-            registry=app["metrics_registry"],
-        ),
-        "REQUEST_IN_PROGRESS": Gauge(
-            "requests_in_progress_total",
-            "Requests in progress",
-            ["app_name", "endpoint", "method"],
-            registry=app["metrics_registry"],
-        ),
-    }
+    setup_metrics(app)
 
     app.cleanup_ctx.append(db_engine)
 
-    # fmt: off
     app.router.add_routes([
         web.get("/", core.index, name="index"),
         web.get("/-/health", core.health, name="health"),
-        web.get("/-/metrics", core.metrics, name="metrics"),
     ])
 
     app.router.add_routes([
@@ -114,7 +92,6 @@ async def init(config: Config, logger: logging.Logger) -> web.Application:
         web.post("/api/tags", tags.add, name="api.tags.add"),
         web.delete(r"/api/tags/{tag_key:\d+}", tags.remove, name="api.tags.remove"),
     ])
-    # fmt: on
 
     return app
 
@@ -139,14 +116,9 @@ config_schema = {
 }
 
 
-def configure(
-    config_file: Optional[str] = None, defaults: Optional[Dict[str, str]] = None
-) -> Config:
+def configure(defaults: Optional[Dict[str, str]] = None) -> Config:
     config = Config(config_schema, defaults)  # type: ignore
     config["app_root"] = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
-
-    if config_file:
-        config.update_from_yaml(config_file, True)
 
     for key in iter(config_schema.keys()):
         config.update_from_env_var(key)

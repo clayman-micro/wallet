@@ -5,6 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 coverage = "*"
+faker = "*"
 flake8 = "*"
 flake8-bugbear = "*"
 flake8-builtins-unleashed = "*"
@@ -16,22 +17,21 @@ mypy = "*"
 pbr = "*"
 pytest = "*"
 pytest-aiohttp = "*"
+pytest-postgres = "*"
 requests = "*"
 wallet = {editable = true,path = "."}
 
 [packages]
 aiodns = "*"
 aiohttp = "*"
+aiohttp-metrics = "*"
 asyncpg = "*"
 attrs = "*"
 cchardet = "*"
 cerberus = "*"
 click = "*"
 pendulum = "*"
-prometheus_client = "*"
-pyyaml = "==4.2b4"
-raven = "*"
-raven-aiohttp = "*"
+sentry-sdk = "*"
 ujson = "*"
 uvloop = "*"
 
