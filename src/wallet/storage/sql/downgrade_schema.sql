@@ -9,6 +9,10 @@ DROP TABLE operations;
 DROP TYPE operation_type;
 DROP SEQUENCE operations_pk;
 
+DROP INDEX categories_name_idx;
+DROP TABLE categories;
+DROP SEQUENCE operation_details_pk;
+
 DROP INDEX tags_name_idx;
 DROP TABLE tags;
 DROP SEQUENCE tags_pk;
