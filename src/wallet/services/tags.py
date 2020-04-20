@@ -1,15 +1,5 @@
 from wallet.domain import Tag, User
 from wallet.domain.storage import EntityAlreadyExist, Storage
-from wallet.validation import Validator
-
-
-class TagValidator(Validator):
-    def __init__(self, *args, **kwargs) -> None:
-        kwargs.setdefault("schema", {
-            "name": {"required": True, "empty": False, "type": "string"}
-        })
-
-        super(TagValidator, self).__init__(*args, **kwargs)
 
 
 class TagsService:

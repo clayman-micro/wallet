@@ -1,21 +1,16 @@
+import abc
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, List
+from typing import List
 
 import attr
 import pendulum  # type: ignore
+from passport.domain import User
 
 
-@attr.s(auto_attribs=True, slots=True)
-class User:
+class Entity(metaclass=abc.ABCMeta):
     key: int
-    email: str
-
-
-class UserProvider:
-    async def identify(self, token: str) -> User:
-        raise NotImplementedError
 
 
 @attr.s(slots=True)
@@ -31,7 +26,7 @@ class Account:
     key: int
     name: str
     user: User
-    balance: List[Any] = []
+    balance: List[Balance] = []
 
     def __attrs_post_init__(self):
         if not self.balance:
@@ -41,7 +36,9 @@ class Account:
 
     def apply_operation(self, operation: "Operation") -> None:
         month = pendulum.date(
-            year=operation.created_on.year, month=operation.created_on.month, day=1
+            year=operation.created_on.year,
+            month=operation.created_on.month,
+            day=1,
         )
 
         balance = {item.month: item for item in self.balance}
@@ -79,7 +76,9 @@ class Account:
 
     def rollback_operation(self, operation: "Operation"):
         month = pendulum.date(
-            year=operation.created_on.year, month=operation.created_on.month, day=1
+            year=operation.created_on.year,
+            month=operation.created_on.month,
+            day=1,
         )
 
         balance = sorted(self.balance, key=lambda item: item.month)

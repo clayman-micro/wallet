@@ -30,7 +30,7 @@ class TagsDBRepo(TagsRepo):
     async def _fetch(self, filters: str, user: User, *args) -> Dict[int, Tag]:
         result = {}
 
-        query = f"SELECT id, name FROM tags WHERE ({filters}) ORDER BY tags.created_on ASC"
+        query = f"SELECT id, name FROM tags WHERE ({filters}) ORDER BY tags.created_on ASC"  # noqa: E501
         rows = await self._conn.fetch(query, user.key, *args)
 
         for row in rows:
@@ -78,7 +78,9 @@ class TagsDBRepo(TagsRepo):
 
         return list(result.values())
 
-    async def find_by_operations(self, user: User, operations: Iterable[int]) -> Dict[int, List[Tag]]:
+    async def find_by_operations(
+        self, user: User, operations: Iterable[int]
+    ) -> Dict[int, List[Tag]]:
         result: Dict[int, List[Tag]] = defaultdict(list)
 
         query = """
@@ -89,13 +91,17 @@ class TagsDBRepo(TagsRepo):
           FROM tags
             INNER JOIN operation_tags ON operation_tags.tag_id = tags.id
           WHERE (
-            tags.enabled = TRUE AND tags.user_id = $1 AND operation_tags.operation_id = any($2::integer[])
+            tags.enabled = TRUE
+            AND tags.user_id = $1
+            AND operation_tags.operation_id = any($2::integer[])
           )
         """
         rows = await self._conn.fetch(query, user.key, operations)
 
         for row in rows:
-            result[row["operation_id"]].append(Tag(row["id"], row["name"], user))
+            result[row["operation_id"]].append(
+                Tag(row["id"], row["name"], user)
+            )
 
         return result
 

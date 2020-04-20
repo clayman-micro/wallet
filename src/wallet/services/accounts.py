@@ -1,15 +1,5 @@
-from wallet.domain import Account, User
+from wallet.domain import Account
 from wallet.domain.storage import EntityAlreadyExist, Storage
-from wallet.validation import Validator
-
-
-class AccountValidator(Validator):
-    def __init__(self, *args, **kwargs) -> None:
-        kwargs.setdefault("schema", {
-            "name": {"required": True, "empty": False, "type": "string"}
-        })
-
-        super(AccountValidator, self).__init__(*args, **kwargs)
 
 
 class AccountsService:
@@ -18,16 +8,14 @@ class AccountsService:
     def __init__(self, storage: Storage) -> None:
         self._storage = storage
 
-    async def register(self, name: str, user: User) -> Account:
-        account = Account(key=0, name=name, user=user)
-
+    async def register(self, account: Account) -> None:
         async with self._storage as store:
-            existed = await store.accounts.find_by_name(user, name)
+            existed = await store.accounts.find_by_name(
+                account.user, account.name
+            )
 
             if len(existed) > 0:
                 raise EntityAlreadyExist()
 
             account.key = await store.accounts.add(account)
             await store.commit()
-
-        return account

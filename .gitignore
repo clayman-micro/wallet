@@ -52,6 +52,7 @@ nosetests.xml
 *.tar.gz
 .vscode
 .env
+conf/*
 venv
 
 backups

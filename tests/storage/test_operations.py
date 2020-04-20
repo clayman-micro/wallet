@@ -17,7 +17,9 @@ async def test_add_operation(fake, today, app, account, operation):
 
 
 @pytest.mark.integration
-async def test_add_operation_with_tags(fake, today, app, user, account, operation, tag):
+async def test_add_operation_with_tags(
+    fake, today, app, user, account, operation, tag
+):
     async with app["db"].acquire() as conn:
         await prepare_accounts(conn, [account])
         await prepare_tags(conn, [tag])
@@ -91,15 +93,21 @@ async def test_add_tag_to_operation(fake, app, user, account, operation, tag):
 
 
 @pytest.mark.integration
-async def test_add_existed_tag_to_operation(fake, app, user, account, operation, tag):
+async def test_add_existed_tag_to_operation(
+    fake, app, user, account, operation, tag
+):
     async with app["db"].acquire() as conn:
         await prepare_accounts(conn, [account])
         await prepare_operations(conn, [operation])
         await prepare_tags(conn, [tag])
 
-        await conn.execute("""
+        await conn.execute(
+            """
           INSERT INTO operation_tags (operation_id, tag_id) VALUES ($1, $2);
-        """, operation.key, tag.key)
+        """,
+            operation.key,
+            tag.key,
+        )
 
         with pytest.raises(EntityAlreadyExist):
             repo = OperationsDBRepo(conn)
@@ -107,15 +115,21 @@ async def test_add_existed_tag_to_operation(fake, app, user, account, operation,
 
 
 @pytest.mark.integration
-async def test_remove_tag_from_operation(fake, app, user, account, operation, tag):
+async def test_remove_tag_from_operation(
+    fake, app, user, account, operation, tag
+):
     async with app["db"].acquire() as conn:
         await prepare_accounts(conn, [account])
         await prepare_operations(conn, [operation])
         await prepare_tags(conn, [tag])
 
-        await conn.execute("""
+        await conn.execute(
+            """
           INSERT INTO operation_tags (operation_id, tag_id) VALUES ($1, $2);
-        """, operation.key, tag.key)
+        """,
+            operation.key,
+            tag.key,
+        )
 
         repo = OperationsDBRepo(conn)
         result = await repo.remove_tag(operation, tag)

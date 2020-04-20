@@ -8,7 +8,11 @@ from asyncpg.connection import Connection  # type: ignore
 from asyncpg.exceptions import UniqueViolationError  # type: ignore
 
 from wallet.domain import Account, Balance, User
-from wallet.domain.storage import AccountsRepo, EntityAlreadyExist, EntityNotFound
+from wallet.domain.storage import (
+    AccountsRepo,
+    EntityAlreadyExist,
+    EntityNotFound,
+)
 
 
 class AccountsDBRepo(AccountsRepo):
@@ -28,8 +32,11 @@ class AccountsDBRepo(AccountsRepo):
 
         return count > 0
 
-    async def _fetch(self, filters: str, user: User, *args) -> Dict[int, Account]:
-        rows = await self._conn.fetch(f"""
+    async def _fetch(
+        self, filters: str, user: User, *args
+    ) -> Dict[int, Account]:
+        rows = await self._conn.fetch(
+            f"""
           SELECT
             accounts.id as id,
             accounts.name as name,
@@ -41,22 +48,33 @@ class AccountsDBRepo(AccountsRepo):
             INNER JOIN balance ON (accounts.id = balance.account_id)
           WHERE ({filters})
           ORDER BY accounts.created_on ASC, balance.month DESC;
-        """, user.key, *args)
+        """,
+            user.key,
+            *args,
+        )
 
         result = {}
 
-        for key, group in groupby(rows, key=lambda item: (item["id"], item["name"])):
+        for key, group in groupby(
+            rows, key=lambda item: (item["id"], item["name"])
+        ):
             balance = [
                 Balance(
                     rest=item["rest"],
                     expenses=item["expenses"],
                     incomes=item["incomes"],
-                    month=pendulum.date(item["month"].year, item["month"].month, item["month"].day),
+                    month=pendulum.date(
+                        item["month"].year,
+                        item["month"].month,
+                        item["month"].day,
+                    ),
                 )
                 for item in group
             ]
 
-            account = Account(key=key[0], name=key[1], user=user, balance=balance)
+            account = Account(
+                key=key[0], name=key[1], user=user, balance=balance
+            )
             result[key[0]] = account
 
         return result
@@ -151,7 +169,12 @@ class AccountsDBRepo(AccountsRepo):
                 """
 
             result = await self._conn.execute(
-                query, instance.key, item.month, item.rest, item.expenses, item.incomes
+                query,
+                instance.key,
+                item.month,
+                item.rest,
+                item.expenses,
+                item.incomes,
             )
             results.append(result)
 

@@ -11,12 +11,24 @@ from wallet.storage.accounts import AccountsDBRepo
 @pytest.fixture(scope="function")
 def accounts(fake, month, user):
     return [
-        Account(key=0, name=fake.credit_card_number(), user=user, balance=[
-            Balance(rest=Decimal("-838.00"), expenses=Decimal("838.00"), month=month)
-        ]),
-        Account(key=0, name=fake.credit_card_number(), user=user, balance=[
-            Balance(month=month)
-        ])
+        Account(
+            key=0,
+            name=fake.credit_card_number(),
+            user=user,
+            balance=[
+                Balance(
+                    rest=Decimal("-838.00"),
+                    expenses=Decimal("838.00"),
+                    month=month,
+                )
+            ],
+        ),
+        Account(
+            key=0,
+            name=fake.credit_card_number(),
+            user=user,
+            balance=[Balance(month=month)],
+        ),
     ]
 
 
@@ -30,16 +42,23 @@ async def test_add_account(fake, app, user):
 
         assert key == 1
 
-        name = await conn.fetchval("""
+        name = await conn.fetchval(
+            """
           SELECT name FROM accounts
           WHERE enabled = True AND user_id = $1 AND id = $2;
-        """, user.key, key)
+        """,
+            user.key,
+            key,
+        )
 
         assert name == account.name
 
-        balance_entities = await conn.fetchval("""
+        balance_entities = await conn.fetchval(
+            """
           SELECT COUNT(id) FROM balance WHERE account_id = $1
-        """, key)
+        """,
+            key,
+        )
 
         assert balance_entities == 1
 
@@ -50,7 +69,9 @@ async def test_add_account_failed(fake, app, month, user, account):
 
     account.name = name
     account.balance = [
-        Balance(rest=Decimal("-838.00"), expenses=Decimal("838.00"), month=month)
+        Balance(
+            rest=Decimal("-838.00"), expenses=Decimal("838.00"), month=month
+        )
     ]
 
     async with app["db"].acquire() as conn:
@@ -106,10 +127,14 @@ async def test_update_account_name(fake, app, user, accounts):
 
         assert result is True
 
-        name = await conn.fetchval("""
+        name = await conn.fetchval(
+            """
           SELECT name FROM accounts
           WHERE enabled = TRUE AND user_id = $1 AND id = $2;
-        """, user.key, account.key)
+        """,
+            user.key,
+            account.key,
+        )
 
         assert name == account.name
 
@@ -145,7 +170,11 @@ async def test_update_balance_single_entry(app, month, user, account):
         await prepare_accounts(conn, [account])
 
         account.balance = [
-            Balance(rest=Decimal("25000.00"), incomes=Decimal("25000.00"), month=month)
+            Balance(
+                rest=Decimal("25000.00"),
+                incomes=Decimal("25000.00"),
+                month=month,
+            )
         ]
 
         repo = AccountsDBRepo(conn)
@@ -155,7 +184,11 @@ async def test_update_balance_single_entry(app, month, user, account):
 
         result = await repo.find_by_key(user, key=account.key)
         assert result.balance == [
-            Balance(rest=Decimal("25000.00"), incomes=Decimal("25000.00"), month=month)
+            Balance(
+                rest=Decimal("25000.00"),
+                incomes=Decimal("25000.00"),
+                month=month,
+            )
         ]
 
 
@@ -165,8 +198,16 @@ async def test_update_balance_with_missing_entries(app, month, user, account):
         await prepare_accounts(conn, [account])
 
         account.balance = [
-            Balance(rest=Decimal("-838.00"), expenses=Decimal("838.00"), month=month.subtract(months=1)),
-            Balance(rest=Decimal("24162.00"), incomes=Decimal("25000.00"), month=month),
+            Balance(
+                rest=Decimal("-838.00"),
+                expenses=Decimal("838.00"),
+                month=month.subtract(months=1),
+            ),
+            Balance(
+                rest=Decimal("24162.00"),
+                incomes=Decimal("25000.00"),
+                month=month,
+            ),
         ]
 
         repo = AccountsDBRepo(conn)
@@ -176,8 +217,16 @@ async def test_update_balance_with_missing_entries(app, month, user, account):
 
         result = await repo.find_by_key(user, key=account.key)
         assert result.balance == [
-            Balance(rest=Decimal("24162.00"), incomes=Decimal("25000.00"), month=month),
-            Balance(rest=Decimal("-838.00"), expenses=Decimal("838.00"), month=month.subtract(months=1)),
+            Balance(
+                rest=Decimal("24162.00"),
+                incomes=Decimal("25000.00"),
+                month=month,
+            ),
+            Balance(
+                rest=Decimal("-838.00"),
+                expenses=Decimal("838.00"),
+                month=month.subtract(months=1),
+            ),
         ]
 
 
@@ -191,9 +240,12 @@ async def test_remove_account(app, user, account):
 
         assert result is True
 
-        count = await conn.fetchval("""
+        count = await conn.fetchval(
+            """
           SELECT COUNT(id) FROM accounts WHERE enabled = TRUE AND user_id = $1;
-        """, user.key)
+        """,
+            user.key,
+        )
         assert count == 0
 
 

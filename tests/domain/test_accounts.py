@@ -18,7 +18,9 @@ def operations_factory(fake):
 
             start = created_on.start_of("month")
             end = created_on.end_of("month")
-            created_on = fake.date_time_between_dates(datetime_start=start, datetime_end=end)
+            created_on = fake.date_time_between_dates(
+                datetime_start=start, datetime_end=end
+            )
 
             operation = Operation(
                 index,
@@ -76,12 +78,18 @@ def test_apply_operation_to_current_month(fake, user, operations_factory):
     account.apply_operation(operations[0])
 
     assert account.balance == [
-        Balance(rest=Decimal("-632.81"), expenses=Decimal("632.81"), month=today.start_of("month"))
+        Balance(
+            rest=Decimal("-632.81"),
+            expenses=Decimal("632.81"),
+            month=today.start_of("month"),
+        )
     ]
 
 
 @pytest.mark.unit
-def test_apply_operations_two_month_earlier_missing_month(fake, user, operations_factory):
+def test_apply_operations_two_month_earlier_missing_month(
+    fake, user, operations_factory
+):
     today = pendulum.today().date()
     month = today.start_of("month")
 
@@ -98,13 +106,17 @@ def test_apply_operations_two_month_earlier_missing_month(fake, user, operations
             )
         ],
     )
-    operations = operations_factory((("632.81", account, "expense", today.subtract(months=2)),))
+    operations = operations_factory(
+        (("632.81", account, "expense", today.subtract(months=2)),)
+    )
 
     account.apply_operation(operations[0])
 
     assert account.balance == [
         Balance(
-            rest=Decimal("-632.81"), expenses=Decimal("632.81"), month=month.subtract(months=2)
+            rest=Decimal("-632.81"),
+            expenses=Decimal("632.81"),
+            month=month.subtract(months=2),
         ),
         Balance(rest=Decimal("-632.81"), month=month.subtract(months=1)),
         Balance(
@@ -117,7 +129,9 @@ def test_apply_operations_two_month_earlier_missing_month(fake, user, operations
 
 
 @pytest.mark.unit
-def test_apply_operation_two_month_earlier_existing_month(fake, user, operations_factory):
+def test_apply_operation_two_month_earlier_existing_month(
+    fake, user, operations_factory
+):
     today = pendulum.today().date()
     month = today.start_of("month")
 
@@ -146,7 +160,9 @@ def test_apply_operation_two_month_earlier_existing_month(fake, user, operations
             ),
         ],
     )
-    operations = operations_factory((("632.81", account, "income", today.subtract(months=1)),))
+    operations = operations_factory(
+        (("632.81", account, "income", today.subtract(months=1)),)
+    )
 
     account.apply_operation(operations[0])
 
@@ -202,7 +218,9 @@ def test_apply_operation_two_month_in_future(fake, user, operations_factory):
             ),
         ],
     )
-    operations = operations_factory((("632.81", account, "income", today.add(months=2)),))
+    operations = operations_factory(
+        (("632.81", account, "income", today.add(months=2)),)
+    )
 
     account.apply_operation(operations[0])
 
@@ -294,7 +312,9 @@ def test_rollback_operation_two_month_earlier(fake, user, operations_factory):
             ),
         ],
     )
-    operations = operations_factory((("28189.31", account, "income", today.subtract(months=1)),))
+    operations = operations_factory(
+        (("28189.31", account, "income", today.subtract(months=1)),)
+    )
 
     account.rollback_operation(operations[0])
 

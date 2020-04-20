@@ -6,7 +6,11 @@ from asyncpg.connection import Connection  # type: ignore
 from asyncpg.exceptions import UniqueViolationError  # type: ignore
 
 from wallet.domain import Account, Operation, OperationType, Tag
-from wallet.domain.storage import EntityAlreadyExist, EntityNotFound, OperationRepo
+from wallet.domain.storage import (
+    EntityAlreadyExist,
+    EntityNotFound,
+    OperationRepo,
+)
 
 
 class OperationsDBRepo(OperationRepo):
@@ -32,24 +36,37 @@ class OperationsDBRepo(OperationRepo):
               amount, account_id, type, description, created_on
           ) VALUES ($1, $2, $3, $4, $5) RETURNING id;
         """
-        key = await self._conn.fetchval(query, operation.amount, operation.account.key,
-                                        operation.type.value, operation.description,
-                                        operation.created_on)
+        key = await self._conn.fetchval(
+            query,
+            operation.amount,
+            operation.account.key,
+            operation.type.value,
+            operation.description,
+            operation.created_on,
+        )
 
         query = """
           INSERT INTO operation_tags (operation_id, tag_id) VALUES ($1, $2);
         """
-        await self._conn.executemany(query, [(key, tag.key) for tag in operation.tags])
+        await self._conn.executemany(
+            query, [(key, tag.key) for tag in operation.tags]
+        )
 
         return key
 
-    async def _fetch(self, filters: str, account: Account, *args) -> Dict[int, Operation]:
+    async def _fetch(
+        self, filters: str, account: Account, *args
+    ) -> Dict[int, Operation]:
         result = {}
 
-        rows = await self._conn.fetch(f"""
+        rows = await self._conn.fetch(
+            f"""
           SELECT id, amount, type, description, created_on FROM operations
           WHERE ({filters}) ORDER BY created_on DESC;
-        """, account.key, *args)
+        """,
+            account.key,
+            *args,
+        )
 
         for row in rows:
             result[row["id"]] = Operation(
@@ -58,12 +75,14 @@ class OperationsDBRepo(OperationRepo):
                 account=account,
                 description=row["description"],
                 type=OperationType(row["type"]),
-                created_on=row["created_on"]
+                created_on=row["created_on"],
             )
 
         return result
 
-    async def find(self, account: Account, month: Optional[date] = None) -> List[Operation]:
+    async def find(
+        self, account: Account, month: Optional[date] = None
+    ) -> List[Operation]:
         filters = "enabled = TRUE AND account_id = $1"
         result = await self._fetch(filters, account)
 
@@ -87,15 +106,21 @@ class OperationsDBRepo(OperationRepo):
           WHERE id = $1 AND account_id = $2 AND enabled = TRUE
         """
 
-        result = await self._conn.execute(query, operation.key, operation.account.key)
+        result = await self._conn.execute(
+            query, operation.key, operation.account.key
+        )
 
         return self._check_update(result)
 
     async def add_tag(self, operation: Operation, tag: Tag) -> bool:
         try:
-            result = await self._conn.execute("""
+            result = await self._conn.execute(
+                """
               INSERT INTO operation_tags (operation_id, tag_id) VALUES ($1, $2);
-            """, operation.key, tag.key)
+            """,
+                operation.key,
+                tag.key,
+            )
         except UniqueViolationError:
             raise EntityAlreadyExist()
 
@@ -110,9 +135,13 @@ class OperationsDBRepo(OperationRepo):
         return count > 0
 
     async def remove_tag(self, operation: Operation, tag: Tag) -> bool:
-        result = await self._conn.execute("""
+        result = await self._conn.execute(
+            """
           DELETE FROM operation_tags WHERE operation_id = $1 AND tag_id = $2;
-        """, operation.key, tag.key)
+        """,
+            operation.key,
+            tag.key,
+        )
 
         count = 0
         match = re.search(r"DELETE\s(?P<count>\d+)", result)

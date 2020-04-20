@@ -8,7 +8,9 @@ from wallet.domain.storage import AccountsRepo, OperationRepo, Storage, TagsRepo
 
 
 class FakeStorage(Storage):
-    def __init__(self, accounts: AccountsRepo, operations: OperationRepo, tags: TagsRepo) -> None:
+    def __init__(
+        self, accounts: AccountsRepo, operations: OperationRepo, tags: TagsRepo
+    ) -> None:
         super(FakeStorage, self).__init__(accounts, operations, tags)
 
         self.was_committed = False
@@ -43,7 +45,7 @@ def operation(fake, today, account):
         amount=Decimal("838.00"),
         account=account,
         description="Fuel",
-        created_on=today
+        created_on=today,
     )
 
 

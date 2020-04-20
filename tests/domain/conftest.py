@@ -1,8 +1,9 @@
 from typing import Any
 
 import pytest  # type: ignore
+from passport.domain import User
 
-from wallet.domain import Account, User
+from wallet.domain import Account
 
 
 @pytest.fixture(scope="function")

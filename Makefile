@@ -25,11 +25,14 @@ clean-test:
 	rm -f tests/coverage.xml
 
 install: clean
-	pipenv install --dev -e .
+	poetry install
 
 lint:
-	pipenv run flake8 wallet tests
-	pipenv run mypy wallet tests
+	poetry run flake8 wallet tests
+	poetry run mypy wallet tests
+
+run:
+	poetry run python3 -m wallet --conf-dir=./conf --debug server run -t develop -t 'traefik.enable=true' -t 'traefik.http.routers.wallet.rule=Host(`wallet.dev.clayman.pro`)' -t 'traefik.http.routers.wallet.entrypoints=web' -t 'traefik.http.routers.wallet.service=wallet' -t 'traefik.http.routers.wallet.middlewares=wallet-redirect@consulcatalog' -t 'traefik.http.routers.wallet-secure.rule=Host(`wallet.dev.clayman.pro`)' -t 'traefik.http.routers.wallet-secure.entrypoints=websecure' -t 'traefik.http.routers.wallet-secure.service=wallet' -t 'traefik.http.routers.wallet-secure.tls=true' -t 'traefik.http.middlewares.wallet-redirect.redirectscheme.scheme=https' -t 'traefik.http.middlewares.wallet-redirect.redirectscheme.permanent=true'
 
 test:
 	py.test

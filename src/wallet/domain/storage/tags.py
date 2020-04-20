@@ -13,7 +13,9 @@ class TagsRepo:
     async def find_by_name(self, user: User, name: str) -> List[Tag]:
         raise NotImplementedError
 
-    async def find_by_operations(self, user: User, operations: Iterable[int]) -> Dict[int, List[Tag]]:
+    async def find_by_operations(
+        self, user: User, operations: Iterable[int]
+    ) -> Dict[int, List[Tag]]:
         raise NotImplementedError
 
     async def add(self, tag: Tag) -> int:

@@ -5,23 +5,7 @@ import pytest  # type: ignore
 
 from wallet.domain import Account
 from wallet.domain.storage import EntityAlreadyExist
-from wallet.services.accounts import AccountsService, AccountValidator
-from wallet.validation import ValidationError
-
-
-class TestAccountValidator:
-    @pytest.mark.unit
-    def test_valid_payload(self, fake):
-        validator = AccountValidator()
-        result = validator.validate_payload({"name": fake.credit_card_provider()})
-        assert result is not None
-
-    @pytest.mark.unit
-    @pytest.mark.parametrize("payload", ({}, {"name": ""}, {"foo": "bar"}))
-    def test_invalid_payload(self, payload):
-        with pytest.raises(ValidationError):
-            validator = AccountValidator()
-            validator.validate_payload(payload)
+from wallet.services.accounts import AccountsService
 
 
 class TestAccountsService:
@@ -38,15 +22,19 @@ class TestAccountsService:
         storage.accounts.add = mock.MagicMock(return_value=add)
         storage.accounts.find_by_name = mock.MagicMock(return_value=find)
 
+        account = Account(key=0, name=name, user=user)
+
         service = AccountsService(storage)
-        account = await service.register(name=name, user=user)
+        await service.register(account)
 
         storage.accounts.add.assert_called_once()
         assert account == Account(key=1, name=name, user=user)
         assert storage.was_committed
 
     @pytest.mark.unit
-    async def test_reject_account_with_duplicate_name(self, fake, user, storage):
+    async def test_reject_account_with_duplicate_name(
+        self, fake, user, storage
+    ):
         name = fake.credit_card_provider()
 
         find = asyncio.Future()
@@ -54,8 +42,10 @@ class TestAccountsService:
 
         storage.accounts.find_by_name = mock.MagicMock(return_value=find)
 
+        account = Account(key=0, name=name, user=user)
+
         with pytest.raises(EntityAlreadyExist):
             service = AccountsService(storage)
-            await service.register(name, user)
+            await service.register(account)
 
         storage.accounts.find_by_name.assert_called()

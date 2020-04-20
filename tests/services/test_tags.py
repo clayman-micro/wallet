@@ -5,23 +5,7 @@ import pytest  # type: ignore
 
 from wallet.domain import Tag
 from wallet.domain.storage import EntityAlreadyExist
-from wallet.services.tags import TagsService, TagValidator
-from wallet.validation import ValidationError
-
-
-class TestAccountValidator:
-    @pytest.mark.unit
-    def test_valid_payload(self, fake):
-        validator = TagValidator()
-        result = validator.validate_payload({"name": fake.safe_color_name()})
-        assert result is not None
-
-    @pytest.mark.unit
-    @pytest.mark.parametrize("payload", ({}, {"name": ""}, {"foo": "bar"}))
-    def test_invalid_payload(self, payload):
-        with pytest.raises(ValidationError):
-            validator = TagValidator()
-            validator.validate_payload(payload)
+from wallet.services.tags import TagsService
 
 
 class TestTagsService:

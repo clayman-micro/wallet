@@ -14,7 +14,9 @@ class EntityNotFound(Exception):
 class Storage:
     __slots__ = ("_accounts", "_operations", "_tags")
 
-    def __init__(self, accounts: AccountsRepo, operations: OperationRepo, tags: TagsRepo) -> None:
+    def __init__(
+        self, accounts: AccountsRepo, operations: OperationRepo, tags: TagsRepo
+    ) -> None:
         self._accounts = accounts
         self._operations = operations
         self._tags = tags

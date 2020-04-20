@@ -58,15 +58,21 @@ async def test_find_tag_by_name(fake, app, user, tag):
 
 
 @pytest.mark.integration
-async def test_find_tags_by_operations(fake, app, user, account, operation, tag):
+async def test_find_tags_by_operations(
+    fake, app, user, account, operation, tag
+):
     async with app["db"].acquire() as conn:
         await prepare_accounts(conn, [account])
         await prepare_operations(conn, [operation])
         await prepare_tags(conn, [tag])
 
-        await conn.execute("""
+        await conn.execute(
+            """
           INSERT INTO operation_tags (operation_id, tag_id) VALUES ($1, $2);
-        """, operation.key, tag.key)
+        """,
+            operation.key,
+            tag.key,
+        )
 
         repo = TagsDBRepo(conn)
         tags = await repo.find_by_operations(user, (operation.key,))
@@ -117,7 +123,9 @@ async def test_remove_tag(fake, app, user, tag):
 
         assert result is True
 
-        query = "SELECT COUNT(id) FROM tags WHERE enabled = TRUE AND user_id = $1"
+        query = (
+            "SELECT COUNT(id) FROM tags WHERE enabled = TRUE AND user_id = $1"
+        )
         count = await conn.fetchval(query, user.key)
 
         assert count == 0

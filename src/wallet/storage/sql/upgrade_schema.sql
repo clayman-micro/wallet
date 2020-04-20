@@ -77,22 +77,22 @@ CREATE TABLE IF NOT EXISTS operation_details (
     operation_id INTEGER NOT NULL REFERENCES operations (id)
 );
 
-CREATE SEQUENCE IF NOT EXISTS categories_pk START WITH 1;
+-- CREATE SEQUENCE IF NOT EXISTS categories_pk START WITH 1;
 
-CREATE TABLE IF NOT EXISTS categories (
-  id INTEGER PRIMARY KEY default nextval('categories_pk'),
-  name VARCHAR(255) NOT NULL,
-  user_id INTEGER,
-  enabled BOOLEAN DEFAULT TRUE,
-  created_on TIMESTAMP WITHOUT TIME ZONE NOT NULL
-);
+-- CREATE TABLE IF NOT EXISTS categories (
+--   id INTEGER PRIMARY KEY default nextval('categories_pk'),
+--   name VARCHAR(255) NOT NULL,
+--   user_id INTEGER,
+--   enabled BOOLEAN DEFAULT TRUE,
+--   created_on TIMESTAMP WITHOUT TIME ZONE NOT NULL
+-- );
 
-CREATE UNIQUE INDEX IF NOT EXISTS categories_name_idx ON categories (name, enabled, user_id);
+-- CREATE UNIQUE INDEX IF NOT EXISTS categories_name_idx ON categories (name, enabled, user_id);
 
-CREATE TABLE IF NOT EXISTS operation_categories (
-  operation_id INTEGER REFERENCES operations (id) ON DELETE CASCADE,
-  category_id INTEGER REFERENCES categories (id) ON DELETE CASCADE,
-  CONSTRAINT operation_categories_pk PRIMARY KEY (opeation_id, category_id)
-);
+-- CREATE TABLE IF NOT EXISTS operation_categories (
+--   operation_id INTEGER REFERENCES operations (id) ON DELETE CASCADE,
+--   category_id INTEGER REFERENCES categories (id) ON DELETE CASCADE,
+--   CONSTRAINT operation_categories_pk PRIMARY KEY (operation_id, category_id)
+-- );
 
 COMMIT;
