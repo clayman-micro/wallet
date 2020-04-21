@@ -2,7 +2,7 @@ FROM python:3.8-alpine3.11 as build
 
 RUN apk add --update --no-cache --quiet make libc-dev python3-dev libffi-dev linux-headers gcc g++ git postgresql-dev && \
     python3 -m pip install --no-cache-dir --quiet -U pip && \
-    python3 -m pip install --no-cache-dir --quiet pipenv
+    python3 -m pip install --no-cache-dir --quiet poetry
 
 ADD . /app
 
