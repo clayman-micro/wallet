@@ -567,7 +567,7 @@ description = ""
 name = "passport"
 optional = false
 python-versions = "^3.8"
-version = "2.5.1"
+version = "2.5.2"
 
 [package.dependencies]
 aiohttp-metrics = "rev v0.1.2"
@@ -580,7 +580,7 @@ extras = ["crypto"]
 version = "1.7.1"
 
 [package.source]
-reference = "db0b2d89d447eb0fd2a7939bfc7ef7ce976a1cc5"
+reference = "c419d9ed71721e5d0ac625323e63f39ea55d5c11"
 type = "git"
 url = "https://github.com/clayman083/passport.git"
 [[package]]
@@ -1032,7 +1032,7 @@ idna = ">=2.0"
 multidict = ">=4.0"
 
 [metadata]
-content-hash = "0a8ff97e574b41e7b7108ca44c90bb2b55199ef887c69f3e2ad4647169b54791"
+content-hash = "1544e96533b815e18e0ecff9f6c5aecb060ab3df73dbc6b4cc402b0bb2134eb4"
 python-versions = "^3.8"
 
 [metadata.files]
