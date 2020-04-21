@@ -13,13 +13,13 @@ RUN poetry build
 
 FROM python:3.8-alpine3.11
 
-COPY --from=build /app/dist/*.whl .
+COPY --from=build /app/dist/*.tar.gz .
 
-RUN apk add --update --no-cache --quiet make libc-dev python3-dev libffi-dev linux-headers gcc g++ git postgresql-client && \
+RUN apk add --update --no-cache --quiet make openssl-dev libc-dev python3-dev libffi-dev linux-headers gcc g++ git postgresql-client && \
     python3 -m pip install --no-cache-dir --quiet -U pip && \
-    python3 -m pip install --no-cache-dir --quiet *.whl && \
+    python3 -m pip install --no-cache-dir --quiet *.tar.gz && \
     mkdir -p /usr/share/wallet && \
-    rm -f *.whl && \
+    rm -f *.tar.gz && \
     apk del --quiet make libc-dev libffi-dev python3-dev linux-headers gcc g++ git
 
 ADD ./src/wallet/storage/sql /usr/share/wallet

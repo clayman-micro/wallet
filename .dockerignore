@@ -7,8 +7,8 @@
 .sonarlint
 .tox
 .vscode
+.venv
+*.egg-info
 build
 dist
-wallet.egg-info
-backups
 tests

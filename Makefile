@@ -1,4 +1,7 @@
 .PHONY: clean clean-test clean-pyc clean-build
+NAME	:= clayman083/wallet
+VERSION ?= latest
+
 
 clean: clean-build clean-image clean-pyc clean-test
 
@@ -41,9 +44,9 @@ test-all:
 	tox -- --pg-image=postgres:11-alpine
 
 build:
-	docker build -t $(DOCKER_USER)/wallet .
-	docker tag $(DOCKER_USER)/wallet $(DOCKER_USER)/wallet:$(TRAVIS_TAG)
+	docker build -t ${NAME} .
+	docker tag ${NAME} ${NAME}:$(VERSION)
 
 publish:
 	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
-	docker push $(DOCKER_USER)/wallet
+	docker push ${NAME}
