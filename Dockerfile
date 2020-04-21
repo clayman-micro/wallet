@@ -1,4 +1,4 @@
-FROM python:3.7-alpine3.9 as build
+FROM python:3.8-alpine3.11 as build
 
 RUN apk add --update --no-cache --quiet make libc-dev python3-dev libffi-dev linux-headers gcc g++ git postgresql-dev && \
     python3 -m pip install --no-cache-dir --quiet -U pip && \
@@ -8,12 +8,10 @@ ADD . /app
 
 WORKDIR /app
 
-RUN pipenv install --dev && \
-    pipenv lock -r > requirements.txt && \
-    pipenv run python setup.py bdist_wheel
+RUN poetry build
 
 
-FROM python:3.7-alpine3.9
+FROM python:3.8-alpine3.11
 
 COPY --from=build /app/dist/*.whl .
 
@@ -21,10 +19,13 @@ RUN apk add --update --no-cache --quiet make libc-dev python3-dev libffi-dev lin
     python3 -m pip install --no-cache-dir --quiet -U pip && \
     python3 -m pip install --no-cache-dir --quiet *.whl && \
     mkdir -p /usr/share/wallet && \
-    cp /usr/local/lib/python3.7/site-packages/wallet/storage/sql/* /usr/share/wallet && \
     rm -f *.whl && \
-    apk del --quiet make libc-dev python3-dev libffi-dev linux-headers gcc g++ git
+    apk del --quiet make libc-dev libffi-dev python3-dev linux-headers gcc g++ git
+
+ADD ./src/wallet/storage/sql /usr/share/wallet
 
 EXPOSE 5000
 
-CMD ["python3", "-m", "wallet", "server", "run", "--host=0.0.0.0", "--consul"]
+ENTRYPOINT ["python3", "-m", "wallet"]
+
+CMD ["--conf-dir", "/etc/wallet", "server", "run"]
