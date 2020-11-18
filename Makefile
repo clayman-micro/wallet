@@ -1,5 +1,5 @@
 .PHONY: clean clean-test clean-pyc clean-build
-NAME	:= clayman083/wallet
+NAME	:= ghcr.io/clayman-micro/wallet
 VERSION ?= latest
 
 
@@ -35,7 +35,7 @@ lint:
 	poetry run mypy wallet tests
 
 run:
-	poetry run python3 -m wallet --conf-dir=./conf --debug server run -t develop -t 'traefik.enable=true' -t 'traefik.http.routers.wallet.rule=Host(`wallet.dev.clayman.pro`)' -t 'traefik.http.routers.wallet.entrypoints=web' -t 'traefik.http.routers.wallet.service=wallet' -t 'traefik.http.routers.wallet.middlewares=wallet-redirect@consulcatalog' -t 'traefik.http.routers.wallet-secure.rule=Host(`wallet.dev.clayman.pro`)' -t 'traefik.http.routers.wallet-secure.entrypoints=websecure' -t 'traefik.http.routers.wallet-secure.service=wallet' -t 'traefik.http.routers.wallet-secure.tls=true' -t 'traefik.http.middlewares.wallet-redirect.redirectscheme.scheme=https' -t 'traefik.http.middlewares.wallet-redirect.redirectscheme.permanent=true'
+	poetry run python3 -m wallet --debug server run -t develop
 
 test:
 	py.test
@@ -48,5 +48,5 @@ build:
 	docker tag ${NAME} ${NAME}:$(VERSION)
 
 publish:
-	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
+	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS) ghcr.io
 	docker push ${NAME}

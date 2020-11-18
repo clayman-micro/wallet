@@ -42,7 +42,7 @@ def cli(ctx, conf_dir: str = None, debug: bool = False) -> None:
     )
     load(config, providers=[FileValueProvider(conf_dir), EnvValueProvider()])
 
-    app = loop.run_until_complete(init("wallet", config))
+    app = init("wallet", config)
 
     ctx.obj['app'] = app
     ctx.obj['config'] = config

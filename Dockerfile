@@ -1,6 +1,8 @@
-FROM python:3.8-alpine3.11 as build
+FROM python:3.9-slim as build
 
-RUN apk add --update --no-cache --quiet make libc-dev python3-dev libffi-dev linux-headers gcc g++ git postgresql-dev && \
+RUN DEBIAN_FRONTEND=noninteractive \
+    apt-get update && apt-get install -y -qq \
+      build-essential python3-dev libffi-dev git > /dev/null && \
     python3 -m pip install --no-cache-dir --quiet -U pip && \
     python3 -m pip install --no-cache-dir --quiet poetry
 
@@ -11,21 +13,24 @@ WORKDIR /app
 RUN poetry build
 
 
-FROM python:3.8-alpine3.11
+FROM python:3.9-slim
 
-COPY --from=build /app/dist/*.tar.gz .
+COPY --from=build /app/dist/*.whl .
 
-RUN apk add --update --no-cache --quiet make openssl-dev libc-dev python3-dev libffi-dev linux-headers gcc g++ git postgresql-client && \
+RUN DEBIAN_FRONTEND=noninteractive \
+    apt-get update && apt-get install -y -qq \
+      build-essential python3-dev libffi-dev libpq-dev git curl > /dev/null && \
     python3 -m pip install --no-cache-dir --quiet -U pip && \
-    python3 -m pip install --no-cache-dir --quiet *.tar.gz && \
-    mkdir -p /usr/share/wallet && \
-    rm -f *.tar.gz && \
-    apk del --quiet make libc-dev libffi-dev python3-dev linux-headers gcc g++ git
-
-ADD ./src/wallet/storage/sql /usr/share/wallet
+    python3 -m pip install --no-cache-dir --quiet *.whl && \
+    rm -f *.whl && \
+    apt remove -y -qq build-essential python3-dev libffi-dev git > /dev/null && \
+    apt autoremove -y -qq > /dev/null
 
 EXPOSE 5000
 
+HEALTHCHECK --interval=10s --timeout=3s \
+  CMD curl -f http://localhost:5000/-/health || exit 1
+
 ENTRYPOINT ["python3", "-m", "wallet"]
 
-CMD ["--conf-dir", "/etc/wallet", "server", "run"]
+CMD [ "server", "run" ]
