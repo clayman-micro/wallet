@@ -6,34 +6,69 @@ on:
       - v*
 
 jobs:
-  run_tests:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
 
       - uses: actions/setup-python@v1
         with:
-          python-version: '3.8'
+          python-version: '3.9'
           architecture: 'x64'
 
       - name: Install requirements
-        # Устанавливаем зависимости
         run: pip install poetry tox
 
       - name: Run tests
         run: tox
 
-  publish_image:
-    needs: [run_tests]
+      - name: Set output
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
+      - name: Send notification to Telegram
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_SECRET }}
+          args: ${{ github.repository }} tests for version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
+
+  build:
+    needs: [tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
 
+      - name: Set output
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
+      - name: Import Secrets
+        id: secrets
+        uses: hashicorp/vault-action@v2.1.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          secrets: |
+              secrets/data/services/ghcr user | DOCKER_USERNAME ;
+              secrets/data/services/ghcr password | DOCKER_PASSWORD
+
       - name: Publish to Docker Repository
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
-          name: ${{ github.repository }}/backend
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
+          name: ghcr.io/clayman-micro/passport
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
           tag_names: true
+
+      - name: Send notification to Telegram
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_SECRET }}
+          args: ${{ github.repository }} build version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
