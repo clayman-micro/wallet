@@ -1,0 +1,27 @@
+version: "3.8"
+
+networks:
+  backend:
+    external: true
+
+services:
+  server:
+    image: ghcr.io/clayman-micro/wallet:v2.4.3
+    command: --debug server run --host=0.0.0.0 --tags=develop
+    dns: 192.168.100.10
+    environment:
+      CONSUL_HOST: consul.service.consul
+
+      PASSPORT_HOST: https://passport.dev.clayman.pro
+
+      POSTGRES_HOST: "postgresql.service.consul"
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: wallet
+      POSTGRES_DATABASE: wallet
+    logging:
+        driver: syslog
+        options:
+          syslog-address: unixgram:///dev/log
+          tag: wallet
+    networks:
+      - backend
