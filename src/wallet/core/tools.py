@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Generator, Optional
 
-import pendulum
+import pendulum  # type: ignore
 
 
 def month_range(

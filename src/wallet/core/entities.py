@@ -2,8 +2,9 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+from typing import Dict, List, Optional
 
-import pendulum
+import pendulum  # type: ignore
 from passport.domain import User
 
 from wallet.core.tools import month_range
@@ -15,6 +16,16 @@ class Entity:
 
     def __post_init__(self):
         pass
+
+
+@dataclass
+class Payload:
+    user: User
+
+
+@dataclass
+class Filters:
+    user: User
 
 
 @dataclass
@@ -32,7 +43,7 @@ class OperationType(Enum):
 
 @dataclass
 class EntityWithBalance(Entity):
-    balance: dict[date, Balance] = field(default_factory=dict, init=False)
+    balance: Dict[date, Balance] = field(default_factory=dict, init=False)
 
     def __post_init__(self):
         super().__post_init__()
@@ -110,16 +121,47 @@ class Account(EntityWithBalance):
 
 
 @dataclass
+class AccountPayload(Payload):
+    name: str
+
+
+@dataclass
+class AccountFilters(Filters):
+    name: Optional[str] = None
+
+
+@dataclass
 class Tag(EntityWithBalance):
     name: str
     user: User
 
 
 @dataclass
+class TagPayload(Payload):
+    name: str
+
+
+@dataclass
+class TagFilters(Filters):
+    name: Optional[str] = None
+
+
+@dataclass
 class Category(EntityWithBalance):
     name: str
     user: User
-    tags: list[Tag] = field(default_factory=list)
+    tags: List[Tag] = field(default_factory=list)
+
+
+@dataclass
+class CategoryPayload(Payload):
+    name: str
+    tags: List[int] = field(default_factory=list)
+
+
+@dataclass
+class CategoryFilters(Filters):
+    name: Optional[str] = None
 
 
 @dataclass
@@ -128,6 +170,25 @@ class Operation(Entity):
     description: str
     account: Account
     category: Category
+    user: User
     operation_type: OperationType = OperationType.expense
-    tags: list[Tag] = field(default_factory=list)
+    tags: List[Tag] = field(default_factory=list)
     created_on: datetime = field(init=False)
+
+
+@dataclass
+class OperationPayload(Payload):
+    amount: Decimal
+    account: int
+    category: int
+    operation_type: OperationType
+    description: str = ""
+    tags: List[int] = field(default_factory=list)
+
+
+@dataclass
+class OperationFilters(Filters):
+    month: Optional[date] = None
+    account: Optional[Account] = None
+    category: Optional[Category] = None
+    tags: List[Tag] = field(default_factory=list)
