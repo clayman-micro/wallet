@@ -1,8 +1,10 @@
+from pathlib import Path
 from typing import Any
 
 import faker  # type: ignore
 import pendulum  # type: ignore
 import pytest  # type: ignore
+import ujson  # type: ignore
 from aiohttp import web
 from aiohttp_storage.tests import storage  # type: ignore
 from passport.domain import User  # type: ignore
@@ -66,3 +68,9 @@ def today():
 @pytest.fixture(scope="session")
 def month(today):
     return today.start_of("month").date()
+
+
+def load_test_cases(cwd, test_cases):
+    with open(Path(cwd).parent / "test_cases" / test_cases, "r") as fp:
+        for test_case in ujson.loads(fp.read()):
+            yield test_case
