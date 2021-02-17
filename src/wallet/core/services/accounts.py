@@ -18,9 +18,8 @@ class AccountService(Service[Account, AccountFilters, AccountPayload]):
     ) -> Account:
         account = Account(name=payload.name, user=payload.user)
 
-        exists = await self._storage.accounts.fetch_by_name(
-            user=payload.user, name=payload.name
-        )
+        filters = AccountFilters(user=payload.user, name=payload.name)
+        exists = await self._storage.accounts.exists(filters)
         if exists:
             raise AccountAlreadyExist(user=payload.user, account=account)
 
@@ -55,7 +54,8 @@ class AccountService(Service[Account, AccountFilters, AccountPayload]):
     async def find(
         self, filters: AccountFilters
     ) -> AsyncGenerator[Account, None]:
-        return await self._storage.accounts.fetch(filters=filters)
+        async for account in self._storage.accounts.fetch(filters=filters):
+            yield account
 
     async def find_by_key(self, user: User, key: int) -> Account:
         return await self._storage.accounts.fetch_by_key(user, key=key)

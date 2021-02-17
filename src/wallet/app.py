@@ -14,6 +14,8 @@ from aiohttp_storage import (  # type: ignore
 )
 from passport.client import PassportConfig, setup as setup_passport
 
+from wallet.web import accounts
+
 
 class AppConfig(BaseConfig):
     db = config.NestedField[StorageConfig](StorageConfig)
@@ -34,6 +36,27 @@ def init(app_name: str, config: AppConfig) -> web.Application:
     )
 
     setup_passport(app)
+
+    # Account endpoints
+    app.router.add_get(
+        "/api/accounts", accounts.search, name="api.accounts.show"
+    )
+    app.router.add_post("/api/accounts", accounts.add, name="api.accounts.add")
+    app.router.add_put(
+        r"/api/accounts/{account_key:\d+}",
+        accounts.update,
+        name="api.accounts.update",
+    )
+    app.router.add_delete(
+        r"/api/accounts/{account_key:\d+}",
+        accounts.remove,
+        name="api.accounts.remove",
+    )
+    app.router.add_get(
+        r"/api/accounts/{account_key:\d+}/balance",
+        accounts.balance,
+        name="api.accounts.balance",
+    )
 
     setup_openapi(
         app,

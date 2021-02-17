@@ -3,6 +3,7 @@ import asyncio
 import click
 import uvloop  # type: ignore
 from aiohttp_micro.management.server import server  # type: ignore
+from aiohttp_storage.management.storage import storage  # type: ignore
 from config import (  # type: ignore
     ConsulConfig,
     EnvValueProvider,
@@ -10,6 +11,7 @@ from config import (  # type: ignore
 )
 
 from wallet.app import AppConfig, init
+from wallet.cli.accounts import accounts
 
 
 @click.group()
@@ -43,6 +45,9 @@ def cli(ctx, debug: bool = False) -> None:
 
 
 cli.add_command(server, name="server")
+cli.add_command(storage, name="storage")
+
+cli.add_command(accounts, name="accounts")
 
 
 if __name__ == "__main__":
