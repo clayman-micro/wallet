@@ -35,7 +35,7 @@ lint:
 	poetry run mypy wallet tests
 
 run:
-	poetry run python3 -m wallet --debug server run -t develop
+	poetry run python3 -m wallet --debug server run -t develop --host=0.0.0.0
 
 test:
 	py.test

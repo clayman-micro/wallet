@@ -19,7 +19,7 @@ services:
         # USER_UID: 1000
         # USER_GID: 1000
     command: sleep infinity
-    dns: 192.168.2.3
+    dns: 192.168.2.2
     networks:
       - micro_backend
     volumes:
