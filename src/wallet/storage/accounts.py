@@ -5,6 +5,7 @@ import sqlalchemy  # type: ignore
 from aiohttp_storage.storage import metadata  # type: ignore
 from databases import Database
 from passport.domain import User
+from sqlalchemy.orm import Query
 
 from wallet.core.entities import Account, AccountFilters
 from wallet.core.storage.accounts import AccountRepo
@@ -27,7 +28,7 @@ class AccountDBRepo(AccountRepo):
     def __init__(self, database: Database) -> None:
         self._database = database
 
-    def _get_query(self, *, user: User) -> sqlalchemy.Query:
+    def _get_query(self, *, user: User) -> Query:
         query = sqlalchemy.select([accounts.c.id, accounts.c.name]).where(
             accounts.c.user == user.key
         )

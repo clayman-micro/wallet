@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional
 
 import pendulum  # type: ignore
 from passport.domain import User
@@ -120,6 +120,9 @@ class Account(EntityWithBalance):
     user: User
 
 
+AccountStream = AsyncGenerator[Account, None]
+
+
 @dataclass
 class AccountPayload(Payload):
     name: str
@@ -151,6 +154,9 @@ class Category(EntityWithBalance):
     name: str
     user: User
     tags: List[Tag] = field(default_factory=list)
+
+
+CategoryStream = AsyncGenerator[Category, None]
 
 
 @dataclass

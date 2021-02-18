@@ -16,7 +16,7 @@ from wallet.core.entities import AccountFilters, AccountPayload
 from wallet.core.exceptions import AccountAlreadyExist
 from wallet.core.use_cases.accounts import AddUseCase, SearchUseCase
 from wallet.storage import DBStorage
-from wallet.web import AccessToken
+from wallet.web import AccessToken, serialize
 
 
 AccountKey = Parameter(
@@ -54,16 +54,20 @@ class AccountsResponseSchema(Schema):
     ),
 )
 @user_required()
+@serialize(AccountsResponseSchema)
 async def search(request: web.Request) -> web.Response:
-    storage = DBStorage(request.app["db"])
+    search_accounts = SearchUseCase(
+        DBStorage(request.app["db"]), logger=request.app["logger"]
+    )
 
-    filters = AccountFilters(user=request["user"])
-
-    use_case = SearchUseCase(storage, logger=request.app["logger"])
-    accounts = [account async for account in use_case.execute(filters=filters)]
-
-    schema = AccountsResponseSchema()
-    return json_response(schema.dump({"accounts": accounts}))
+    return {
+        "accounts": [
+            account
+            async for account in search_accounts.execute(
+                filters=AccountFilters(user=request["user"])
+            )
+        ]
+    }
 
 
 class ManageAccountPayloadSchema(Schema):
@@ -90,19 +94,19 @@ class AccountResponseSchema(Schema):
 )
 @user_required()
 @validate_payload(ManageAccountPayloadSchema)
+@serialize(AccountsResponseSchema, status=201)
 async def add(payload: Dict[str, str], request: web.Request) -> web.Response:
     storage = DBStorage(request.app["db"])
 
     try:
-        use_case = AddUseCase(storage, logger=request.app["logger"])
-        account = await use_case.execute(
+        add_account = AddUseCase(storage, logger=request.app["logger"])
+        account = await add_account.execute(
             payload=AccountPayload(user=request["user"], name=payload["name"])
         )
+
+        return {"account": account}
     except AccountAlreadyExist:
         return json_response({"errors": {"name": "Already exist"}}, status=422)
-
-    schema = AccountResponseSchema()
-    return json_response(schema.dump({"account": account}), status=201)
 
 
 @register_operation(

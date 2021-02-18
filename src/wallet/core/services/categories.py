@@ -1,14 +1,13 @@
-from typing import AsyncGenerator
-
 from passport.domain import User
 
 from wallet.core.entities import (
     Category,
     CategoryFilters,
     CategoryPayload,
+    CategoryStream,
     OperationFilters,
 )
-from wallet.core.exceptions import EntityAlreadyExist
+from wallet.core.exceptions import CategoryAlreadyExist
 from wallet.core.services import Service
 
 
@@ -18,11 +17,10 @@ class CategoryService(Service[Category, CategoryFilters, CategoryPayload]):
     ) -> Category:
         category = Category(name=payload.name, user=payload.user)
 
-        exists = await self._storage.categories.fetch_by_name(
-            user=category.user, name=category.name
-        )
+        filters = CategoryFilters(user=payload.user, name=payload.name)
+        exists = await self._storage.categories.exists(filters=filters)
         if exists:
-            raise EntityAlreadyExist()
+            raise CategoryAlreadyExist(user=payload.user, category=category)
 
         if not dry_run:
             category.key = await self._storage.categories.save(category)
@@ -52,10 +50,9 @@ class CategoryService(Service[Category, CategoryFilters, CategoryPayload]):
             dry_run=dry_run,
         )
 
-    async def find(
-        self, filters: CategoryFilters
-    ) -> AsyncGenerator[Category, None]:
-        return await self._storage.categories.fetch(filters=filters)
+    async def find(self, filters: CategoryFilters) -> CategoryStream:
+        async for category in self._storage.categories.fetch(filters=filters):
+            yield category
 
     async def find_by_key(self, user: User, key: int) -> Category:
         return await self._storage.categories.fetch_by_key(user, key=key)
