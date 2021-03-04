@@ -14,7 +14,7 @@ from aiohttp_storage import (  # type: ignore
 )
 from passport.client import PassportConfig, setup as setup_passport
 
-from wallet.web import accounts, categories
+from wallet.web import accounts, categories, operations
 
 
 class AppConfig(BaseConfig):
@@ -64,6 +64,14 @@ def init(app_name: str, config: AppConfig) -> web.Application:
     )
     app.router.add_post(
         "/api/categories", categories.add, name="api.categories.add"
+    )
+
+    # Operation endpoints
+    app.router.add_get(
+        "/api/operations", operations.search, name="api.operations.search"
+    )
+    app.router.add_post(
+        "/api/operations", operations.add, name="api.operations.add"
     )
 
     setup_openapi(

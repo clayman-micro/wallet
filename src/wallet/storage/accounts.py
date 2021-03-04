@@ -46,6 +46,9 @@ class AccountDBRepo(AccountRepo):
     ) -> AsyncGenerator[Account, None]:
         query = self._get_query(user=filters.user)
 
+        if filters.keys:
+            query = query.where(accounts.c.id.in_(filters.keys))
+
         async for row in self._database.iterate(query=query):
             yield self._process_row(row, user=filters.user)
 

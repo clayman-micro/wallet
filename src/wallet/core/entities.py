@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional, Tuple
 
 import pendulum  # type: ignore
 from passport.domain import User
@@ -26,6 +26,7 @@ class Payload:
 @dataclass
 class Filters:
     user: User
+    keys: List[int] = field(default_factory=list)
 
 
 @dataclass
@@ -174,12 +175,21 @@ class CategoryFilters(Filters):
 class Operation(Entity):
     amount: Decimal
     description: str
-    account: Account
-    category: Category
     user: User
+    account: Optional[Account] = None
+    category: Optional[Category] = None
     operation_type: OperationType = OperationType.expense
     tags: List[Tag] = field(default_factory=list)
     created_on: datetime = field(init=False)
+
+
+@dataclass
+class OperationDependencies:
+    account: int
+    category: int
+
+
+OperationStream = AsyncGenerator[Tuple[Operation, OperationDependencies], None]
 
 
 @dataclass
@@ -188,6 +198,7 @@ class OperationPayload(Payload):
     account: int
     category: int
     operation_type: OperationType
+    created_on: datetime
     description: str = ""
     tags: List[int] = field(default_factory=list)
 

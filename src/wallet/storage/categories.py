@@ -63,6 +63,9 @@ class CategoryDBRepo(CategoryRepo):
     async def fetch(self, filters: CategoryFilters) -> CategoryStream:
         query = self._get_query(user=filters.user)
 
+        if filters.keys:
+            query = query.where(categories.c.id.in_(filters.keys))
+
         async for row in self._database.iterate(query=query):
             yield self._process_row(row, user=filters.user)
 
