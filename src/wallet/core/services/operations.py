@@ -39,10 +39,7 @@ class OperationService(Service[Operation, OperationFilters, OperationPayload]):
             operation.key = await self._storage.operations.save(operation)
 
         self._logger.info(
-            "Add operation",
-            user=payload.user,
-            operation=operation.key,
-            dry_run=dry_run,
+            "Add operation", operation=operation.key, dry_run=dry_run,
         )
 
         return operation
@@ -52,10 +49,7 @@ class OperationService(Service[Operation, OperationFilters, OperationPayload]):
             await self._storage.operations.remove(entity)
 
         self._logger.info(
-            "Remove operation",
-            user=entity.user,
-            operation=entity.key,
-            dry_run=dry_run,
+            "Remove operation", operation=entity.key, dry_run=dry_run,
         )
 
     async def find(self, filters: OperationFilters) -> OperationStream:

@@ -36,11 +36,13 @@ class OperationSchema(Schema):
     )
     operation_type = EnumField(
         OperationType,
-        data_key="operationType",
+        data_key="type",
         required=True,
         description="Operation type",
     )
-    created_on = fields.DateTime(required=True, description="Created date")
+    created_on = fields.DateTime(
+        required=True, data_key="created", description="Created date"
+    )
 
 
 class OperationsResponseSchema(Schema):
@@ -88,6 +90,7 @@ class AddOperationPayloadSchema(Schema):
         OperationType,
         missing=OperationType.expense,
         default=OperationType.expense,
+        data_key="type",
     )
     created_on = fields.DateTime(required=True)
 
