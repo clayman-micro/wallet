@@ -1,7 +1,9 @@
+from typing import Iterable
+
 from aiohttp_micro.exceptions import EntityAlreadyExist, EntityNotFound
 from passport.domain import User
 
-from wallet.core.entities import Account, Category
+from wallet.core.entities import Account, Category, OperationPayload
 
 
 class AccountAlreadyExist(EntityAlreadyExist):
@@ -26,3 +28,17 @@ class CategoryNotFound(EntityNotFound):
     def __init__(self, user: User, name: str) -> None:
         self._user = user
         self._name = name
+
+
+class CategoriesNotFound(EntityNotFound):
+    def __init__(self, user: User, keys: Iterable[int]) -> None:
+        self._user = user
+        self._keys = keys
+
+
+class UnprocessableOperations(Exception):
+    def __init__(
+        self, user: User, operations: Iterable[OperationPayload]
+    ) -> None:
+        self._user = user
+        self._operations = operations

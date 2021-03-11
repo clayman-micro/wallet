@@ -83,7 +83,9 @@ class OperationDBRepo(DBRepo, OperationRepo):
         query = self._get_query(user=filters.user)
 
         async for row in self._database.iterate(query=query):
-            dependencies = OperationDependencies(account=1, category=1)
+            dependencies = OperationDependencies(
+                account=row["account_id"], category=row["category_id"]
+            )
 
             yield self._process_row(row, user=filters.user), dependencies
 

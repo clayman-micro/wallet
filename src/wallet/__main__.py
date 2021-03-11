@@ -11,7 +11,6 @@ from config import (  # type: ignore
 )
 
 from wallet.app import AppConfig, init
-from wallet.cli.accounts import accounts
 
 
 @click.group()
@@ -46,8 +45,6 @@ def cli(ctx, debug: bool = False) -> None:
 
 cli.add_command(server, name="server")
 cli.add_command(storage, name="storage")
-
-cli.add_command(accounts, name="accounts")
 
 
 if __name__ == "__main__":

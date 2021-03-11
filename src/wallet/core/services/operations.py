@@ -1,30 +1,32 @@
-from typing import Set
+from typing import Dict, Set
 
 from passport.domain import User
 
 from wallet.core.entities import (
+    Account,
     AccountFilters,
+    AccountStream,
+    BulkOperationsPayload,
+    Category,
     CategoryFilters,
+    CategoryStream,
     Operation,
     OperationFilters,
     OperationPayload,
     OperationStream,
 )
+from wallet.core.exceptions import CategoriesNotFound, UnprocessableOperations
 from wallet.core.services import Service
 
 
 class OperationService(Service[Operation, OperationFilters, OperationPayload]):
-    async def add(
-        self, payload: OperationPayload, dry_run: bool = False
+    async def create(
+        self,
+        payload: OperationPayload,
+        account: Account,
+        category: Category,
+        dry_run: bool = False,
     ) -> Operation:
-        account = await self._storage.accounts.fetch_by_key(
-            user=payload.user, key=payload.account
-        )
-
-        category = await self._storage.categories.fetch_by_key(
-            user=payload.user, key=payload.category
-        )
-
         operation = Operation(
             amount=payload.amount,
             description=payload.description,
@@ -38,11 +40,84 @@ class OperationService(Service[Operation, OperationFilters, OperationPayload]):
         if not dry_run:
             operation.key = await self._storage.operations.save(operation)
 
+        return operation
+
+    async def add(
+        self, payload: OperationPayload, dry_run: bool = False
+    ) -> Operation:
+        account = await self._storage.accounts.fetch_by_key(
+            user=payload.user, key=payload.account
+        )
+
+        category = await self._storage.categories.fetch_by_key(
+            user=payload.user, key=payload.category
+        )
+
+        operation = await self.create(
+            payload, account, category, dry_run=dry_run
+        )
+
         self._logger.info(
             "Add operation", operation=operation.key, dry_run=dry_run,
         )
 
         return operation
+
+    async def add_bulk(
+        self,
+        payload: BulkOperationsPayload,
+        account_stream: AccountStream,
+        category_stream: CategoryStream,
+        dry_run: bool = False,
+    ) -> OperationStream:
+        accounts = {account.key: account async for account in account_stream}
+
+        category_by_key: Dict[int, Category] = {}
+        category_by_name: Dict[str, Category] = {}
+
+        try:
+            async for category in category_stream:
+                category_by_key[category.key] = category
+                category_by_name[category.name] = category
+        except CategoriesNotFound:
+            pass
+
+        unprocessable_operations = []
+
+        for item in payload.operations:
+            account = accounts.get(item.account, None)
+
+            if not account:
+                unprocessable_operations.append(item)
+                continue
+
+            category = None
+            if isinstance(item.category, int):
+                category = category_by_key.get(item.category, None)
+            elif isinstance(item.category, str):
+                category = category_by_name.get(item.category, None)
+
+            if not category:
+                unprocessable_operations.append(item)
+                continue
+
+            operation = await self.create(
+                item, account, category, dry_run=dry_run
+            )
+
+            self._logger.info(
+                "Add operation",
+                operation=operation.key,
+                bulk=True,
+                dry_run=dry_run,
+            )
+
+            yield operation
+
+        if unprocessable_operations:
+            raise UnprocessableOperations(
+                user=payload.user, operations=unprocessable_operations
+            )
 
     async def remove(self, entity: Operation, dry_run: bool = False) -> None:
         if not dry_run:

@@ -73,6 +73,11 @@ def init(app_name: str, config: AppConfig) -> web.Application:
     app.router.add_post(
         "/api/operations", operations.add, name="api.operations.add"
     )
+    app.router.add_post(
+        "/api/operations/bulk",
+        operations.add_bulk,
+        name="api.operations.add_bulk",
+    )
 
     setup_openapi(
         app,

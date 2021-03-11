@@ -7,7 +7,7 @@ from wallet.core.entities import (
     CategoryStream,
     OperationFilters,
 )
-from wallet.core.exceptions import CategoryAlreadyExist
+from wallet.core.exceptions import CategoriesNotFound, CategoryAlreadyExist
 from wallet.core.services import Service
 
 
@@ -49,6 +49,29 @@ class CategoryService(Service[Category, CategoryFilters, CategoryPayload]):
             name=entity.name,
             dry_run=dry_run,
         )
+
+    async def get_or_create(self, filters: CategoryFilters) -> CategoryStream:
+        missing_keys = set(filters.keys)
+        missing_names = set(filters.names)
+
+        async for category in self._storage.categories.fetch(filters=filters):
+            if category.key in missing_keys:
+                missing_keys.remove(category.key)
+
+            if category.name in missing_names:
+                missing_names.remove(category.name)
+
+            yield category
+
+        if missing_names:
+            for name in missing_names:
+                payload = CategoryPayload(user=filters.user, name=name)
+                category = await self.add(payload)
+
+                yield category
+
+        if missing_keys:
+            raise CategoriesNotFound(user=filters.user, keys=missing_keys)
 
     async def find(self, filters: CategoryFilters) -> CategoryStream:
         async for category in self._storage.categories.fetch(filters=filters):
