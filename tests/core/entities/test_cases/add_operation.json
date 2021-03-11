@@ -1,0 +1,43 @@
+[
+    {
+        "amount": "100.0",
+        "operation_type": "expense",
+        "expected": [
+            {"expenses": "100.0", "rest": "-100.0"}
+        ]
+    },
+    {
+        "amount": "100.0",
+        "operation_type": "income",
+        "expected": [
+            {"incomes": "100.0", "rest": "100.0"}
+        ]
+    },
+    {
+        "amount": "100.0",
+        "operation_type": "expense",
+        "month_offset": -1,
+        "balance": [
+            {"expenses": "200.0", "rest": "-200.0"}
+        ],
+        "expected": [
+            {"expenses": "200.0", "rest": "-300.0"},
+            {"month_offset": -1, "expenses": "100.0", "rest": "-100.0"}
+        ]
+    },
+    {
+        "amount": "100.0",
+        "operation_type": "expense",
+        "month_offset": -3,
+        "balance": [
+            {"expenses": "200.0", "rest": "-300.0"},
+            {"month_offset": -1, "expenses": "100.0", "rest": "-100.0"}
+        ],
+        "expected": [
+            {"expenses": "200.0", "rest": "-400.0"},
+            {"month_offset": -1, "expenses": "100.0", "rest": "-200.0"},
+            {"month_offset": -2, "rest": "-100.0"},
+            {"month_offset": -3, "expenses": "100.0", "rest": "-100.0"}
+        ]
+    }
+]

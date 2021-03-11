@@ -1,6 +1,8 @@
 .PHONY: clean clean-test clean-pyc clean-build
 NAME	:= ghcr.io/clayman-micro/wallet
 VERSION ?= latest
+HOST ?= 0.0.0.0
+PORT ?= 5000
 
 
 clean: clean-build clean-image clean-pyc clean-test
@@ -35,7 +37,7 @@ lint:
 	poetry run mypy wallet tests
 
 run:
-	poetry run python3 -m wallet --debug server run -t develop
+	poetry run python3 -m wallet --debug server run --host=$(HOST) --port=$(PORT) -t develop
 
 test:
 	py.test
