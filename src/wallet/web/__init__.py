@@ -3,13 +3,30 @@ import io
 from typing import Any, Dict, Generic, Type, TypeVar
 
 from aiohttp import web
-from aiohttp_micro.web.handlers import json_response  # type: ignore
-from marshmallow import post_load, Schema, ValidationError
+from aiohttp_micro.web.handlers import json_response
+from aiohttp_micro.web.handlers.openapi import ParameterIn, ParametersSchema
+from marshmallow import fields, post_load, Schema, ValidationError
 
 from wallet.core.entities import Payload  # noqa: F401
 
 
 PT = TypeVar("PT", bound="Payload")
+
+
+class CommonParameters(ParametersSchema):
+    in_ = ParameterIn.header
+
+    request_id = fields.Str(data_key="X-Request-ID", description="Incoming request ID")
+    correlation_id = fields.Str(missing="", data_key="X-Correlation-ID", description="Incoming parent request ID")
+
+
+class CollectionFiltersSchema(ParametersSchema):
+    """Collection filters."""
+
+    in_ = ParameterIn.query
+
+    offset = fields.Int(default=0, missing=0, description="Offset from collection beginning")
+    limit = fields.Int(default=10, missing=10, description="Number of items per page")
 
 
 class PayloadSchema(Schema, Generic[PT]):
@@ -52,6 +69,7 @@ async def get_payload(request: web.Request) -> Dict[str, Any]:
 
 def validate_payload(schema_cls: Type[Schema], inject_user: bool = False):
     def wrapper(f):
+        @functools.wraps(f)
         async def wrapped(request: web.Request) -> web.Response:
             payload = await get_payload(request)
 

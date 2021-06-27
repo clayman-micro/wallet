@@ -7,6 +7,7 @@ from aiohttp_micro import (  # type: ignore
     setup as setup_micro,
     setup_logging,
     setup_metrics,
+    setup_openapi,
 )
 from aiohttp_storage import (  # type: ignore
     setup as setup_storage,
@@ -59,6 +60,14 @@ def init(app_name: str, config: AppConfig) -> web.Application:
     app.router.add_post("/api/operations", operations.add, name="api.operations.add")
     app.router.add_post(
         "/api/operations/bulk", operations.add_bulk, name="api.operations.add_bulk",
+    )
+
+    setup_openapi(
+        app,
+        title="Wallet",
+        version=app["distribution"].version,
+        description="Personal finance planning service",
+        security=("TokenAuth", {"type": "apiKey", "name": "X-Access-Token", "in": "header"}),
     )
 
     return app
