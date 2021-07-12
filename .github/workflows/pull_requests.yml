@@ -1,12 +1,11 @@
-name: Master
+name: Pull requests
 
 on:
-  push:
-    branches:
-      - master
+  pull_request:
+
 
 jobs:
-  linters:
+  linter:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -20,18 +19,10 @@ jobs:
         # Устанавливаем зависимости
         run: pip install poetry tox
 
-      - name: Run linters
+      - name: Run tests
         env:
           TOXENV: lint
         run: tox
-
-      - name: Send notification to Telegram
-        if: always()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT }}
-          token: ${{ secrets.TELEGRAM_SECRET }}
-          args: ${{ github.repository }} linters for `master` - ${{ job.status }}
 
   tests:
     runs-on: ubuntu-latest
@@ -49,12 +40,3 @@ jobs:
 
       - name: Run tests
         run: tox
-
-      - name: Send notification to Telegram
-        if: always()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT }}
-          token: ${{ secrets.TELEGRAM_SECRET }}
-          args: ${{ github.repository }} tests for `master` - ${{ job.status }}
-
