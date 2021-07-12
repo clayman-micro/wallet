@@ -19,10 +19,16 @@ jobs:
         # Устанавливаем зависимости
         run: pip install poetry tox
 
-      - name: Run tests
+      - name: Run flake8
         env:
-          TOXENV: lint
+          TOXENV: flake8
         run: tox
+
+      - name: Run mypy
+        env:
+          TOXENV: mypy
+        run: tox
+        continue-on-error: true
 
   tests:
     runs-on: ubuntu-latest
@@ -38,5 +44,12 @@ jobs:
         # Устанавливаем зависимости
         run: pip install poetry tox
 
-      - name: Run tests
+      - name: Run unit tests
+        env:
+          TOXENV: unit
+        run: tox
+
+      - name: Get coverage report
+        env:
+          TOXENV: report
         run: tox
