@@ -13,7 +13,7 @@ def current_month_test_case(today, month):
 def two_months_in_past_test_case(today, month):
     return {
         "start": today.subtract(months=2),
-        "expected": [month.subtract(months=2), month.subtract(months=1), month,],
+        "expected": [month.subtract(months=2), month.subtract(months=1), month],
     }
 
 
@@ -33,7 +33,7 @@ def several_months_in_future_test_case(today, month):
 
 
 @pytest.fixture(
-    params=["current_month_test_case", "two_months_in_past_test_case", "several_months_in_future_test_case",]
+    params=["current_month_test_case", "two_months_in_past_test_case", "several_months_in_future_test_case"]
 )
 def month_ranges(request):
     return request.getfixturevalue(request.param)

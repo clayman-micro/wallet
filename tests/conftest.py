@@ -29,7 +29,7 @@ def config():
     return conf
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 def app(pg_server, config):
     config.db.host = pg_server["params"]["host"]
     config.db.port = pg_server["params"]["port"]
@@ -43,7 +43,7 @@ def app(pg_server, config):
         yield app
 
 
-@pytest.yield_fixture(scope="function")
+@pytest.fixture(scope="function")
 async def prepared_app(app):
     runner = web.AppRunner(app)
     await runner.setup()
