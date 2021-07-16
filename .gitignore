@@ -56,4 +56,4 @@ conf/*
 venv
 
 backups
-operations
+operations/*.csv

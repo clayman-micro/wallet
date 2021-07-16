@@ -40,7 +40,6 @@ class OperationService(Service[Operation, OperationFilters, OperationPayload]):
 
     async def add(self, payload: OperationPayload, dry_run: bool = False) -> Operation:
         account = await self._storage.accounts.fetch_by_key(user=payload.user, key=payload.account)
-
         category = await self._storage.categories.fetch_by_key(user=payload.user, key=payload.category)
 
         operation = await self.create(payload, account, category, dry_run=dry_run)

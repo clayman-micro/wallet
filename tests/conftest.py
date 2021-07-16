@@ -1,7 +1,5 @@
 from pathlib import Path
-from typing import Any
 
-import faker  # type: ignore
 import orjson
 import pendulum  # type: ignore
 import pytest  # type: ignore
@@ -12,21 +10,14 @@ from passport.domain import User  # type: ignore
 from wallet.app import AppConfig, init
 
 
-@pytest.fixture(scope="session")
-def fake():
-    return faker.Faker()
-
-
 @pytest.fixture(scope="function")
-def user(fake: Any) -> User:
-    return User(key=1, email=fake.free_email())
+def user(faker) -> User:
+    return User(key=1, email=faker.free_email())
 
 
 @pytest.fixture(scope="session")
 def config():
-    conf = AppConfig()
-
-    return conf
+    return AppConfig()
 
 
 @pytest.fixture(scope="function")
