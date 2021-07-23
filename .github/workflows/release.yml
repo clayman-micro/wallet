@@ -68,7 +68,7 @@ jobs:
           args: ${{ github.repository }} tests for version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
 
   build:
-    needs: [tests]
+    needs: [linter, tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
