@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from tests.conftest import load_test_cases
-from wallet.core.entities import Balance, EntityWithBalance, OperationType
+from wallet.core.entities.abc import Balance, EntityWithBalance, OperationType
 
 
 def load_test_case(request, today, month):

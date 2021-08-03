@@ -57,3 +57,4 @@ venv
 
 backups
 operations/*.csv
+kube.*

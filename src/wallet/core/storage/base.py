@@ -3,7 +3,7 @@ from typing import AsyncGenerator, Generic, TypeVar
 
 from passport.domain import User
 
-from wallet.core.entities import Entity, Filters
+from wallet.core.entities.abc import Entity, Filters
 
 
 E = TypeVar("E", bound=Entity)

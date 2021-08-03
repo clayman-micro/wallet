@@ -11,7 +11,7 @@ from aiohttp_micro.web.handlers.openapi import OpenAPISpec, PayloadSchema, Respo
 from marshmallow import fields, post_load, Schema
 from passport.client import user_required
 
-from wallet.core.entities import BulkOperationsPayload, OperationFilters, OperationPayload, OperationType
+from wallet.core.entities.operations import BulkOperationsPayload, OperationFilters, OperationPayload, OperationType
 from wallet.core.use_cases.operations import AddBulkUseCase, AddUseCase, SearchUseCase
 from wallet.storage import DBStorage
 from wallet.web import CollectionFiltersSchema, CommonParameters, serialize, validate_payload

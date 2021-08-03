@@ -7,7 +7,7 @@ from aiohttp_micro.web.handlers import json_response
 from aiohttp_micro.web.handlers.openapi import ParameterIn, ParametersSchema
 from marshmallow import fields, post_load, Schema, ValidationError
 
-from wallet.core.entities import Payload  # noqa: F401
+from wallet.core.entities.abc import Payload  # noqa: F401
 
 
 PT = TypeVar("PT", bound="Payload")
