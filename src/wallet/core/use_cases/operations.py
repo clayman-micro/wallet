@@ -4,13 +4,13 @@ from passport.domain import User
 
 from wallet.core.entities import (
     AccountFilters,
-    BulkOperationsPayload,
     CategoryFilters,
     Operation,
     OperationFilters,
     OperationPayload,
     OperationStream,
 )
+from wallet.core.entities.operations import BulkOperationsPayload
 from wallet.core.services.accounts import AccountService
 from wallet.core.services.categories import CategoryService
 from wallet.core.services.operations import OperationService

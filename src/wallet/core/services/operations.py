@@ -6,7 +6,6 @@ from wallet.core.entities import (
     Account,
     AccountFilters,
     AccountStream,
-    BulkOperationsPayload,
     Category,
     CategoryFilters,
     CategoryStream,
@@ -15,6 +14,7 @@ from wallet.core.entities import (
     OperationPayload,
     OperationStream,
 )
+from wallet.core.entities.operations import BulkOperationsPayload
 from wallet.core.exceptions import CategoriesNotFound, UnprocessableOperations
 from wallet.core.services import Service
 
