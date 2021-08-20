@@ -7,6 +7,7 @@ from passport.domain import User
 from sqlalchemy.orm import Query  # type: ignore
 
 from wallet.core.entities import Category, CategoryFilters, CategoryStream
+from wallet.core.exceptions import CategoryNotFound
 from wallet.core.storage.categories import CategoryRepo
 
 
@@ -68,10 +69,16 @@ class CategoryDBRepo(CategoryRepo):
     async def fetch_by_key(self, user: User, key: int) -> Category:
         row = await self._database.fetch_one(query=self._get_query(user=user).where(categories.c.id == key))
 
+        if not row:
+            raise CategoryNotFound(user=user, name="")
+
         return self._process_row(row, user=user)
 
     async def fetch_by_name(self, user: User, name: str) -> Category:
         row = await self._database.fetch_one(query=self._get_query(user=user).where(categories.c.name == name))
+
+        if not row:
+            raise CategoryNotFound(user=user, name=name)
 
         return self._process_row(row, user=user)
 

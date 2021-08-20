@@ -30,6 +30,12 @@ class Filters:
 
 
 @dataclass
+class Period:
+    beginning: date
+    ending: date
+
+
+@dataclass
 class Balance(Entity):
     month: date
     expenses: Decimal = field(default=Decimal("0.0"))

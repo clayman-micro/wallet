@@ -4,10 +4,10 @@ from typing import Any, Dict, Generic, Type, TypeVar
 
 from aiohttp import web
 from aiohttp_micro.web.handlers import json_response
-from aiohttp_micro.web.handlers.openapi import ParameterIn, ParametersSchema
+from aiohttp_micro.web.handlers.openapi import ParameterIn, ParametersSchema, ResponseSchema
 from marshmallow import fields, post_load, Schema, ValidationError
 
-from wallet.core.entities.abc import Payload  # noqa: F401
+from wallet.core.entities.abc import Payload
 
 
 PT = TypeVar("PT", bound="Payload")
@@ -25,8 +25,17 @@ class CollectionFiltersSchema(ParametersSchema):
 
     in_ = ParameterIn.query
 
-    offset = fields.Int(default=0, missing=0, description="Offset from collection beginning")
-    limit = fields.Int(default=10, missing=10, description="Number of items per page")
+    offset = fields.Int(
+        default=0, missing=0, validate=lambda offset: offset >= 0, description="Offset from collection beginning"
+    )
+    limit = fields.Int(
+        default=10, missing=10, validate=lambda limit: 10 <= limit <= 50, description="Number of items per page"
+    )
+
+
+class ErrorResponseSchema(ResponseSchema):
+    code = fields.Str(description="Error code")
+    message = fields.Str(description="Error description")
 
 
 class PayloadSchema(Schema, Generic[PT]):

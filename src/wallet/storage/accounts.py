@@ -8,6 +8,7 @@ from passport.domain import User
 from sqlalchemy.orm import Query  # type: ignore
 
 from wallet.core.entities import Account, AccountFilters
+from wallet.core.exceptions import AccountNotFound
 from wallet.core.storage.accounts import AccountRepo
 
 
@@ -49,6 +50,9 @@ class AccountDBRepo(AccountRepo):
     async def fetch_by_key(self, user: User, key: int) -> Account:
         row = await self._database.fetch_one(query=self._get_query(user=user).where(accounts.c.id == key))
 
+        if not row:
+            raise AccountNotFound(user=user, name="")
+
         return self._process_row(row, user=user)
 
     async def exists(self, filters: AccountFilters) -> bool:
@@ -75,5 +79,8 @@ class AccountDBRepo(AccountRepo):
 
     async def fetch_by_name(self, user: User, name: str) -> Account:
         row = await self._database.fetch_one(query=self._get_query(user=user).where(accounts.c.name == name))
+
+        if not row:
+            raise AccountNotFound(user=user, name=name)
 
         return self._process_row(row, user=user)

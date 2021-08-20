@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Dict, Iterable
 
 from aiohttp_micro.core.exceptions import EntityAlreadyExist, EntityNotFound
 from passport.domain import User
@@ -40,3 +40,12 @@ class UnprocessableOperations(Exception):
     def __init__(self, user: User, operations: Iterable[OperationPayload]) -> None:
         self._user = user
         self._operations = operations
+
+
+class ValidationError(Exception):
+    def __init__(self, errors: Dict[str, str]) -> None:
+        self._errors = errors
+
+    @property
+    def errors(self) -> Dict[str, str]:
+        return self.errors

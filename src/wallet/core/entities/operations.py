@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 from typing import AsyncGenerator, Iterable, List, Optional, Tuple, Union
 
 from passport.domain import User
 
-from wallet.core.entities.abc import Entity, Filters, OperationType, Payload
+from wallet.core.entities.abc import Entity, Filters, OperationType, Payload, Period
 from wallet.core.entities.accounts import Account
 from wallet.core.entities.categories import Category
 from wallet.core.entities.tags import Tag
@@ -34,10 +34,11 @@ OperationStream = AsyncGenerator[Tuple[Operation, OperationDependencies], None]
 
 @dataclass
 class OperationFilters(Filters):
-    month: Optional[date] = None
-    account: Optional[Account] = None
-    category: Optional[Category] = None
-    tags: List[Tag] = field(default_factory=list)
+    limit: int = 10
+    offset: int = 0
+    period: Optional[Period] = None
+    account_key: Optional[int] = None
+    category_key: Optional[int] = None
 
 
 @dataclass

@@ -11,6 +11,7 @@ from wallet.core.entities import (
     OperationStream,
 )
 from wallet.core.entities.operations import BulkOperationsPayload
+from wallet.core.exceptions import AccountNotFound, CategoryNotFound, ValidationError
 from wallet.core.services.accounts import AccountService
 from wallet.core.services.categories import CategoryService
 from wallet.core.services.operations import OperationService
@@ -58,6 +59,24 @@ class AddBulkUseCase(OperationUseCase):
 
 
 class SearchUseCase(OperationUseCase):
+    def __init__(self, storage: Storage, logger: Logger) -> None:
+        super().__init__(storage, logger)
+
+        self.accounts: AccountService = AccountService(storage, logger)
+        self.categories: CategoryService = CategoryService(storage, logger)
+
     async def execute(self, filters: OperationFilters) -> OperationStream:
+        if filters.account_key:
+            try:
+                await self.accounts.find_by_key(user=filters.user, key=filters.account_key)
+            except AccountNotFound:
+                raise ValidationError(errors={"account": "Not found"})
+
+        if filters.category_key:
+            try:
+                await self.categories.find_by_key(user=filters.user, key=filters.category_key)
+            except CategoryNotFound:
+                raise ValidationError(errors={"category": "Not found"})
+
         async for operation in self.service.find(filters=filters):
             yield operation

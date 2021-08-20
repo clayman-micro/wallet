@@ -53,6 +53,31 @@ class OperationDBRepo(DBRepo, OperationRepo):
 
         return query
 
+    def _get_query_from_filters(self, *, filters: OperationFilters) -> Query:
+        query = self._get_query(user=filters.user)
+
+        if filters.limit:
+            query = query.limit(filters.limit)
+
+        if filters.offset:
+            query = query.offset(filters.offset)
+
+        if filters.period:
+            query = query.where(
+                sqlalchemy.and_(
+                    operations.c.created_on >= filters.period.beginning,
+                    operations.c.created_on <= filters.period.ending,
+                )
+            )
+
+        if filters.account_key:
+            query = query.where(operations.c.account_id == filters.account_key)
+
+        if filters.category_key:
+            query = query.where(operations.c.category_id == filters.category_key)
+
+        return query
+
     def _process_row(self, row, *, user: User) -> Operation:
         operation = Operation(amount=row["amount"], description=row["desc"], operation_type=row["type"], user=user,)
         operation.key = row["id"]
@@ -61,7 +86,7 @@ class OperationDBRepo(DBRepo, OperationRepo):
         return operation
 
     async def fetch(self, filters: OperationFilters) -> OperationStream:
-        query = self._get_query(user=filters.user)
+        query = self._get_query_from_filters(filters=filters)
 
         async for row in self._database.iterate(query=query):
             dependencies = OperationDependencies(account=row["account_id"], category=row["category_id"])
