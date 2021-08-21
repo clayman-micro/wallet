@@ -4,7 +4,7 @@ import pytest
 
 from wallet.core.entities.abc import Period
 from wallet.core.entities.operations import OperationFilters
-from wallet.web.operations import OperationsFilterSchema
+from wallet.web.schemas.operations import OperationsFilterSchema
 
 
 @pytest.mark.unit
