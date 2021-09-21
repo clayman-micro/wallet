@@ -33,8 +33,8 @@ install: clean
 	poetry install
 
 lint:
-	poetry run flake8 wallet tests
-	poetry run mypy wallet tests
+	poetry run flake8 src/wallet tests
+	poetry run mypy src/wallet tests
 
 run:
 	poetry run python3 -m wallet --debug server run --host=$(HOST) --port=$(PORT) -t develop

@@ -1,6 +1,3 @@
-from pathlib import Path
-
-import orjson
 import pendulum  # type: ignore
 import pytest  # type: ignore
 from aiohttp import web
@@ -59,9 +56,3 @@ def today():
 @pytest.fixture(scope="session")
 def month(today):
     return today.start_of("month").date()
-
-
-def load_test_cases(cwd, test_cases):
-    with open(Path(cwd).parent / "test_cases" / test_cases, "r") as fp:
-        for test_case in orjson.loads(fp.read()):
-            yield test_case
