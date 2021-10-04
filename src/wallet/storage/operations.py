@@ -13,7 +13,7 @@ from wallet.core.entities import (
     OperationType,
 )
 from wallet.core.storage.operations import OperationRepo
-from wallet.storage.base import DBRepo
+from wallet.storage.abc import DBRepo
 
 
 operations = sqlalchemy.Table(
@@ -33,28 +33,23 @@ operations = sqlalchemy.Table(
 )
 
 
-class OperationDBRepo(DBRepo, OperationRepo):
-    def _get_query(self, *, user: User) -> Query:
-        query = (
-            sqlalchemy.select(
-                [
-                    operations.c.id,
-                    operations.c.amount,
-                    operations.c.type,
-                    operations.c.desc,
-                    operations.c.account_id,
-                    operations.c.category_id,
-                    operations.c.created_on,
-                ]
-            )
-            .where(sqlalchemy.and_(operations.c.user == user.key, operations.c.enabled == True,))  # noqa:E712
-            .order_by(operations.c.created_on.desc())
+class OperationDBRepo(OperationRepo, DBRepo[Operation, OperationFilters]):
+    """Repository to get access to Operations storage."""
+
+    def _get_query(self, filters: OperationFilters) -> Query:
+        query = sqlalchemy.select(
+            [
+                operations.c.id,
+                operations.c.amount,
+                operations.c.type,
+                operations.c.desc,
+                operations.c.account_id,
+                operations.c.category_id,
+                operations.c.created_on,
+            ]
+        ).where(
+            sqlalchemy.and_(operations.c.user == filters.user.key, operations.c.enabled == True)  # noqa:E712
         )
-
-        return query
-
-    def _get_query_from_filters(self, *, filters: OperationFilters) -> Query:
-        query = self._get_query(user=filters.user)
 
         if filters.limit:
             query = query.limit(filters.limit)
@@ -76,17 +71,27 @@ class OperationDBRepo(DBRepo, OperationRepo):
         if filters.category_key:
             query = query.where(operations.c.category_id == filters.category_key)
 
-        return query
+        return query.order_by(operations.c.created_on.desc())
 
-    def _process_row(self, row, *, user: User) -> Operation:
-        operation = Operation(amount=row["amount"], description=row["desc"], operation_type=row["type"], user=user,)
+    def _process_row(self, row, **kwargs) -> Operation:
+        operation = Operation(
+            amount=row["amount"], description=row["desc"], operation_type=row["type"], user=kwargs["user"]
+        )
         operation.key = row["id"]
         operation.created_on = row["created_on"]
 
         return operation
 
     async def fetch(self, filters: OperationFilters) -> OperationStream:
-        query = self._get_query_from_filters(filters=filters)
+        """Fetch operations from storage.
+
+        Args:
+            filters: Params to filter operations.
+
+        Returns:
+            Operation instances from storage.
+        """
+        query = self._get_query(filters=filters)
 
         async for row in self._database.iterate(query=query):
             dependencies = OperationDependencies(account=row["account_id"], category=row["category_id"])
@@ -94,14 +99,38 @@ class OperationDBRepo(DBRepo, OperationRepo):
             yield self._process_row(row, user=filters.user), dependencies
 
     async def fetch_by_key(self, user: User, key: int) -> Operation:
-        row = await self._database.fetch_one(query=self._get_query(user=user).where(operations.c.id == key))
+        """Fetch operation by key.
+
+        Args:
+            user: Operation owner.
+            key: Operation identifier.
+
+        Returns:
+            Operation instance.
+        """
+        row = await self._database.fetch_one(
+            query=self._get_query(filters=OperationFilters(user=user)).where(operations.c.id == key)
+        )
 
         return self._process_row(row, user=user)
 
     async def exists(self, filters: OperationFilters) -> bool:
+        """Check if operations exist in storage.
+
+        Args:
+            filters: Params to filter operations.
+
+        Returns:
+            Operations exist in storage.
+        """
         raise NotImplementedError()
 
     async def save(self, entity: Operation) -> int:
+        """Save operation changes to storage.
+
+        Args:
+            entity: Operation instance.
+        """
         key = await self._database.execute(
             operations.insert().returning(operations.c.id),
             values={
@@ -109,8 +138,8 @@ class OperationDBRepo(DBRepo, OperationRepo):
                 "type": entity.operation_type.value,
                 "desc": entity.description,
                 "user": entity.user.key,
-                "account_id": entity.account.key,
-                "category_id": entity.category.key,
+                "account_id": entity.account.key if entity.account else None,
+                "category_id": entity.category.key if entity.category else None,
                 "enabled": True,
                 "created_on": entity.created_on,
             },
@@ -119,4 +148,9 @@ class OperationDBRepo(DBRepo, OperationRepo):
         return key
 
     async def remove(self, entity: Operation) -> bool:
-        pass
+        """Remove operation from storage.
+
+        Args:
+            entity: Operation instance.
+        """
+        raise NotImplementedError()
