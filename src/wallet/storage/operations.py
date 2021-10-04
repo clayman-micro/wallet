@@ -98,6 +98,9 @@ class OperationDBRepo(DBRepo, OperationRepo):
 
         return self._process_row(row, user=user)
 
+    async def exists(self, filters: OperationFilters) -> bool:
+        raise NotImplementedError()
+
     async def save(self, entity: Operation) -> int:
         key = await self._database.execute(
             operations.insert().returning(operations.c.id),

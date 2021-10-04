@@ -19,29 +19,24 @@ from wallet.web.schemas.accounts import (
 
 
 class GetAccountsView(PassportView):
-    """Get accounts list"""
+    """Get accounts list."""
 
     parameters = {"common": CommonParameters, "filters": AccountsFilterSchema}
 
     responses = {
         HTTPStatus.OK: AccountsResponseSchema,
-        # HTTPStatus.BAD_REQUEST: ErrorsResponseSchema,
     }
 
     async def process_request(
         self, request: web.Request, params: Optional[Dict[str, Any]], **kwargs
     ) -> Union[web.Response, Tuple[Any, HTTPStatus]]:
-
         search_accounts = SearchUseCase(DBStorage(request.app["db"]), logger=request.app["logger"])
-
-        return (
-            {"accounts": [account async for account in search_accounts.execute(filters=params["filters"])]},
-            HTTPStatus.OK,
-        )
+        accounts = [account async for account in search_accounts.execute(filters=params["filters"])]
+        return {"accounts": accounts}, HTTPStatus.OK
 
 
 class AddAccountView(PassportView):
-    """Add new account"""
+    """Add new account."""
 
     parameters = {"common": CommonParameters}
 

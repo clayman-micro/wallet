@@ -41,9 +41,9 @@ def month_ranges(request):
 
 @pytest.mark.unit
 def test_month_range(month_ranges):
-    assert list(month_range(start=month_ranges.get("start"), to=month_ranges.get("to", None))) == month_ranges.get(
-        "expected", []
-    )
+    result = list(month_range(start=month_ranges.get("start"), to=month_ranges.get("to", None)))
+
+    assert result == month_ranges.get("expected", [])
 
 
 @pytest.mark.unit

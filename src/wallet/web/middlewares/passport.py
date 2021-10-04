@@ -12,6 +12,15 @@ user_context: ContextVar[User] = ContextVar("user", default=None)
 
 @web.middleware
 async def middleware(request: web.Request, handler: Handler) -> web.Response:
+    """Passport authentication middleware.
+
+    Args:
+        request: Aiohttp web request.
+        handler: Web handler function.
+
+    Returns:
+        HTTP Response object.
+    """
     token = request.headers.get("X-ACCESS-TOKEN", None)
 
     if token:

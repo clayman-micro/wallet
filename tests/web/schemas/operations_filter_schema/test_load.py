@@ -28,6 +28,6 @@ def test_success(user, query, expected):
     schema = OperationsFilterSchema()
     schema.context["user"] = user
 
-    filters = schema.load(query)
+    result = schema.load(query)
 
-    assert filters == OperationFilters(user=user, **expected)
+    assert result == OperationFilters(user=user, **expected)
