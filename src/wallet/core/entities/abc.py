@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, TypeVar
 
 import pendulum  # type: ignore
 from passport.domain import User
@@ -109,3 +109,8 @@ class EntityWithBalance(Entity):
             balance.rest = rest
 
             self.balance[month] = balance
+
+
+EntityType = TypeVar("EntityType", bound=Entity)
+FiltersType = TypeVar("FiltersType", bound=Filters)
+PayloadType = TypeVar("PayloadType", bound=Payload)
