@@ -3,14 +3,14 @@ from typing import AsyncGenerator
 
 import sqlalchemy  # type: ignore
 from aiohttp_storage.storage import metadata  # type: ignore
+from asyncpg.exceptions import UniqueViolationError
 from passport.domain import User
-from sqlalchemy.orm import Query  # type: ignore
+from sqlalchemy.orm import Query
 
 from wallet.core.entities import Account, AccountFilters
-from wallet.core.exceptions import AccountNotFound
+from wallet.core.exceptions import AccountAlreadyExist, AccountNotFound
 from wallet.core.storage.accounts import AccountRepo
 from wallet.storage.abc import DBRepo
-
 
 accounts = sqlalchemy.Table(
     "accounts",
@@ -27,7 +27,9 @@ class AccountDBRepo(AccountRepo, DBRepo[Account, AccountFilters]):
     """Repository to get access to Accounts storage."""
 
     def _get_query(self, filters: AccountFilters) -> Query:
-        query = sqlalchemy.select([accounts.c.id, accounts.c.name]).where(accounts.c.user == filters.user.key)
+        query = sqlalchemy.select([accounts.c.id, accounts.c.name]).where(
+            sqlalchemy.and_(accounts.c.user == filters.user.key, accounts.c.enabled == True)  # noqa: E712
+        )
 
         if filters.keys:
             query = query.where(accounts.c.id.in_(filters.keys))
@@ -115,10 +117,13 @@ class AccountDBRepo(AccountRepo, DBRepo[Account, AccountFilters]):
         Args:
             entity: Account instance.
         """
-        key = await self._database.execute(
-            accounts.insert().returning(accounts.c.id),
-            values={"name": entity.name, "user": entity.user.key, "enabled": True, "created_on": datetime.now()},
-        )
+        try:
+            key = await self._database.execute(
+                accounts.insert().returning(accounts.c.id),
+                values={"name": entity.name, "user": entity.user.key, "enabled": True, "created_on": datetime.now()},
+            )
+        except UniqueViolationError:
+            raise AccountAlreadyExist(user=entity.user, account=entity)
 
         return key
 
@@ -128,4 +133,13 @@ class AccountDBRepo(AccountRepo, DBRepo[Account, AccountFilters]):
         Args:
             entity: Account instance.
         """
-        raise NotImplementedError()
+        query = accounts.update(
+            sqlalchemy.and_(accounts.c.user == entity.user.key, accounts.c.id == entity.key), values={"enabled": False},
+        ).returning(accounts.c.id)
+
+        result = await self._database.fetch_val(query=query)
+
+        if result is None:
+            raise AccountNotFound(entity.user, name=entity.name)
+
+        return result == entity.key
