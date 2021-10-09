@@ -47,7 +47,7 @@ jobs:
 
       - name: Run unit tests
         env:
-          TOXENV: unit
+          TOXENV: tests
         run: tox
 
       - name: Get coverage report
