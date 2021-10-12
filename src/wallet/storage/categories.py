@@ -2,14 +2,14 @@ from datetime import datetime
 
 import sqlalchemy  # type: ignore
 from aiohttp_storage.storage import metadata  # type: ignore
+from asyncpg.exceptions import UniqueViolationError
 from passport.domain import User
-from sqlalchemy.orm import Query  # type: ignore
+from sqlalchemy.orm import Query
 
 from wallet.core.entities import Category, CategoryFilters, CategoryStream
-from wallet.core.exceptions import CategoryNotFound
+from wallet.core.exceptions import CategoryAlreadyExist, CategoryNotFound
 from wallet.core.storage.categories import CategoryRepo
 from wallet.storage.abc import DBRepo
-
 
 categories = sqlalchemy.Table(
     "categories",
@@ -46,7 +46,9 @@ class CategoryDBRepo(CategoryRepo, DBRepo[Category, CategoryFilters]):
     """Repository to get access to Categories storage."""
 
     def _get_query(self, filters: CategoryFilters) -> Query:
-        query = sqlalchemy.select([categories.c.id, categories.c.name]).where(categories.c.user == filters.user.key)
+        query = sqlalchemy.select([categories.c.id, categories.c.name]).where(
+            sqlalchemy.and_(categories.c.user == filters.user.key, categories.c.enabled == True)  # noqa: E712
+        )
 
         if filters.keys:
             query = query.where(categories.c.id.in_(filters.keys))
@@ -134,10 +136,13 @@ class CategoryDBRepo(CategoryRepo, DBRepo[Category, CategoryFilters]):
         Args:
             entity: Category instance.
         """
-        key = await self._database.execute(
-            categories.insert().returning(categories.c.id),
-            values={"name": entity.name, "user": entity.user.key, "enabled": True, "created_on": datetime.now()},
-        )
+        try:
+            key = await self._database.execute(
+                categories.insert().returning(categories.c.id),
+                values={"name": entity.name, "user": entity.user.key, "enabled": True, "created_on": datetime.now()},
+            )
+        except UniqueViolationError:
+            raise CategoryAlreadyExist(user=entity.user, category=entity)
 
         return key
 
@@ -147,4 +152,14 @@ class CategoryDBRepo(CategoryRepo, DBRepo[Category, CategoryFilters]):
         Args:
             entity: Category instance.
         """
-        raise NotImplementedError()
+        query = categories.update(
+            sqlalchemy.and_(categories.c.user == entity.user.key, categories.c.id == entity.key),
+            values={"enabled": False},
+        ).returning(categories.c.id)
+
+        result = await self._database.fetch_val(query=query)
+
+        if result is None:
+            raise CategoryNotFound(entity.user, name=entity.name)
+
+        return result == entity.key

@@ -1,0 +1,57 @@
+---
+
+test_fetch:
+  owners:
+    - key: 1
+      email: dev@clayman.pro
+    - key: 2
+
+test_success:
+  - id: Fetch empty categories list
+    owner: 1
+    categories: []
+    expected: []
+
+  - id: Fetch categories
+    owner: 1
+    categories:
+      - name: Food
+        owner: 1
+        enabled: yes
+      - name: Sport
+        owner: 1
+        enabled: yes
+    expected:
+      - key: 1
+        name: Food
+        owner: 1
+      - key: 2
+        name: Sport
+        owner: 1
+
+  - id: Fetch categories by owner
+    owner: 1
+    categories:
+      - name: Food
+        owner: 1
+        enabled: yes
+      - name: Sport
+        owner: 2
+        enabled: yes
+    expected:
+      - key: 1
+        name: Food
+        owner: 1
+
+  - id: Fetch only enabled
+    owner: 1
+    categories:
+      - name: Food
+        owner: 1
+        enabled: yes
+      - name: Sport
+        owner: 1
+    expected:
+      - key: 1
+        name: Food
+        owner: 1
