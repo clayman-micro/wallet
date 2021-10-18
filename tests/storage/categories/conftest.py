@@ -1,17 +1,16 @@
-from asyncio import BaseEventLoop
 from datetime import datetime
 
 import pytest
-from _pytest.fixtures import FixtureRequest
 from databases import Database
 from passport.domain import User
 
 from wallet.core.entities.categories import Category
 from wallet.storage.categories import categories as categories_table
+from wallet.storage.categories import CategoryDBRepo
 
 
 @pytest.fixture
-async def categories(request: FixtureRequest, loop: BaseEventLoop, client, owners: dict[int, User]) -> list[Category]:
+async def categories(request, loop, client, owners: dict[int, User]) -> list[Category]:
     """Prepare categories in storage."""
     database: Database = client.app["db"]
     query = categories_table.insert().returning(categories_table.c.id)
@@ -33,3 +32,8 @@ async def categories(request: FixtureRequest, loop: BaseEventLoop, client, owner
         entities.append(category)
 
     return entities
+
+
+@pytest.fixture
+def repo(client) -> CategoryDBRepo:
+    return CategoryDBRepo(database=client.app["db"])

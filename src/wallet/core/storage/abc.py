@@ -42,7 +42,7 @@ class Repo(Generic[EntityType, FiltersType]):
         """
 
     @abstractmethod
-    async def save(self, entity: EntityType) -> None:
+    async def save(self, entity: EntityType) -> int:
         """Save entity changes to storage.
 
         Args:

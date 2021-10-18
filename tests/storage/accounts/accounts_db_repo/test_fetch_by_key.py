@@ -1,6 +1,4 @@
 import pytest
-from _pytest.fixtures import FixtureRequest
-from aiohttp import web
 from passport.domain import User
 
 from wallet.core.entities.accounts import Account
@@ -9,7 +7,7 @@ from wallet.storage.accounts import AccountDBRepo
 
 
 @pytest.fixture
-def expected(request: FixtureRequest, owners: dict[int, User]) -> Account:
+def expected(request, owners: dict[int, User]) -> Account:
     """Prepare expected result."""
     owner = owners.get(request.param["owner"])
     account = Account(name=request.param["name"], user=owner)
@@ -19,21 +17,15 @@ def expected(request: FixtureRequest, owners: dict[int, User]) -> Account:
 
 
 @pytest.mark.integration
-async def test_success(
-    client: web.Application, owner: User, key: int, accounts: list[Account], expected: Account
-) -> None:
+async def test_success(repo: AccountDBRepo, owner: User, key: int, accounts: list[Account], expected: Account) -> None:
     """Successfully fetch account from storage by key."""
-    repo = AccountDBRepo(database=client.app["db"])
-
     result = await repo.fetch_by_key(user=owner, key=key)
 
     assert result == expected
 
 
 @pytest.mark.integration
-async def test_missing(client: web.Application, owner: User, key: int, accounts: list[Account]) -> None:
+async def test_missing(repo: AccountDBRepo, owner: User, key: int, accounts: list[Account]) -> None:
     """Fetch missing account from storage by key."""
-    repo = AccountDBRepo(database=client.app["db"])
-
     with pytest.raises(AccountNotFound):
         await repo.fetch_by_key(user=owner, key=key)

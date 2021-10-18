@@ -1,6 +1,5 @@
 import pytest
 import sqlalchemy
-from aiohttp import web
 from passport.domain import User
 
 from wallet.core.entities.categories import Category
@@ -20,10 +19,10 @@ def category(request, owner: User, categories: list[Category]) -> Category:
 
 
 @pytest.mark.integration
-async def test_success(client: web.Application, categories: list[Category], category: Category, expected: int) -> None:
+async def test_success(
+    client, repo: CategoryDBRepo, categories: list[Category], category: Category, expected: int
+) -> None:
     """Successfully remove category from storage."""
-    database = client.app["db"]
-    repo = CategoryDBRepo(database=database)
 
     result = await repo.remove(category)
 
@@ -37,15 +36,14 @@ async def test_success(client: web.Application, categories: list[Category], cate
             )
         )
     )
-    count = await database.fetch_val(query=query)
+    count = await client.app["db"].fetch_val(query=query)
     assert count == expected
 
 
 @pytest.mark.integration
-async def test_failed(client: web.Application, owner: User, categories: list[Category]) -> None:
+async def test_failed(repo: CategoryDBRepo, owner: User, categories: list[Category]) -> None:
     """Could not remove not existed category from storage."""
     category = Category(name="Visa Classic", user=owner)
-    repo = CategoryDBRepo(database=client.app["db"])
 
     with pytest.raises(CategoryNotFound):
         await repo.remove(category)
