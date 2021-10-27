@@ -27,7 +27,9 @@ def operation(request, owner: User, accounts: list[Account], categories: list[Ca
 
 
 @pytest.mark.inregration
-async def test_success(repo: OperationDBRepo, owner: User, operation: Operation, expected: Operation) -> None:
+async def test_success(
+    repo: OperationDBRepo, owner: User, operations: list[Operation], operation: Operation, expected: Operation
+) -> None:
     """Successfully add new operation."""
     result = await repo.save(operation)
 

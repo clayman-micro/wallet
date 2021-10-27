@@ -11,7 +11,7 @@ from wallet.storage.accounts import accounts as accounts_table
 from wallet.storage.categories import categories as categories_table
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def owners(request, faker) -> dict[int, User]:
     """Prepare owners."""
     users: dict[int, User] = {}
@@ -23,7 +23,7 @@ def owners(request, faker) -> dict[int, User]:
     return users
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def owner(request, owners: dict[int, User]) -> User:
     """Choose owner."""
     return owners.get(request.param)

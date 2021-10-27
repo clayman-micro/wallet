@@ -1,6 +1,6 @@
 ---
 
-test_fetch:
+test_save:
   owners:
     - key: 1
       email: dev@clayman.pro
@@ -25,12 +25,13 @@ test_fetch:
 test_success:
   - id: Add operation successfully
     operations: []
-    payload: 
-      amount: 123
-      description: Foo
-      owner: 1
+    owner: 1
+    operation: 
+      amount: 234
+      description: Bar
       account: 1
       category: 1
+      type: expense
       created_on: "2021-04-21T00:57:20"
     expected: 1
   - id: Add operation when existed
@@ -49,6 +50,7 @@ test_success:
       description: Bar
       account: 1
       category: 1
+      type: expense
       created_on: "2021-04-21T00:57:20"
     expected: 2
   

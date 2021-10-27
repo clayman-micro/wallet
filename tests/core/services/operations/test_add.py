@@ -11,7 +11,6 @@ from wallet.core.entities import Account, Category, Operation, OperationPayload,
 from wallet.core.services.operations import OperationService
 from wallet.core.storage import Storage
 
-
 StorageBuilder = Callable[[Account, Category], Storage]
 
 
