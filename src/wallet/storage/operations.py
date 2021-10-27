@@ -5,16 +5,10 @@ from aiohttp_storage.storage import metadata  # type: ignore
 from passport.domain import User
 from sqlalchemy.orm import Query  # type: ignore
 
-from wallet.core.entities import (
-    Operation,
-    OperationDependencies,
-    OperationFilters,
-    OperationStream,
-    OperationType,
-)
+from wallet.core.entities import Operation, OperationDependencies, OperationFilters, OperationStream, OperationType
+from wallet.core.exceptions import OperationNotFound
 from wallet.core.storage.operations import OperationRepo
 from wallet.storage.abc import DBRepo
-
 
 operations = sqlalchemy.Table(
     "operations",
@@ -111,6 +105,9 @@ class OperationDBRepo(OperationRepo, DBRepo[Operation, OperationFilters]):
         row = await self._database.fetch_one(
             query=self._get_query(filters=OperationFilters(user=user)).where(operations.c.id == key)
         )
+
+        if not row:
+            raise OperationNotFound()
 
         return self._process_row(row, user=user)
 

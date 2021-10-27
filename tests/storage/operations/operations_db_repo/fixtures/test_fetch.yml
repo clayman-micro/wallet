@@ -1,0 +1,56 @@
+---
+
+test_fetch:
+  owners:
+    - key: 1
+      email: dev@clayman.pro
+    - key: 2
+
+  accounts:
+    - name: Tinkoff Black
+      owner: 1
+      enabled: yes
+    - name: Tinkoff Platinum
+      owner: 1
+      enabled: yes
+
+  categories:
+    - name: Tinkoff Black
+      owner: 1
+      enabled: yes
+    - name: Tinkoff Platinum
+      owner: 1
+      enabled: yes
+
+test_success:
+  - id: Fetch empty operations list without filters
+    owner: 1
+    filters:
+      owner: 1
+    operations: []
+    expected: []
+
+  - id: Fetch operations list without filters
+    owner: 1
+    filters:
+      owner: 1
+    operations:
+      - amount: 123
+        description: Foo
+        owner: 1
+        account: 1
+        category: 1
+        type: expense
+        enabled: yes
+        created_on: "2021-04-21T00:57:20"
+    expected: 
+      - key: 1
+        amount: 123
+        description: Foo
+        owner: 1
+        deps:
+          account: 1
+          category: 1
+        type: expense
+        enabled: yes
+        created_on: "2021-04-21T00:57:20"
