@@ -1,13 +1,9 @@
 from logging import Logger
+from typing import AsyncIterator
 
 from passport.domain import User
 
-from wallet.core.entities import (
-    Category,
-    CategoryFilters,
-    CategoryPayload,
-    CategoryStream,
-)
+from wallet.core.entities import Category, CategoryFilters, CategoryPayload
 from wallet.core.services.categories import CategoryService
 from wallet.core.storage import Storage
 
@@ -34,6 +30,6 @@ class RemoveUseCase(CategoryUseCase):
 
 
 class SearchUseCase(CategoryUseCase):
-    async def execute(self, filters: CategoryFilters) -> CategoryStream:
+    async def execute(self, filters: CategoryFilters) -> AsyncIterator[Category]:
         async for category in self.service.find(filters=filters):
             yield category

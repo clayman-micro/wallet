@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import AsyncIterator
 
 import sqlalchemy  # type: ignore
 from aiohttp_storage.storage import metadata  # type: ignore
@@ -6,7 +7,7 @@ from asyncpg.exceptions import UniqueViolationError
 from passport.domain import User
 from sqlalchemy.orm import Query
 
-from wallet.core.entities import Category, CategoryFilters, CategoryStream
+from wallet.core.entities import Category, CategoryFilters
 from wallet.core.exceptions import CategoryAlreadyExist, CategoryNotFound
 from wallet.core.storage.categories import CategoryRepo
 from wallet.storage.abc import DBRepo
@@ -61,7 +62,7 @@ class CategoryDBRepo(CategoryRepo, DBRepo[Category, CategoryFilters]):
 
         return category
 
-    async def fetch(self, filters: CategoryFilters) -> CategoryStream:
+    async def fetch(self, filters: CategoryFilters) -> AsyncIterator[Category]:
         """Fetch categories from storage.
 
         Args:

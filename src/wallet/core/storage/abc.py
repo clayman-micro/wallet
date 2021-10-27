@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Generic, List, TypeVar
+from typing import AsyncIterator, Generic, TypeVar
 
 from passport.domain import User
 
@@ -8,7 +8,7 @@ from wallet.core.entities.abc import EntityType, FiltersType
 
 class Repo(Generic[EntityType, FiltersType]):
     @abstractmethod
-    def fetch(self, filters: FiltersType) -> List[EntityType]:
+    def fetch(self, filters: FiltersType) -> AsyncIterator[EntityType]:
         """Fetch entities from storage.
 
         Args:

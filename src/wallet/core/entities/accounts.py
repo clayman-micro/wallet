@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import AsyncGenerator, Optional
+from typing import Optional
 
 from passport.domain import User
 
@@ -10,9 +10,6 @@ from wallet.core.entities.abc import EntityWithBalance, Filters, Payload
 class Account(EntityWithBalance):
     name: str
     user: User
-
-
-AccountStream = AsyncGenerator[Account, None]
 
 
 @dataclass

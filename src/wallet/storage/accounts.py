@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import AsyncGenerator
+from typing import AsyncIterator
 
 import sqlalchemy  # type: ignore
 from aiohttp_storage.storage import metadata  # type: ignore
@@ -42,7 +42,7 @@ class AccountDBRepo(AccountRepo, DBRepo[Account, AccountFilters]):
 
         return account
 
-    async def fetch(self, filters: AccountFilters) -> AsyncGenerator[Account, None]:
+    async def fetch(self, filters: AccountFilters) -> AsyncIterator[Account]:
         """Fetch accounts from storage.
 
         Args:

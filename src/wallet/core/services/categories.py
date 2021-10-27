@@ -1,12 +1,8 @@
+from typing import AsyncIterator
+
 from passport.domain import User
 
-from wallet.core.entities import (
-    Category,
-    CategoryFilters,
-    CategoryPayload,
-    CategoryStream,
-    OperationFilters,
-)
+from wallet.core.entities import Category, CategoryFilters, CategoryPayload, OperationFilters
 from wallet.core.exceptions import CategoriesNotFound, CategoryAlreadyExist
 from wallet.core.services import Service
 
@@ -42,7 +38,7 @@ class CategoryService(Service[Category, CategoryFilters, CategoryPayload]):
             "Remove category", user=entity.user.key, name=entity.name, dry_run=dry_run,
         )
 
-    async def get_or_create(self, filters: CategoryFilters) -> CategoryStream:
+    async def get_or_create(self, filters: CategoryFilters) -> AsyncIterator[Category]:
         missing_keys = set(filters.keys)
         missing_names = set(filters.names)
 
@@ -65,7 +61,7 @@ class CategoryService(Service[Category, CategoryFilters, CategoryPayload]):
         if missing_keys:
             raise CategoriesNotFound(user=filters.user, keys=missing_keys)
 
-    async def find(self, filters: CategoryFilters) -> CategoryStream:
+    async def find(self, filters: CategoryFilters) -> AsyncIterator[Category]:
         async for category in self._storage.categories.fetch(filters=filters):
             yield category
 
