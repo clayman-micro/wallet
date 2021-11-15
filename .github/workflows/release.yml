@@ -61,9 +61,9 @@ jobs:
         # Устанавливаем зависимости
         run: pip install poetry tox
 
-      - name: Run unit tests
+      - name: Run tests
         env:
-          TOXENV: unit
+          TOXENV: tests
         run: tox
 
       - name: Get coverage report
