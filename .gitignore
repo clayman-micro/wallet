@@ -58,3 +58,7 @@ venv
 backups
 operations/*.csv
 kube.*
+
+
+# Ignore DevSpace cache and log folder
+.devspace/

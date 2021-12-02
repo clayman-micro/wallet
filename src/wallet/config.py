@@ -11,7 +11,7 @@ from passport.client import PassportConfig
 class StorageConfig(config.PostgresConfig):
     host = config.StrField(default="localhost", env="POSTGRES_HOST")
     port = config.IntField(default=5432, env="POSTGRES_PORT")
-    user = config.StrField(default="postgres", vault_path="micro/waller/postgres:user", env="POSTGRES_USER")
+    user = config.StrField(default="postgres", vault_path="micro/wallet/postgres:user", env="POSTGRES_USER")
     password = config.StrField(default="postgres", vault_path="micro/wallet/postgres:password", env="POSTGRES_PASSWORD")
     database = config.StrField(default="postgres", env="POSTGRES_DATABASE")
     min_pool_size = config.IntField(default=1, env="POSTGRES_MIN_POOL_SIZE")

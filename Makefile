@@ -42,8 +42,8 @@ run:
 test:
 	py.test
 
-test-all:
-	tox -- --pg-image=postgres:11-alpine
+tests:
+	tox -- --pg-host=$(POSTGRES_HOST) --pg-database=wallet_tests
 
 build:
 	docker build -t ${NAME} .

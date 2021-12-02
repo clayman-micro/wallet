@@ -1,17 +1,19 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import AsyncGenerator, Callable
+from typing import Callable, Generator
 
 import pendulum  # type: ignore
 import pytest  # type: ignore
 from aiohttp import web
 from aiohttp_storage.tests import storage  # type: ignore
+from config import EnvValueProvider, load  # type: ignore
 from cryptography.hazmat.primitives import serialization  # type: ignore
 from cryptography.hazmat.primitives.asymmetric import rsa  # type: ignore
 from passport.domain import TokenType, User  # type: ignore
 from passport.services.tokens import TokenGenerator
 
-from wallet.app import AppConfig, init
+from wallet.app import init
+from wallet.config import AppConfig, VaultConfig, VaultProvider
 
 
 @pytest.fixture(scope="function")
@@ -22,8 +24,8 @@ def user(faker) -> User:
 
 @dataclass
 class Keypair:
-    public: str
-    private: str
+    public: bytes
+    private: bytes
 
 
 @pytest.fixture(scope="session")
@@ -46,7 +48,7 @@ def keypair() -> Keypair:
 @pytest.fixture(scope="session")
 def get_token_for(keypair: Keypair) -> Callable[[User], str]:
     """Fixture to generate access tokens for users."""
-    generator = TokenGenerator(private_key=keypair.private)
+    generator = TokenGenerator(private_key=keypair.private.decode("utf-8"))
 
     def generate(user: User, token_type: TokenType = TokenType.access, ttl: int = 600) -> str:
         return generator.generate(user, token_type=token_type, expire=ttl)
@@ -57,23 +59,23 @@ def get_token_for(keypair: Keypair) -> Callable[[User], str]:
 @pytest.fixture(scope="session")
 def config(keypair: Keypair) -> AppConfig:
     """Generate application config."""
-    return AppConfig(
+    vault_config = VaultConfig()
+    load(vault_config, providers=[EnvValueProvider()])
+
+    config = AppConfig(
         defaults={
             "debug": True,
             "passport": {"host": "http://localhost", "public_key": keypair.public.decode("utf-8")},
         }
     )
+    load(config, providers=[VaultProvider(config=vault_config, mount_point="credentials"), EnvValueProvider()])
+
+    return config
 
 
 @pytest.fixture(scope="function")
-def app(pg_server, config) -> AsyncGenerator[web.Application, None]:
+def app(config) -> Generator[web.Application, None, None]:
     """Prepare test application."""
-    config.db.host = pg_server["params"]["host"]
-    config.db.port = pg_server["params"]["port"]
-    config.db.user = pg_server["params"]["user"]
-    config.db.password = pg_server["params"]["password"]
-    config.db.database = pg_server["params"]["database"]
-
     app = init("wallet", config)
 
     with storage(config=app["config"].db, root=app["storage_root"]):
@@ -95,6 +97,6 @@ def today() -> date:
 
 
 @pytest.fixture(scope="session")
-def month(today: date) -> date:
+def month(today: pendulum.date) -> date:
     """Current month."""
     return today.start_of("month").date()
