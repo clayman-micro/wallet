@@ -1,32 +1,20 @@
 import os
 from typing import AsyncGenerator
 
-import config
 from aiohttp import ClientSession, web
 from aiohttp.hdrs import METH_GET, METH_POST
 from aiohttp_micro import (  # type: ignore
-    AppConfig as BaseConfig,
     setup as setup_micro,
     setup_logging,
     setup_metrics,
 )
-from aiohttp_storage import (  # type: ignore
-    setup as setup_storage,
-    StorageConfig,
-)
-from passport.client import PassportConfig
+from aiohttp_storage import setup as setup_storage  # type: ignore
 
+from wallet.config import AppConfig
 from wallet.openapi import setup as setup_openapi
 from wallet.web.handlers import accounts, categories, operations
 from wallet.web.middlewares.common import middleware as common_middleware
 from wallet.web.middlewares.passport import middleware as passport_middleware
-
-
-class AppConfig(BaseConfig):
-    """Application config."""
-
-    db = config.NestedField[StorageConfig](StorageConfig)
-    passport = config.NestedField[PassportConfig](PassportConfig)
 
 
 async def passport_ctx(app: web.Application) -> AsyncGenerator[None, None]:

@@ -1,4 +1,4 @@
-FROM python:3.9-slim as build
+FROM ghcr.io/clayman-micro/micro:v0.7.0 as build
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && apt-get install -y -qq \
@@ -13,7 +13,7 @@ WORKDIR /app
 RUN poetry build
 
 
-FROM python:3.9-slim
+FROM ghcr.io/clayman-micro/micro:v0.7.0
 
 COPY --from=build /app/dist/*.whl .
 
