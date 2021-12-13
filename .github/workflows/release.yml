@@ -56,6 +56,9 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@master
@@ -76,7 +79,7 @@ jobs:
       - name: Run tests
         env:
           TOXENV: tests
-          POSTGRES_HOST: postgres
+          POSTGRES_HOST: localhost
         run: tox
 
       - name: Get coverage report
