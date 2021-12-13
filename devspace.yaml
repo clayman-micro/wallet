@@ -40,6 +40,8 @@ deployments:
           value: 10.0.0.1
         - name: POSTGRES_DATABASE
           value: wallet_dev
+        - name: VAULT_ENABLED
+          value: '1'
         - name: VAULT_ADDR
           value: https://vault.clayman.pro
         - name: VAULT_AUTH_METHOD

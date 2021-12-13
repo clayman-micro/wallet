@@ -41,6 +41,18 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@master
 
@@ -56,6 +68,7 @@ jobs:
       - name: Run tests
         env:
           TOXENV: tests
+          POSTGRES_HOST: postgres
         run: tox
 
       - name: Get coverage report

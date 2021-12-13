@@ -31,6 +31,7 @@ class AppConfig(BaseConfig):
 
 
 class VaultConfig(config.Config):
+    enabled = config.BoolField(default=False, env="VAULT_ENABLED")
     host = config.StrField(env="VAULT_HOST")
     auth_method = config.StrField(default="approle", env="VAULT_AUTH_METHOD")
     service_name = config.StrField(default=None, env="VAULT_SERVICE_NAME")

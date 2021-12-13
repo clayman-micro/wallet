@@ -7,6 +7,7 @@ import pytest  # type: ignore
 from aiohttp import web
 from aiohttp_storage.tests import storage  # type: ignore
 from config import EnvValueProvider, load  # type: ignore
+from config.providers import ValueProvider
 from cryptography.hazmat.primitives import serialization  # type: ignore
 from cryptography.hazmat.primitives.asymmetric import rsa  # type: ignore
 from passport.domain import TokenType, User  # type: ignore
@@ -59,8 +60,13 @@ def get_token_for(keypair: Keypair) -> Callable[[User], str]:
 @pytest.fixture(scope="session")
 def config(keypair: Keypair) -> AppConfig:
     """Generate application config."""
+    providers: list[ValueProvider] = [EnvValueProvider()]
+
     vault_config = VaultConfig()
-    load(vault_config, providers=[EnvValueProvider()])
+    load(vault_config, providers=providers)
+
+    if vault_config.enabled:
+        providers = [VaultProvider(config=vault_config, mount_point="credentials"), *providers]
 
     config = AppConfig(
         defaults={
@@ -68,7 +74,7 @@ def config(keypair: Keypair) -> AppConfig:
             "passport": {"host": "http://localhost", "public_key": keypair.public.decode("utf-8")},
         }
     )
-    load(config, providers=[VaultProvider(config=vault_config, mount_point="credentials"), EnvValueProvider()])
+    load(config, providers=providers)
 
     return config
 

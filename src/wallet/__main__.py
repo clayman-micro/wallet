@@ -5,6 +5,7 @@ import uvloop  # type: ignore
 from aiohttp_micro.cli.server import server  # type: ignore
 from aiohttp_storage.management.storage import storage  # type: ignore
 from config import EnvValueProvider, load  # type: ignore
+from config.providers import ValueProvider
 
 from wallet.app import init
 from wallet.config import AppConfig, VaultConfig, VaultProvider
@@ -17,11 +18,16 @@ def cli(ctx, debug: bool = False) -> None:
     uvloop.install()
     loop = asyncio.get_event_loop()
 
+    providers: list[ValueProvider] = [EnvValueProvider()]
+
     vault_config = VaultConfig()
-    load(vault_config, providers=[EnvValueProvider()])
+    load(vault_config, providers=providers)
+
+    if vault_config.enabled:
+        providers = [VaultProvider(config=vault_config, mount_point="credentials"), *providers]
 
     config = AppConfig(defaults={"debug": debug, "db": {"user": "wallet", "password": "wallet", "database": "wallet"}})
-    load(config, providers=[VaultProvider(config=vault_config, mount_point="credentials"), EnvValueProvider()])
+    load(config, providers=providers)
 
     app = init("wallet", config)
 

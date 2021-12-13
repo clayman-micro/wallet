@@ -11,6 +11,8 @@ poetry config virtualenvs.create false
 
 poetry install
 
+export POSTGRES_DATABASE=wallet_tests
+
 
 COLOR_CYAN="\033[0;36m"
 COLOR_RESET="\033[0m"
