@@ -1,6 +1,6 @@
 from wallet.core.entities import Operation, OperationFilters
-from wallet.core.storage.base import Repo
+from wallet.core.storage.abc import Repo
 
 
 class OperationRepo(Repo[Operation, OperationFilters]):
-    pass
+    """Repository to get access Operations storage."""

@@ -36,6 +36,10 @@ class CategoriesNotFound(EntityNotFound):
         self._keys = keys
 
 
+class OperationNotFound(EntityNotFound):
+    pass
+
+
 class UnprocessableOperations(Exception):
     def __init__(self, user: User, operations: Iterable[OperationPayload]) -> None:
         self._user = user

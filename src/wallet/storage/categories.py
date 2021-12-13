@@ -1,15 +1,16 @@
 from datetime import datetime
+from typing import AsyncIterator
 
 import sqlalchemy  # type: ignore
 from aiohttp_storage.storage import metadata  # type: ignore
-from databases import Database
+from asyncpg.exceptions import UniqueViolationError
 from passport.domain import User
-from sqlalchemy.orm import Query  # type: ignore
+from sqlalchemy.orm import Query
 
-from wallet.core.entities import Category, CategoryFilters, CategoryStream
-from wallet.core.exceptions import CategoryNotFound
+from wallet.core.entities import Category, CategoryFilters
+from wallet.core.exceptions import CategoryAlreadyExist, CategoryNotFound
 from wallet.core.storage.categories import CategoryRepo
-
+from wallet.storage.abc import DBRepo
 
 categories = sqlalchemy.Table(
     "categories",
@@ -42,32 +43,51 @@ category_tags = sqlalchemy.Table(
 )
 
 
-class CategoryDBRepo(CategoryRepo):
-    def __init__(self, database: Database) -> None:
-        self._database = database
+class CategoryDBRepo(CategoryRepo, DBRepo[Category, CategoryFilters]):
+    """Repository to get access to Categories storage."""
 
-    def _get_query(self, *, user: User) -> Query:
-        query = sqlalchemy.select([categories.c.id, categories.c.name]).where(categories.c.user == user.key)
+    def _get_query(self, filters: CategoryFilters) -> Query:
+        query = sqlalchemy.select([categories.c.id, categories.c.name]).where(
+            sqlalchemy.and_(categories.c.user == filters.user.key, categories.c.enabled == True)  # noqa: E712
+        )
+
+        if filters.keys:
+            query = query.where(categories.c.id.in_(filters.keys))
 
         return query
 
-    def _process_row(self, row, *, user: User) -> Category:
-        category = Category(name=row["name"], user=user)
+    def _process_row(self, row, **kwargs) -> Category:
+        category = Category(name=row["name"], user=kwargs["user"])
         category.key = row["id"]
 
         return category
 
-    async def fetch(self, filters: CategoryFilters) -> CategoryStream:
-        query = self._get_query(user=filters.user)
+    async def fetch(self, filters: CategoryFilters) -> AsyncIterator[Category]:
+        """Fetch categories from storage.
 
-        if filters.keys:
-            query = query.where(categories.c.id.in_(filters.keys))
+        Args:
+            filters: Params to filter categories.
+
+        Returns:
+            Category instances from storage.
+        """
+        query = self._get_query(filters)
 
         async for row in self._database.iterate(query=query):
             yield self._process_row(row, user=filters.user)
 
     async def fetch_by_key(self, user: User, key: int) -> Category:
-        row = await self._database.fetch_one(query=self._get_query(user=user).where(categories.c.id == key))
+        """Fetch category by key.
+
+        Args:
+            user: Category owner.
+            key: Category identifier.
+
+        Returns:
+            Category instance.
+        """
+        query = self._get_query(filters=CategoryFilters(user=user)).where(categories.c.id == key)
+        row = await self._database.fetch_one(query)
 
         if not row:
             raise CategoryNotFound(user=user, name="")
@@ -75,7 +95,17 @@ class CategoryDBRepo(CategoryRepo):
         return self._process_row(row, user=user)
 
     async def fetch_by_name(self, user: User, name: str) -> Category:
-        row = await self._database.fetch_one(query=self._get_query(user=user).where(categories.c.name == name))
+        """Fetch category by it's name.
+
+        Args:
+            user: Category owner instance.
+            name: Category name.
+
+        Returns:
+            Category instance.
+        """
+        query = self._get_query(filters=CategoryFilters(user=user)).where(categories.c.name == name)
+        row = await self._database.fetch_one(query)
 
         if not row:
             raise CategoryNotFound(user=user, name=name)
@@ -83,6 +113,14 @@ class CategoryDBRepo(CategoryRepo):
         return self._process_row(row, user=user)
 
     async def exists(self, filters: CategoryFilters) -> bool:
+        """Check if categories exist in storage.
+
+        Args:
+            filters: Params to filter categories.
+
+        Returns:
+            Categories exist in storage.
+        """
         query = (
             sqlalchemy.select([sqlalchemy.func.count(categories.c.id)])
             .select_from(categories)
@@ -94,12 +132,35 @@ class CategoryDBRepo(CategoryRepo):
         return exists > 0
 
     async def save(self, entity: Category) -> int:
-        key = await self._database.execute(
-            categories.insert().returning(categories.c.id),
-            values={"name": entity.name, "user": entity.user.key, "enabled": True, "created_on": datetime.now()},
-        )
+        """Save category changes to storage.
+
+        Args:
+            entity: Category instance.
+        """
+        try:
+            key = await self._database.execute(
+                categories.insert().returning(categories.c.id),
+                values={"name": entity.name, "user": entity.user.key, "enabled": True, "created_on": datetime.now()},
+            )
+        except UniqueViolationError:
+            raise CategoryAlreadyExist(user=entity.user, category=entity)
 
         return key
 
     async def remove(self, entity: Category) -> bool:
-        pass
+        """Remove category from storage.
+
+        Args:
+            entity: Category instance.
+        """
+        query = categories.update(
+            sqlalchemy.and_(categories.c.user == entity.user.key, categories.c.id == entity.key),
+            values={"enabled": False},
+        ).returning(categories.c.id)
+
+        result = await self._database.fetch_val(query=query)
+
+        if result is None:
+            raise CategoryNotFound(entity.user, name=entity.name)
+
+        return result == entity.key

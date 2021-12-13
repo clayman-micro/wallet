@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import AsyncGenerator, Iterable, List, Optional
+from typing import Iterable, List, Optional
 
 from passport.domain import User
 
@@ -12,9 +12,6 @@ class Category(EntityWithBalance):
     name: str
     user: User
     tags: List[Tag] = field(default_factory=list)
-
-
-CategoryStream = AsyncGenerator[Category, None]
 
 
 @dataclass

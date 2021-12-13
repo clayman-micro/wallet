@@ -1,0 +1,57 @@
+---
+
+test_fetch:
+  owners:
+    - key: 1
+      email: dev@clayman.pro
+    - key: 2
+
+test_success:
+  - id: Fetch empty accounts list
+    owner: 1
+    accounts: []
+    expected: []
+
+  - id: Fetch accounts
+    owner: 1
+    accounts:
+      - name: Tinkoff Black
+        owner: 1
+        enabled: yes
+      - name: Tinkoff Platinum
+        owner: 1
+        enabled: yes
+    expected:
+      - key: 1
+        name: Tinkoff Black
+        owner: 1
+      - key: 2
+        name: Tinkoff Platinum
+        owner: 1
+
+  - id: Fetch accounts by owner
+    owner: 1
+    accounts:
+      - name: Tinkoff Black
+        owner: 1
+        enabled: yes
+      - name: Tinkoff Platinum
+        owner: 2
+        enabled: yes
+    expected:
+      - key: 1
+        name: Tinkoff Black
+        owner: 1
+
+  - id: Fetch only enabled
+    owner: 1
+    accounts:
+      - name: Tinkoff Black
+        owner: 1
+        enabled: yes
+      - name: Tinkoff Platinum
+        owner: 1
+    expected:
+      - key: 1
+        name: Tinkoff Black
+        owner: 1

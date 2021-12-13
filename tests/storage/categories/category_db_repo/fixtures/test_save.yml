@@ -1,0 +1,29 @@
+---
+
+test_save:
+  owners:
+    - key: 1
+      email: dev@clayman.pro
+    - key: 2
+  categories:
+    - name: Food
+      owner: 1
+      enabled: yes
+    - name: Sport
+      owner: 1
+      enabled: yes
+
+test_success:
+  - id: Add new category
+    owner: 1
+    name: Finance
+    expected: 3
+  - id: 
+    owner: 2
+    name: Subscriptions
+    expected: 3
+
+test_failed:
+  - id: Add existed category
+    owner: 1
+    name: Food

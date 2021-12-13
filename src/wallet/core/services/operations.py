@@ -1,20 +1,17 @@
-from typing import Dict, Set
+from typing import AsyncIterator, Dict, Set
 
 from passport.domain import User
 
 from wallet.core.entities import (
     Account,
     AccountFilters,
-    AccountStream,
     Category,
     CategoryFilters,
-    CategoryStream,
     Operation,
     OperationFilters,
     OperationPayload,
-    OperationStream,
 )
-from wallet.core.entities.operations import BulkOperationsPayload
+from wallet.core.entities.operations import BulkOperationsPayload, OperationStream
 from wallet.core.exceptions import CategoriesNotFound, UnprocessableOperations
 from wallet.core.services import Service
 
@@ -53,8 +50,8 @@ class OperationService(Service[Operation, OperationFilters, OperationPayload]):
     async def add_bulk(
         self,
         payload: BulkOperationsPayload,
-        account_stream: AccountStream,
-        category_stream: CategoryStream,
+        account_stream: AsyncIterator[Account],
+        category_stream: AsyncIterator[Category],
         dry_run: bool = False,
     ) -> OperationStream:
         accounts = {account.key: account async for account in account_stream}
