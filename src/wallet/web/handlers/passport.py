@@ -3,8 +3,8 @@ from typing import Type
 from aiohttp import web
 from marshmallow import Schema
 
+from wallet.passport import user_context
 from wallet.web.handlers.abc import OperationView
-from wallet.web.middlewares.passport import user_context
 
 
 class PassportView(OperationView):

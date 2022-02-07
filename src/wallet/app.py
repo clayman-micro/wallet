@@ -1,60 +1,16 @@
 import os
-from typing import AsyncGenerator
 
-from aiohttp import ClientSession, web
+from aiohttp import web
 from aiohttp.hdrs import METH_GET, METH_POST
-from aiohttp_micro import (  # type: ignore
-    setup as setup_micro,
-    setup_logging,
-    setup_metrics,
-)
+from aiohttp_micro import setup as setup_micro  # type: ignore
+from aiohttp_micro import setup_logging, setup_metrics
 from aiohttp_storage import setup as setup_storage  # type: ignore
 
 from wallet.config import AppConfig
 from wallet.openapi import setup as setup_openapi
+from wallet.passport import setup as setup_passport
 from wallet.web.handlers import accounts, categories, operations
 from wallet.web.middlewares.common import middleware as common_middleware
-from wallet.web.middlewares.passport import middleware as passport_middleware
-
-
-async def passport_ctx(app: web.Application) -> AsyncGenerator[None, None]:
-    """Prepare application for Passport."""
-    config = app["config"]
-
-    app["logger"].debug("Fetch passport keys")
-
-    if not config.passport.host:
-        app["logger"].error("Passport host should be defined")
-        raise RuntimeError("Passport host should be defined")
-
-    if not config.passport.public_key:
-        verify_ssl = True
-        if app["config"].debug:
-            verify_ssl = False
-
-        url = f"{config.passport.host}/api/keys"
-
-        async with ClientSession() as session:
-            async with session.get(url, ssl=verify_ssl) as resp:
-                if resp.status != 200:
-                    app["logger"].error("Fetch passport keys failed", status=resp.status)
-                    raise RuntimeError("Could not fetch passport keys")
-
-                keys = await resp.json()
-
-                config.passport.public_key = keys["public"]
-
-    yield
-
-
-def setup_passport(app: web.Application) -> None:
-    """Setup passport integration.
-
-    Args:
-        app: Application instance.
-    """
-    app.cleanup_ctx.append(passport_ctx)
-    app.middlewares.append(passport_middleware)
 
 
 def init(app_name: str, config: AppConfig) -> web.Application:

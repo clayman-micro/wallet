@@ -1,17 +1,16 @@
 from contextvars import ContextVar
 
 from aiohttp import web
-from aiohttp_micro.web.middlewares import Handler
+from aiohttp.typedefs import Handler
 
 from wallet.web.schemas.abc import CommonParameters
-
 
 schema = CommonParameters()
 common_context = ContextVar("common", default=None)
 
 
 @web.middleware
-async def middleware(request: web.Request, handler: Handler) -> web.Response:
+async def middleware(request: web.Request, handler: Handler) -> web.StreamResponse:
     common_params = schema.load(request.headers)
 
     common_context.set(common_params)
