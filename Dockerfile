@@ -1,4 +1,4 @@
-FROM ghcr.io/clayman-micro/micro:v0.7.0 as build
+FROM python:3.10-slim as build
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && apt-get install -y -qq \
@@ -13,13 +13,13 @@ WORKDIR /app
 RUN poetry build
 
 
-FROM ghcr.io/clayman-micro/micro:v0.7.0
+FROM python:3.10-slim
 
 COPY --from=build /app/dist/*.whl .
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && apt-get install -y -qq \
-      libpq-dev git curl > /dev/null && \
+      build-essential python3-dev libffi-dev git curl > /dev/null && \
     python3 -m pip install --no-cache-dir --quiet -U pip && \
     python3 -m pip install --no-cache-dir --quiet *.whl && \
     rm -f *.whl && \
@@ -32,4 +32,4 @@ HEALTHCHECK --interval=10s --timeout=3s \
 
 ENTRYPOINT ["python3", "-m", "wallet"]
 
-CMD ["server", "run"]
+CMD [ "server", "run", '--host=0.0.0.0' ]

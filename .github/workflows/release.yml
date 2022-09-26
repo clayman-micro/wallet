@@ -6,43 +6,6 @@ on:
       - v*
 
 jobs:
-  linter:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-
-      - name: Set output
-        id: vars
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-
-      - uses: actions/setup-python@v1
-        with:
-          python-version: '3.10'
-          architecture: 'x64'
-
-      - name: Install requirements
-        # Устанавливаем зависимости
-        run: pip install poetry tox
-
-      - name: Run flake8
-        env:
-          TOXENV: flake8
-        run: tox
-
-      - name: Run mypy
-        env:
-          TOXENV: mypy
-        run: tox
-        continue-on-error: true
-
-      - name: Send notification to Telegram
-        if: always()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT }}
-          token: ${{ secrets.TELEGRAM_SECRET }}
-          args: ${{ github.repository }} linters for version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
-
   tests:
     runs-on: ubuntu-latest
 
@@ -132,6 +95,33 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT }}
           token: ${{ secrets.TELEGRAM_SECRET }}
-          args: |
-            ${{ github.repository }} build version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
-            Image `ghcr.io/${{ github.repository }}:${{ steps.vars.outputs.tag }}` ready to use
+          args: ${{ github.repository }} build version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Set output
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
+      - name: Deploy new version
+        id: vault
+        uses: clayman-micro/action-deploy@v2.0.0
+        env:
+          NAMESPACE: micro
+          WALLET_VERSION: ${{ steps.vars.outputs.tag }}
+          REPLICAS: 2
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+        with:
+          params: -i ansible/inventory ansible/deploy.yml
+
+      - name: Send notification to Telegram
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_SECRET }}
+          args: ${{ github.repository }} deploy version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}

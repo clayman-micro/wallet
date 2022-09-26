@@ -4,20 +4,20 @@
 *.so
 
 # Packages
-*.egg
 .eggs
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-var
-sdist
-develop-eggs
 .installed.cfg
+*.egg
+*.egg-info
+bin
+build
+develop-eggs
+dist
+eggs
 lib
 lib64
+parts
+sdist
+var
 
 # JS packages
 bower_components
@@ -31,12 +31,12 @@ pip-log.txt
 .coverage
 .pytest_cache
 .tox
-cover
-tests/coverage
 assets/coverage
-htmlcov
+cover
 coverage.xml
+htmlcov
 nosetests.xml
+tests/coverage
 
 # Translations
 *.mo
@@ -44,21 +44,15 @@ nosetests.xml
 
 # Mr Developer
 .cache
-.project
-.pydevproject
+.devspace/
+.env
+.envrc
 .idea
 .mypy_cache
+.project
+.pydevproject
 .scannerwork
-*.tar.gz
+.venv
 .vscode
-.env
-conf/*
+ansible/.credentials
 venv
-
-backups
-operations/*.csv
-kube.*
-
-
-# Ignore DevSpace cache and log folder
-.devspace/

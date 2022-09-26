@@ -1,0 +1,79 @@
+---
+
+- hosts: localhost
+  tasks:
+    - name: Prepare folder for credentials
+      file:
+        path: "{{ inventory_dir }}/.credentials/{{ item }}/users/{{ hostvars[item]['ansible_user'] }}/"
+        state: directory
+        mode: 0755
+      with_items: "{{ groups['servers'] }}"
+
+    - name: Write private key to file
+      copy:
+        content: "{{ lookup('env','SSH_PUBLIC_KEY') }}{{'\n'}}"
+        dest: "{{ inventory_dir }}/.credentials/{{ item }}/users/{{ hostvars[item]['ansible_user'] }}/id_rsa"
+        mode: 0600
+      with_items: "{{ groups['servers'] }}"
+
+- hosts: servers
+  become: true
+
+  vars:
+    app: wallet
+
+    domain: "{{ lookup('env','DOMAIN')|default('wallet.clayman.pro') }}"
+
+    namespace: "{{ lookup('env','NAMESPACE')|default('micro') }}"
+    serviceAccount: micro
+
+    image: "ghcr.io/clayman-micro/{{ app }}"
+    version: "{{ lookup('env','WALLET_VERSION')|default('master') }}"
+
+    replicas: "{{ lookup('env','REPLICAS')|default('1') }}"
+  tasks:
+    - name: Prepare folder for charts
+      file:
+        path: /opt/micro
+        state: directory
+        mode: 0755
+
+    - name: Get Helm charts
+      ansible.builtin.git:
+        repo: "https://github.com/clayman-micro/helm-chart.git"
+        version: v2.3.0
+        dest: /opt/micro/helm-chart
+
+    - name: Deploy Helm chart
+      community.kubernetes.helm:
+        name: "{{ app }}"
+        chart_ref: /opt/micro/helm-chart/charts/micro
+        release_namespace: "{{ namespace }}"
+        force: true
+        values:
+          image:
+            repository: "{{ image }}"
+            tag: "{{ version }}"
+
+          replicas: "{{ replicas }}"
+
+          serviceAccount:
+            name: "{{ serviceAccount }}"
+
+          imagePullSecrets:
+            - name: ghcr
+
+          ingress:
+            enabled: true
+
+            rules:
+              - "Host(`{{ domain }}`)"
+
+          migrations:
+            enabled: false
+
+          livenessProbe:
+            enabled: true
+
+          readinessProbe:
+            enabled: true

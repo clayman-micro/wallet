@@ -1,6 +1,7 @@
 .PHONY: clean clean-test clean-pyc clean-build
 NAME	:= ghcr.io/clayman-micro/wallet
 VERSION ?= latest
+NAMESPACE ?= micro
 HOST ?= 0.0.0.0
 PORT ?= 5000
 
@@ -37,13 +38,13 @@ lint:
 	poetry run mypy src/wallet tests
 
 run:
-	poetry run python3 -m wallet --debug server run --host=$(HOST) --port=$(PORT) -t develop
+	poetry run python3 -m wallet --debug server run --host=$(HOST) --port=$(PORT)
 
 test:
-	py.test
+	poetry run pytest
 
 tests:
-	tox -- --pg-host=$(POSTGRES_HOST) --pg-database=wallet_tests
+	tox
 
 build:
 	docker build -t ${NAME} .
@@ -52,3 +53,17 @@ build:
 publish:
 	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS) ghcr.io
 	docker push ${NAME}
+
+deploy:
+	helm install wallet ../helm-chart/charts/micro \
+		--namespace ${NAMESPACE} \
+		--set image.repository=${NAME} \
+		--set image.tag=$(VERSION) \
+		--set replicas=$(REPLICAS) \
+		--set serviceAccount.name=micro \
+		--set imagePullSecrets[0].name=ghcr \
+		--set ingress.enabled=true \
+		--set ingress.rules={"Host(\`$(DOMAIN)\`)"} \
+		--set migrations.enabled=false \
+		--set livenessProbe.enabled=true \
+		--set readinessProbe.enabled=true

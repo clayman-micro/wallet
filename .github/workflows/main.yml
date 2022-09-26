@@ -5,40 +5,11 @@ on:
     branches:
       - master
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  linters:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-
-      - uses: actions/setup-python@v1
-        with:
-          python-version: '3.10'
-          architecture: 'x64'
-
-      - name: Install requirements
-        # Устанавливаем зависимости
-        run: pip install poetry tox
-
-      - name: Run flake8
-        env:
-          TOXENV: flake8
-        run: tox
-
-      - name: Run mypy
-        env:
-          TOXENV: mypy
-        run: tox
-        continue-on-error: true
-
-      - name: Send notification to Telegram
-        if: always()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT }}
-          token: ${{ secrets.TELEGRAM_SECRET }}
-          args: ${{ github.repository }} linters for `master` - ${{ job.status }}
-
   tests:
     runs-on: ubuntu-latest
 
@@ -74,11 +45,6 @@ jobs:
           POSTGRES_HOST: localhost
         run: tox
 
-      - name: Get coverage report
-        env:
-          TOXENV: coverage
-        run: tox
-
       - name: Send notification to Telegram
         if: always()
         uses: appleboy/telegram-action@master
@@ -87,3 +53,65 @@ jobs:
           token: ${{ secrets.TELEGRAM_SECRET }}
           args: ${{ github.repository }} tests for `master` - ${{ job.status }}
 
+  build:
+    needs: [tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Send notification to Telegram
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_SECRET }}
+          args: ${{ github.repository }} build version `master` - ${{ job.status }}
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Deploy new version
+        id: vault
+        uses: clayman-micro/action-deploy@v2.0.0
+        env:
+          DOMAIN: wallet.staging.clayman.pro
+          NAMESPACE: micro-staging
+          WALLET_VERSION: latest
+          REPLICAS: 2
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+        with:
+          params: -i ansible/inventory ansible/deploy.yml
+
+      - name: Send notification to Telegram
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_SECRET }}
+          args: ${{ github.repository }} deploy version `master` - ${{ job.status }}
