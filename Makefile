@@ -66,14 +66,15 @@ publish:
 	docker push ${NAME}
 
 deploy:
-	helm install wallet ../helm-chart/charts/micro \
+	helm upgrade wallet ../helm-chart/charts/micro --install --force \
 		--namespace ${NAMESPACE} \
 		--set image.repository=${NAME} \
+		--set image.pullPolicy=Always \
 		--set image.tag=$(VERSION) \
 		--set replicas=$(REPLICAS) \
 		--set serviceAccount.name=micro \
 		--set imagePullSecrets[0].name=ghcr \
-		--set ingress.enabled=true \
+		--set ingress.enabled=false \
 		--set ingress.rules={"Host(\`$(DOMAIN)\`)"} \
 		--set migrations.enabled=false \
 		--set livenessProbe.enabled=true \

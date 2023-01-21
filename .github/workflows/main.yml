@@ -159,6 +159,7 @@ jobs:
           DOMAIN: wallet.staging.clayman.pro
           NAMESPACE: micro-staging
           WALLET_VERSION: latest
+          IMAGE_PULL_POLICY: Always
           REPLICAS: 2
           SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
         with:

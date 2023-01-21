@@ -28,6 +28,7 @@
     serviceAccount: micro
 
     image: "ghcr.io/clayman-micro/{{ app }}"
+    imagePullPolicy: "{{ lookup('env','IMAGE_PULL_POLICY')|default('IfNotPresent') }}"
     version: "{{ lookup('env','WALLET_VERSION')|default('master') }}"
 
     replicas: "{{ lookup('env','REPLICAS')|default('1') }}"
@@ -46,7 +47,7 @@
     - name: Get Helm charts
       ansible.builtin.git:
         repo: "https://github.com/clayman-micro/helm-chart.git"
-        version: v2.3.0
+        version: v2.4.0
         dest: /opt/micro/helm-chart
 
     - name: Deploy Helm chart
@@ -58,6 +59,7 @@
         values:
           image:
             repository: "{{ image }}"
+            pullPolicy: "{{ imagePullPolicy }}"
             tag: "{{ version }}"
 
           replicas: "{{ replicas }}"
