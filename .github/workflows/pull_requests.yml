@@ -4,7 +4,64 @@ on:
   pull_request:
 
 jobs:
-  tests:
+  black:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Install requirements
+        run: |
+          pip install poetry
+          poetry install --with dev
+
+      - name: Check with Black formatter.
+        run: make check_black
+
+  mypy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Install requirements
+        run: |
+          pip install poetry
+          poetry install --with dev
+
+      - name: Check with Mypy checker
+        run: make check_mypy
+
+  ruff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Install requirements
+        run: |
+          pip install poetry
+          poetry install --with dev
+
+      - name: Check with Ruff linter.
+        run: make check_ruff
+
+  pytest:
     runs-on: ubuntu-latest
 
     services:
@@ -29,11 +86,11 @@ jobs:
           architecture: 'x64'
 
       - name: Install requirements
-        # Устанавливаем зависимости
-        run: pip install poetry tox
+        run: |
+          pip install poetry
+          poetry install --with dev
 
       - name: Run tests
         env:
-          TOXENV: tests
           POSTGRES_HOST: localhost
-        run: tox
+        run: make tests

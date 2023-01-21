@@ -1,10 +1,10 @@
-.PHONY: clean clean-test clean-pyc clean-build
-NAME	:= ghcr.io/clayman-micro/wallet
-VERSION ?= latest
-NAMESPACE ?= micro
-HOST ?= 0.0.0.0
-PORT ?= 5000
+.PHONY: build clean tests
 
+NAME		:= ghcr.io/clayman-micro/wallet
+VERSION		?= latest
+NAMESPACE 	?= micro
+HOST 		?= 0.0.0.0
+PORT 		?= 5000
 
 clean: clean-build clean-image clean-pyc clean-test
 
@@ -33,18 +33,29 @@ clean-test:
 install: clean
 	poetry install
 
-lint:
-	poetry run flake8 src/wallet tests
+format:
+	poetry run ruff --select I --fix src/wallet tests
+	poetry run black src/wallet tests
+
+check_black:
+	@echo Check project with Black formatter.
+	poetry run black --check src/wallet tests
+
+check_mypy:
+	@echo Check project with Mypy typechecker.
 	poetry run mypy src/wallet tests
+
+check_ruff:
+	@echo Check project with Ruff linter.
+	poetry run ruff --show-source --no-fix src/wallet tests
+
+lint: check_black check_ruff check_mypy
 
 run:
 	poetry run python3 -m wallet --debug server run --host=$(HOST) --port=$(PORT)
 
-test:
-	poetry run pytest
-
 tests:
-	tox
+	poetry run pytest
 
 build:
 	docker build -t ${NAME} .

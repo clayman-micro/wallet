@@ -10,6 +10,8 @@ from aiohttp import web
 from structlog.contextvars import bind_contextvars, clear_contextvars, merge_contextvars
 from structlog.types import EventDict, WrappedLogger
 
+from wallet.typing import Handler
+
 
 def add_app_name(app_name: str) -> Callable[[WrappedLogger, str, EventDict], EventDict]:
     """Add application name to log."""
@@ -113,7 +115,7 @@ def configure_logging(app_name: str, debug: bool = False) -> None:
 
 
 @web.middleware
-async def middleware(request, handler):
+async def middleware(request: web.Request, handler: Handler) -> web.StreamResponse:
     """Logging middleware.
 
     Args:
@@ -149,4 +151,4 @@ def setup(app: web.Application) -> None:
     configure_logging(app_name=app["app_name"], debug=app["debug"])
 
     app.logger = structlog.get_logger(app["app_name"])
-    app.middlewares.append(middleware)  # type: ignore
+    app.middlewares.append(middleware)

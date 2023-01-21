@@ -30,7 +30,7 @@ def get_address(default: str = "127.0.0.1") -> str:
 
 @click.group()
 @click.pass_context
-def server(ctx):
+def server(ctx: click.Context) -> None:
     """Server commands group.
 
     Args:
@@ -40,9 +40,9 @@ def server(ctx):
 
 @server.command()
 @click.option("--host", default=None, help="Specify application host")
-@click.option("--port", default=5000, help="Specify application port")
+@click.option("--port", default=5000, type=int, help="Specify application port")
 @click.pass_context
-def run(ctx, host, port) -> None:
+def run(ctx: click.Context, host: str, port: int) -> None:
     """Run server instance.
 
     Args:
@@ -52,13 +52,8 @@ def run(ctx, host, port) -> None:
     """
     app: web.Application = ctx.obj["app"]
 
-    try:
-        port = int(port)
-
-        if port < 1024 and port > 65535:
-            raise RuntimeError("Port should be from 1024 to 65535")
-    except ValueError:
-        raise RuntimeError("Port should be numeric")
+    if port < 1024 and port > 65535:
+        raise RuntimeError("Port should be from 1024 to 65535")
 
     if not host:
         host = "127.0.0.1"

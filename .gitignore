@@ -49,6 +49,7 @@ tests/coverage
 .envrc
 .idea
 .mypy_cache
+.ruff_cache
 .project
 .pydevproject
 .scannerwork
