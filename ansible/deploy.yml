@@ -38,6 +38,11 @@
         state: directory
         mode: 0755
 
+    – name: Install Helm Diff
+      community.kubernetes.helm_plugin:
+        plugin_path: "https://github.com/databus23/helm-diff"
+        state: present
+
     - name: Get Helm charts
       ansible.builtin.git:
         repo: "https://github.com/clayman-micro/helm-chart.git"
@@ -64,7 +69,7 @@
             - name: ghcr
 
           ingress:
-            enabled: true
+            enabled: false
 
             rules:
               - "Host(`{{ domain }}`)"
