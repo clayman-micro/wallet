@@ -6,7 +6,64 @@ on:
       - v*
 
 jobs:
-  tests:
+  black:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Install requirements
+        run: |
+          pip install poetry
+          poetry install --with dev
+
+      - name: Check with Black formatter.
+        run: make check_black
+
+  mypy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Install requirements
+        run: |
+          pip install poetry
+          poetry install --with dev
+
+      - name: Check with Mypy checker
+        run: make check_mypy
+
+  ruff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Install requirements
+        run: |
+          pip install poetry
+          poetry install --with dev
+
+      - name: Check with Ruff linter.
+        run: make check_ruff
+
+  pytest:
     runs-on: ubuntu-latest
 
     services:
@@ -22,13 +79,8 @@ jobs:
         ports:
           # Maps tcp port 5432 on service container to the host
           - 5432:5432
-
     steps:
       - uses: actions/checkout@master
-
-      - name: Set output
-        id: vars
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
       - uses: actions/setup-python@v1
         with:
@@ -36,19 +88,14 @@ jobs:
           architecture: 'x64'
 
       - name: Install requirements
-        # Устанавливаем зависимости
-        run: pip install poetry tox
+        run: |
+          pip install poetry
+          poetry install --with dev
 
       - name: Run tests
         env:
-          TOXENV: tests
           POSTGRES_HOST: localhost
-        run: tox
-
-      - name: Get coverage report
-        env:
-          TOXENV: coverage
-        run: tox
+        run: make tests
 
       - name: Send notification to Telegram
         if: always()
@@ -56,38 +103,36 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT }}
           token: ${{ secrets.TELEGRAM_SECRET }}
-          args: ${{ github.repository }} tests for version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
+          args: ${{ github.repository }} tests for `master` - ${{ job.status }}
 
   build:
-    needs: [linter, tests]
+    needs: [black, mypy, ruff, pytest]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
 
-      - name: Set output
-        id: vars
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-
-      - name: Import Secrets
-        id: secrets
-        uses: hashicorp/vault-action@v2.1.0
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
         with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          secrets: |
-              credentials/data/services/ghcr user | DOCKER_USERNAME ;
-              credentials/data/services/ghcr password | DOCKER_PASSWORD
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Publish to Docker Repository
-        uses: elgohr/Publish-Docker-Github-Action@master
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
-          name: ghcr.io/clayman-micro/wallet
-          username: ${{ steps.secrets.outputs.DOCKER_USERNAME }}
-          password: ${{ steps.secrets.outputs.DOCKER_PASSWORD }}
-          registry: ghcr.io
-          tag_names: true
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Send notification to Telegram
         if: always()
