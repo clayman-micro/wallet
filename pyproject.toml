@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "wallet"
-version = "3.0.0a3"
+version = "3.0.0a4"
 description = "Personal finance service"
 authors = ["Kirill Sumorokov <sumorokov.k@gmail.com>"]
 license = "MIT"

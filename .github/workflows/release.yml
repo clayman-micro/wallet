@@ -5,6 +5,10 @@ on:
     tags:
       - v*
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   black:
     runs-on: ubuntu-latest
@@ -97,13 +101,17 @@ jobs:
           POSTGRES_HOST: localhost
         run: make tests
 
+      - name: Set output
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
       - name: Send notification to Telegram
         if: always()
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT }}
           token: ${{ secrets.TELEGRAM_SECRET }}
-          args: ${{ github.repository }} tests for `master` - ${{ job.status }}
+          args: ${{ github.repository }} tests for `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
 
   build:
     needs: [black, mypy, ruff, pytest]
@@ -117,6 +125,10 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Set output
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
