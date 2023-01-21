@@ -38,7 +38,7 @@
         state: directory
         mode: 0755
 
-    – name: Install Helm Diff
+    - name: Install Helm Diff
       community.kubernetes.helm_plugin:
         plugin_path: "https://github.com/databus23/helm-diff"
         state: present
