@@ -1,7 +1,6 @@
 import time
-from typing import Dict
 
-import prometheus_client  # type: ignore
+import prometheus_client
 from aiohttp import web
 
 from wallet.typing import Handler, Metric
@@ -16,7 +15,7 @@ async def handler(request: web.Request) -> web.Response:
 
 
 @web.middleware
-async def middleware(request: web.Request, handler: Handler) -> web.Response:
+async def middleware(request: web.Request, handler: Handler) -> web.StreamResponse:
     """Middleware to collect http requests count and response latency."""
     start_time = time.monotonic()
     request.app["metrics"]["requests_in_progress"].labels(request.app["app_name"], request.path, request.method).inc()
@@ -33,7 +32,7 @@ async def middleware(request: web.Request, handler: Handler) -> web.Response:
     return response
 
 
-def setup(app: web.Application, extra_metrics: Dict[str, Metric] = None) -> None:
+def setup(app: web.Application, extra_metrics: dict[str, Metric] | None = None) -> None:
     """Connect metrics to application."""
     app["metrics_registry"] = prometheus_client.CollectorRegistry()
     app["metrics"] = {
@@ -62,6 +61,6 @@ def setup(app: web.Application, extra_metrics: Dict[str, Metric] = None) -> None
             app["metrics"][key] = metric
             app["metrics_registry"].register(metric)
 
-    app.middlewares.append(middleware)  # type: ignore
+    app.middlewares.append(middleware)
 
     app.router.add_get("/-/metrics", handler, name="metrics")

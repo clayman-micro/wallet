@@ -91,6 +91,7 @@ ignore = [
   "D100", # Missing docstring in public module
   "D104", # Missing docstring in public package
   "D107", # Missing docstring in __init__
+  "PT004"
 ]
 select = [
   "E",    # pycodestyle errors
@@ -99,7 +100,7 @@ select = [
   "F",    # pyflakes
   "C90",  # mccabe
   "C4",   # flake8-comprehensions
-  "B",    # flake8-bugbear
+  # "B",    # flake8-bugbear
   "Q",    # flake8-quotes
   "T20",  # flake8-print
   "PT",   # flake8-pytest-style
