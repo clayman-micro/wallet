@@ -41,7 +41,7 @@ mypy = "^0.991"
 [tool.poetry.group.debug.dependencies]
 debugpy = "^1.6.5"
 ipdb = "^0.13.9"
-ipython = "^8.5.0"
+ipython = "^8.10.0"
 
 
 # Black config
