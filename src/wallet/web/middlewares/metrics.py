@@ -2,7 +2,7 @@ import pkg_resources
 from aiohttp import web
 
 from wallet import metrics
-from wallet.typing import Handler
+from wallet.web import Handler
 
 
 @web.middleware

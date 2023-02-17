@@ -4,6 +4,15 @@ from typing import Type
 
 import prometheus_client
 
+Metric = (
+    prometheus_client.Counter
+    | prometheus_client.Gauge
+    | prometheus_client.Summary
+    | prometheus_client.Histogram
+    | prometheus_client.Info
+    | prometheus_client.Enum
+)
+
 registry = prometheus_client.CollectorRegistry()
 
 

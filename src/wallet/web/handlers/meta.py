@@ -2,7 +2,7 @@ import prometheus_client
 from aiohttp import web
 
 from wallet.metrics import registry
-from wallet.web import json_response
+from wallet.web.handlers import json_response
 
 routes = web.RouteTableDef()
 

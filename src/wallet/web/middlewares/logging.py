@@ -3,7 +3,7 @@ from uuid import uuid4
 from aiohttp import web
 from structlog.contextvars import bind_contextvars, clear_contextvars
 
-from wallet.typing import Handler
+from wallet.web import Handler
 
 
 @web.middleware
