@@ -1,66 +1,44 @@
 import time
+from types import TracebackType
+from typing import Type
 
 import prometheus_client
-from aiohttp import web
 
-from wallet.typing import Handler, Metric
-
-
-async def handler(request: web.Request) -> web.Response:
-    """Expose application metrics to the world."""
-    resp = web.Response(body=prometheus_client.generate_latest(registry=request.app["metrics_registry"]))
-
-    resp.content_type = prometheus_client.CONTENT_TYPE_LATEST
-    return resp
+registry = prometheus_client.CollectorRegistry()
 
 
-@web.middleware
-async def middleware(request: web.Request, handler: Handler) -> web.StreamResponse:
-    """Middleware to collect http requests count and response latency."""
-    start_time = time.monotonic()
-    request.app["metrics"]["requests_in_progress"].labels(request.app["app_name"], request.path, request.method).inc()
+class Timer:
+    """Timer context manager."""
 
-    response = await handler(request)
+    def __init__(self, metric: prometheus_client.Histogram) -> None:
+        self.metric = metric
 
-    resp_time = time.monotonic() - start_time
-    request.app["metrics"]["requests_latency"].labels(request.app["app_name"], request.path).observe(resp_time)
-    request.app["metrics"]["requests_in_progress"].labels(request.app["app_name"], request.path, request.method).dec()
-    request.app["metrics"]["requests_total"].labels(
-        request.app["app_name"], request.method, request.path, response.status
-    ).inc()
+    def __enter__(self) -> None:
+        """Start time calculation."""
+        self.start_time = time.monotonic()
 
-    return response
+    def __exit__(
+        self, exc_type: Type[BaseException] | None, exc: Exception | None, traceback: TracebackType | None
+    ) -> None:
+        """End time calculation."""
+        self.metric.observe(amount=time.monotonic() - self.start_time)
 
 
-def setup(app: web.Application, extra_metrics: dict[str, Metric] | None = None) -> None:
-    """Connect metrics to application."""
-    app["metrics_registry"] = prometheus_client.CollectorRegistry()
-    app["metrics"] = {
-        "requests_total": prometheus_client.Counter(
-            "requests_total",
-            "Total request count",
-            ("app_name", "method", "endpoint", "http_status"),
-            registry=app["metrics_registry"],
-        ),
-        "requests_latency": prometheus_client.Histogram(
-            "requests_latency_seconds",
-            "Request latency",
-            ("app_name", "endpoint"),
-            registry=app["metrics_registry"],
-        ),
-        "requests_in_progress": prometheus_client.Gauge(
-            "requests_in_progress_total",
-            "Requests in progress",
-            ("app_name", "endpoint", "method"),
-            registry=app["metrics_registry"],
-        ),
-    }
-
-    if extra_metrics:
-        for key, metric in extra_metrics.items():
-            app["metrics"][key] = metric
-            app["metrics_registry"].register(metric)
-
-    app.middlewares.append(middleware)
-
-    app.router.add_get("/-/metrics", handler, name="metrics")
+requests_total = prometheus_client.Counter(
+    "requests_total",
+    "Total request count",
+    ("app_name", "version", "method", "endpoint", "http_status"),
+    registry=registry,
+)
+request_latency = prometheus_client.Histogram(
+    "requests_latency_seconds",
+    "Request latency",
+    ("app_name", "version", "endpoint", "method"),
+    registry=registry,
+)
+requests_in_progress = prometheus_client.Gauge(
+    "requests_in_progress_total",
+    "Requests in progress",
+    ("app_name", "version", "endpoint", "method"),
+    registry=registry,
+)

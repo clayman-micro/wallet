@@ -1,30 +1,32 @@
-from typing import Any, NamedTuple
-
 import pkg_resources
+import punq
 import pytest
 from aiohttp import web
+from structlog.types import WrappedLogger
 
-from wallet.app import init
-
-
-class Distribution(NamedTuple):
-    """Application distribution."""
-
-    project_name: str
-    version: str
+from wallet.app import create_container, init
+from wallet.logging import configure_logging
 
 
-@pytest.fixture()
-def distribution(monkeypatch: Any) -> None:
+@pytest.fixture(scope="session")
+def distribution() -> pkg_resources.Distribution:
     """Patch application distribution."""
-
-    def patch_distribution(*args: Any, **kwargs: Any) -> Distribution:
-        return Distribution("wallet", "0.1.0")
-
-    monkeypatch.setattr(pkg_resources, "get_distribution", patch_distribution)
+    return pkg_resources.get_distribution("wallet")
 
 
 @pytest.fixture()
-def app(distribution: Distribution) -> web.Application:
+def logger(distribution: pkg_resources.Distribution) -> WrappedLogger:
+    """Configure logging for tests."""
+    return configure_logging(dist=distribution, debug=False)
+
+
+@pytest.fixture()
+def container(logger: WrappedLogger) -> punq.Container:
+    """Create IoC container."""
+    return create_container(logger=logger)
+
+
+@pytest.fixture()
+def app(distribution: pkg_resources.Distribution, container: punq.Container) -> web.Application:
     """Prepare test application."""
-    return init("activity")
+    return init(dist=distribution, container=container, debug=False)

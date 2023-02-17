@@ -13,3 +13,10 @@ async def test_health_endpoint(client: TestClient) -> None:
     resp = await client.get("/-/health")
 
     assert resp.status == 200
+
+
+async def test_metrics_endpoint(client: TestClient) -> None:
+    """Successfully fetch application metrics."""
+    resp = await client.get("/-/metrics")
+
+    assert resp.status == 200

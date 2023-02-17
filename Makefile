@@ -6,7 +6,7 @@ NAMESPACE 	?= micro
 HOST 		?= 0.0.0.0
 PORT 		?= 5000
 
-clean: clean-build clean-image clean-pyc clean-test
+clean: clean-build clean-pyc clean-test
 
 clean-build:
 	rm -fr build/
@@ -14,9 +14,6 @@ clean-build:
 	rm -fr .eggs/
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
-
-clean-image:
-	docker images -qf dangling=true | xargs docker rmi
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +

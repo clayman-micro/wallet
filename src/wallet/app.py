@@ -1,35 +1,46 @@
 import socket
 
-import pkg_resources
+import punq
 from aiohttp import web
+from pkg_resources import Distribution
+from structlog.types import WrappedLogger
 
-from wallet.logging import setup as setup_logging
-from wallet.metrics import setup as setup_metrics
-from wallet.web import meta
+from wallet.web.handlers import meta
+from wallet.web.middlewares.logging import logging_middleware
+from wallet.web.middlewares.metrics import metrics_middleware
 
 
-def init(app_name: str, debug: bool = False) -> web.Application:
+def create_container(logger: WrappedLogger) -> punq.Container:
+    """Create IoC container for application."""
+    container = punq.Container()
+
+    container.register(WrappedLogger, instance=logger)
+
+    return container
+
+
+def init(dist: Distribution, container: punq.Container, debug: bool = False) -> web.Application:
     """Create application instance.
 
     Args:
-        app_name: Application name.
+        dist: Application distribution.
+        container: IoC contianer.
         debug: Run application in debug mode.
 
     Return:
         New application instance.
     """
-    app = web.Application()
+    app = web.Application(
+        middlewares=(logging_middleware, metrics_middleware),
+        logger=container.resolve(WrappedLogger),
+    )
 
-    app["app_name"] = app_name
     app["hostname"] = socket.gethostname()
-    app["distribution"] = pkg_resources.get_distribution(app_name)
+    app["distribution"] = dist
 
     app["debug"] = debug
+    app["container"] = container
 
-    setup_logging(app)
-    setup_metrics(app)
-
-    app.router.add_get("/-/meta", handler=meta.index, name="meta", allow_head=False)
-    app.router.add_get("/-/health", handler=meta.health, name="health", allow_head=False)
+    app.router.add_routes(routes=meta.routes)
 
     return app
