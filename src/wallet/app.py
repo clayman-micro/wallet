@@ -1,8 +1,8 @@
 import socket
+from importlib.metadata import Distribution
 
 import punq
 from aiohttp import web
-from pkg_resources import Distribution
 from structlog.types import WrappedLogger
 
 from wallet.web.handlers import meta

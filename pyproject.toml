@@ -37,7 +37,6 @@ pytest-mock = "^3.8.2"
 pytest-randomly = "^3.12.0"
 pytest-xdist = "^3.0.0"
 ruff = "^0.0.263"
-types-setuptools = "^67.0.0"
 types-ujson = "^5.5.0"
 
 [tool.poetry.group.debug.dependencies]
@@ -88,7 +87,7 @@ ignore_missing_imports = true
 minversion = "6.0"
 addopts = "--cov"
 asyncio_mode = "auto"
-markers = ["unit", "integration"]
+markers = ["unit", "integration", "smoke"]
 norecursedirs = ".tox"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 testpaths = ["tests"]

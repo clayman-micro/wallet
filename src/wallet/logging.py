@@ -1,10 +1,10 @@
 import socket
+from importlib.metadata import Distribution
 from logging.config import dictConfig
 from typing import Callable
 
 import structlog
 import ujson
-from pkg_resources import Distribution
 from structlog.contextvars import merge_contextvars
 from structlog.types import EventDict, WrappedLogger
 
@@ -13,7 +13,7 @@ def add_app_distribution(dist: Distribution) -> Callable[[WrappedLogger, str, Ev
     """Add application name to log."""
 
     def processor(logger: WrappedLogger, name: str, event_dict: EventDict) -> EventDict:
-        event_dict["app_name"] = dist.project_name
+        event_dict["app_name"] = dist.name
         event_dict["version"] = dist.version
 
         return event_dict
@@ -82,7 +82,7 @@ def configure_logging(dist: Distribution, debug: bool = False) -> WrappedLogger:
                 },
             },
             "loggers": {
-                dist.project_name: {
+                dist.name: {
                     "handlers": ["default"],
                     "level": "DEBUG" if debug else "INFO",
                     "propagate": False,
@@ -108,4 +108,4 @@ def configure_logging(dist: Distribution, debug: bool = False) -> WrappedLogger:
         wrapper_class=structlog.stdlib.BoundLogger,
     )
 
-    return structlog.get_logger(dist.project_name)
+    return structlog.get_logger(dist.name)

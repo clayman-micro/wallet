@@ -1,4 +1,5 @@
-import pkg_resources
+from importlib.metadata import Distribution, distribution
+
 import punq
 import pytest
 from aiohttp import web
@@ -9,15 +10,15 @@ from wallet.logging import configure_logging
 
 
 @pytest.fixture(scope="session")
-def distribution() -> pkg_resources.Distribution:
+def dist() -> Distribution:
     """Patch application distribution."""
-    return pkg_resources.get_distribution("wallet")
+    return distribution("wallet")
 
 
 @pytest.fixture()
-def logger(distribution: pkg_resources.Distribution) -> WrappedLogger:
+def logger(dist: Distribution) -> WrappedLogger:
     """Configure logging for tests."""
-    return configure_logging(dist=distribution, debug=False)
+    return configure_logging(dist=dist, debug=False)
 
 
 @pytest.fixture()
@@ -27,6 +28,6 @@ def container(logger: WrappedLogger) -> punq.Container:
 
 
 @pytest.fixture()
-def app(distribution: pkg_resources.Distribution, container: punq.Container) -> web.Application:
+def app(dist: Distribution, container: punq.Container) -> web.Application:
     """Prepare test application."""
-    return init(dist=distribution, container=container, debug=False)
+    return init(dist=dist, container=container, debug=False)

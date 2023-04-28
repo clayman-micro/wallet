@@ -1,6 +1,8 @@
+import pytest
 from aiohttp.test_utils import TestClient
 
 
+@pytest.mark.smoke()
 async def test_meta_endpoint(client: TestClient) -> None:
     """Successfully fetch application meta info."""
     resp = await client.get("/-/meta")
@@ -8,6 +10,7 @@ async def test_meta_endpoint(client: TestClient) -> None:
     assert resp.status == 200
 
 
+@pytest.mark.smoke()
 async def test_health_endpoint(client: TestClient) -> None:
     """Successfully fetch application health info."""
     resp = await client.get("/-/health")
@@ -15,6 +18,7 @@ async def test_health_endpoint(client: TestClient) -> None:
     assert resp.status == 200
 
 
+@pytest.mark.smoke()
 async def test_metrics_endpoint(client: TestClient) -> None:
     """Successfully fetch application metrics."""
     resp = await client.get("/-/metrics")

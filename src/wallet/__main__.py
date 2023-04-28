@@ -1,5 +1,6 @@
+from importlib.metadata import distribution
+
 import click
-import pkg_resources
 import uvloop
 
 from wallet.app import create_container, init
@@ -17,7 +18,7 @@ def cli(ctx: click.Context, debug: bool = False) -> None:
         ctx: Current command line application context.
         debug: Run application in debug mode.
     """
-    dist = pkg_resources.get_distribution("wallet")
+    dist = distribution("wallet")
 
     logger = configure_logging(dist=dist, debug=debug)
 
