@@ -21,7 +21,7 @@ deployments:
     #   enabled: true
       image:
         repository: ghcr.io/clayman-micro/wallet
-        tag: "v2.5.0-alpha.0"
+        tag: "latest"
 
       replicas: 1
       serviceAccount:
@@ -33,27 +33,17 @@ deployments:
       migrations:
         enabled: false
 
-      env:
-        - name: PASSPORT_HOST
-          value: https://passport.clayman.pro
-        - name: POSTGRES_HOST
-          value: 10.0.0.1
-        - name: POSTGRES_DATABASE
-          value: wallet_dev
-        - name: VAULT_ENABLED
-          value: '1'
-        - name: VAULT_ADDR
-          value: https://vault.clayman.pro
-        - name: VAULT_AUTH_METHOD
-          value: kubernetes
-        - name: VAULT_SERVICE_NAME
-          value: micro
+      ingress:
+        enabled: true
+
+        rules:
+          - "Host(`wallet.dev.clayman.pro`)"
 
       livenessProbe:
-        enabled: false
+        enabled: true
 
       readinessProbe:
-        enabled: false
+        enabled: true
 
 # `dev` only applies when you run `devspace dev`
 dev:
