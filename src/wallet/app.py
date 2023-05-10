@@ -19,7 +19,9 @@ def create_container(logger: WrappedLogger) -> punq.Container:
     return container
 
 
-def init(dist: Distribution, container: punq.Container, debug: bool = False) -> web.Application:
+def init(
+    dist: Distribution, container: punq.Container, debug: bool = False
+) -> web.Application:
     """Create application instance.
 
     Args:

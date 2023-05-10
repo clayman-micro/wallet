@@ -7,7 +7,9 @@ from wallet.web import Handler
 
 
 @web.middleware
-async def logging_middleware(request: web.Request, handler: Handler) -> web.StreamResponse:
+async def logging_middleware(
+    request: web.Request, handler: Handler
+) -> web.StreamResponse:
     """Wrap web-handler with logging.
 
     Args:

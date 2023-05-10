@@ -54,7 +54,6 @@ tests/coverage
 .pydevproject
 .scannerwork
 .venv
-.vscode
 *.http
 ansible/.credentials
 venv

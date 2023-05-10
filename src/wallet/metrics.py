@@ -27,7 +27,10 @@ class Timer:
         self.start_time = time.monotonic()
 
     def __exit__(
-        self, exc_type: Type[BaseException] | None, exc: Exception | None, traceback: TracebackType | None
+        self,
+        exc_type: Type[BaseException] | None,
+        exc: Exception | None,
+        traceback: TracebackType | None,
     ) -> None:
         """End time calculation."""
         self.metric.observe(amount=time.monotonic() - self.start_time)

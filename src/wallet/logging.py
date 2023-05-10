@@ -9,7 +9,9 @@ from structlog.contextvars import merge_contextvars
 from structlog.types import EventDict, WrappedLogger
 
 
-def add_app_distribution(dist: Distribution) -> Callable[[WrappedLogger, str, EventDict], EventDict]:
+def add_app_distribution(
+    dist: Distribution,
+) -> Callable[[WrappedLogger, str, EventDict], EventDict]:
     """Add application name to log."""
 
     def processor(logger: WrappedLogger, name: str, event_dict: EventDict) -> EventDict:

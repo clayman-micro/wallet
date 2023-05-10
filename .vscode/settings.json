@@ -1,0 +1,80 @@
+{
+  "files.exclude": {
+      ".cache": true,
+      ".idea": true,
+      ".mypy_cache": true,
+      ".python-version": true,
+      ".scannerwork": true,
+      ".sonarlint": true,
+      ".vagrant": true,
+      ".vscode": true,
+      "**/__pycache__": true,
+      "**/.cache": true,
+      "**/.coverage": true,
+      "**/.DS_Store": true,
+      "**/.idea": true,
+      "**/.mypy_cache": true,
+      "**/.ruff_cache": true,
+      "**/.pytest_cache": true,
+      "**/.sonarlint": true,
+      "**/.tox": true,
+      "**/.venv": true,
+      "**/*.egg-info": true,
+      "**/*.py[co]": true,
+      "**/*.retry": true,
+      "**/coverage*": true,
+      "**/dist": true,
+      "**/htmlcov": true,
+      "**/node_modules": true,
+      "**/pip-wheel-metadata": true,
+      "**/venv": true,
+      "**/py.typed": true
+  },
+
+  "files.watcherExclude": {
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/node_modules/*/**": true
+  },
+
+  "editor.rulers": [88],
+
+  "python.linting.enabled": true,
+  "python.linting.flake8Enabled": false,
+  "python.formatting.provider": "none",
+  "python.linting.mypyEnabled": true,
+  "python.linting.mypyPath": "${workspaceFolder}/.venv/bin/mypy",
+
+  "python.testing.pytestEnabled": false,
+
+  "python.envFile": "${workspaceFolder}/.env",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "python.poetryPath": "poetry",
+
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/.venv/lib/python3.11",
+    "${workspaceFolder}/.venv/lib/python3.11/site-packages"
+  ],
+
+  "python.analysis.inlayHints.variableTypes": true,
+  "python.analysis.inlayHints.functionReturnTypes": true,
+  "python.analysis.inlayHints.pytestParameters": true,
+
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/.venv/lib/python3.11",
+    "${workspaceFolder}/.venv/lib/python3.11/site-packages"
+  ],
+
+  "pytest.command": "${workspaceFolder}/.venv/bin/pytest",
+
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": true,
+      "source.organizeImports": true
+    },
+  }
+}

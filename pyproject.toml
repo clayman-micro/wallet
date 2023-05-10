@@ -47,7 +47,7 @@ ipython = "^8.5.0"
 
 # Black config
 [tool.black]
-line-length = 120
+line-length = 88
 target-version = ['py311']
 
 
@@ -121,7 +121,7 @@ unfixable = [
   'T201',
 ]
 exclude = ['.venv']
-line-length = 120
+line-length = 88
 respect-gitignore = true
 src = ["src", "tests"]
 target-version = "py311"
