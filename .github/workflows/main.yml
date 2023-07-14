@@ -170,7 +170,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           token: ${{ secrets.PAT }}
-          repository: ${{ github.repository_owner }}/argocd-node-app-config
+          repository: ${{ github.repository_owner }}/helm-chart
           event-type: new-image
           client-payload: '{"image_tag": "${{ steps.vars.outputs.sha_short }}", "app": "${{ env.APP_NAME }}", "env": "staging"}'
 
@@ -193,6 +193,6 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           token: ${{ secrets.PAT }}
-          repository: ${{ github.repository_owner }}/argocd-node-app-config
+          repository: ${{ github.repository_owner }}/helm-chart
           event-type: new-image
           client-payload: '{"image_tag": "${{ github.ref_name }}", "app": "${{ env.APP_NAME }}", "env": "production"}'
