@@ -192,6 +192,7 @@ jobs:
         uses: peter-evans/repository-dispatch@v1
         if: github.event_name != 'pull_request'
         with:
+          token: ${{ secrets.PAT }}
           repository: ${{ github.repository_owner }}/helm-chart
           event-type: deploy_release
           client-payload: '{"image_tag": "${{ github.ref_name }}", "app": "${{ env.APP_NAME }}", "env": "production"}'
