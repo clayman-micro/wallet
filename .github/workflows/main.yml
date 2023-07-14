@@ -128,7 +128,7 @@ jobs:
             # tag event
             type=ref,event=tag
             # master event
-            type=sha,format=short,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
+            type=sha,format=short,prefix=,suffix=,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
 
       - name: Debug variables
         run: |
@@ -139,7 +139,6 @@ jobs:
           echo "GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}"
           echo "GITHUB_SHA: ${{ github.sha }}"
           echo "GITHUB_SHA_SHORT: ${{ steps.vars.outputs.sha_short }}"
-          echo "SHA_SHORT: $(git rev-parse --short HEAD)"
           echo "tags: ${{ steps.meta.outputs.tags }}"
           echo "labels: ${{ steps.meta.outputs.labels }}"
 
