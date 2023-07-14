@@ -171,7 +171,7 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           repository: ${{ github.repository_owner }}/helm-chart
-          event-type: new-image
+          event-type: deploy_release
           client-payload: '{"image_tag": "${{ steps.vars.outputs.sha_short }}", "app": "${{ env.APP_NAME }}", "env": "staging"}'
 
   deploy_to_production:
