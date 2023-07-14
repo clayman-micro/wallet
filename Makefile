@@ -2,7 +2,7 @@
 
 NAME		:= ghcr.io/clayman-micro/wallet
 VERSION		?= latest
-NAMESPACE 	?= micro
+NAMESPACE	?= micro
 HOST 		?= 0.0.0.0
 PORT 		?= 5000
 

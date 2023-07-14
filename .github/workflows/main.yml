@@ -130,6 +130,17 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
 
+      - name: Debug variables
+        run: |
+          echo "GITHUB_EVENT_NAME: ${{ github.env.GITHUB_EVENT_NAME }}"
+          echo "GITHUB_REF: ${{ github.env.GITHUB_REF }}"
+          echo "GITHUB_REF_NAME: ${{ github.env.GITHUB_REF_NAME }}"
+          echo "GITHUB_REPOSITORY: ${{ github.env.GITHUB_REPOSITORY }}"
+          echo "GITHUB_REPOSITORY_OWNER: ${{ github.env.GITHUB_REPOSITORY_OWNER }}"
+          echo "GITHUB_SHA: ${{ github.env.GITHUB_SHA }}"
+          echo "tags: ${{ steps.meta.outputs.tags }}"
+          echo "labels: ${{ steps.meta.outputs.labels }}"
+
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:

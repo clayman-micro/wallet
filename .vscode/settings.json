@@ -76,5 +76,6 @@
       "source.fixAll": true,
       "source.organizeImports": true
     },
-  }
+  },
+  "ansible.python.interpreterPath": "/Users/clayman/Developer/micro/wallet/.venv/bin/python"
 }
