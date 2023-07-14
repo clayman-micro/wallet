@@ -113,6 +113,10 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
+      - name: Get commit short sha
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4
@@ -123,6 +127,8 @@ jobs:
             type=ref,event=branch
             # tag event
             type=ref,event=tag
+            # master event
+            type=sha,format=short,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
 
       - name: Debug variables
         run: |
@@ -131,7 +137,9 @@ jobs:
           echo "GITHUB_REF_NAME: ${{ github.ref_name }}"
           echo "GITHUB_REPOSITORY: ${{ github.repository }}"
           echo "GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}"
-          echo "GITHUB_SHA: ${{ github.env.GITHUB_SHA }}"
+          echo "GITHUB_SHA: ${{ github.sha }}"
+          echo "GITHUB_SHA_SHORT: ${{ steps.vars.outputs.sha_short }}"
+          echo "SHA_SHORT: $(git rev-parse --short HEAD)"
           echo "tags: ${{ steps.meta.outputs.tags }}"
           echo "labels: ${{ steps.meta.outputs.labels }}"
 
@@ -157,4 +165,4 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT }}
           token: ${{ secrets.TELEGRAM_SECRET }}
-          args: ${{ github.repository }} build version `master` - ${{ job.status }}
+          args: ${{ github.repository }} build version `${{ github.ref_name }}` - ${{ job.status }}
