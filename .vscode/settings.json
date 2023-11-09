@@ -39,11 +39,13 @@
 
   "editor.rulers": [88],
 
-  "python.linting.enabled": true,
-  "python.linting.flake8Enabled": false,
-  "python.formatting.provider": "none",
-  "python.linting.mypyEnabled": true,
-  "python.linting.mypyPath": "${workspaceFolder}/.venv/bin/mypy",
+  "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"],
+  "mypy-type-checker.interpreter": ["${workspaceFolder}/.venv/bin/python"],
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  "mypy-type-checker.severity": { "error": "Error", "note": "Information", "name-defined": "Warning" },
+  "mypy-type-checker.preferDaemon": true,
+  "mypy-type-checker.reportingScope": "workspace",
+
 
   "python.testing.pytestEnabled": false,
 
@@ -51,15 +53,14 @@
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.poetryPath": "poetry",
 
-  "python.analysis.extraPaths": [
-    "${workspaceFolder}",
-    "${workspaceFolder}/.venv/lib/python3.11",
-    "${workspaceFolder}/.venv/lib/python3.11/site-packages"
-  ],
-
   "python.analysis.inlayHints.variableTypes": true,
   "python.analysis.inlayHints.functionReturnTypes": true,
   "python.analysis.inlayHints.pytestParameters": true,
+
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}",
+    "${workspaceFolder}/.venv/lib/python3.11",
+  ],
 
   "python.autoComplete.extraPaths": [
     "${workspaceFolder}",
@@ -69,13 +70,14 @@
 
   "pytest.command": "${workspaceFolder}/.venv/bin/pytest",
 
+  "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.fixAll": true,
       "source.organizeImports": true
     },
-  },
-  "ansible.python.interpreterPath": "/Users/clayman/Developer/micro/wallet/.venv/bin/python"
+  }
 }

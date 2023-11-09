@@ -2,7 +2,6 @@
 
 NAME		:= ghcr.io/clayman-micro/wallet
 VERSION		?= latest
-NAMESPACE	?= micro
 HOST 		?= 0.0.0.0
 PORT 		?= 5000
 
@@ -32,11 +31,7 @@ install: clean
 
 format:
 	poetry run ruff --select I --fix src/wallet tests
-	poetry run black src/wallet tests
-
-check_black:
-	@echo Check project with Black formatter.
-	poetry run black --check src/wallet tests
+	poetry run ruff format src/wallet tests
 
 check_mypy:
 	@echo Check project with Mypy typechecker.
@@ -46,7 +41,11 @@ check_ruff:
 	@echo Check project with Ruff linter.
 	poetry run ruff --show-source --no-fix src/wallet tests
 
-lint: check_black check_ruff check_mypy
+check_format:
+	@echo Check formatting
+	poetry run ruff format --check --diff src/wallet tests
+
+lint: check_format check_ruff check_mypy
 
 run:
 	poetry run python3 -m wallet --debug server run --host=$(HOST) --port=$(PORT)
@@ -61,18 +60,3 @@ build:
 publish:
 	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS) ghcr.io
 	docker push ${NAME}
-
-deploy:
-	helm upgrade wallet ../helm-chart/charts/micro --install --force \
-		--namespace ${NAMESPACE} \
-		--set image.repository=${NAME} \
-		--set image.pullPolicy=Always \
-		--set image.tag=$(VERSION) \
-		--set replicas=$(REPLICAS) \
-		--set serviceAccount.name=micro \
-		--set imagePullSecrets[0].name=ghcr \
-		--set ingress.enabled=false \
-		--set ingress.rules={"Host(\`$(DOMAIN)\`)"} \
-		--set migrations.enabled=false \
-		--set livenessProbe.enabled=true \
-		--set readinessProbe.enabled=true
