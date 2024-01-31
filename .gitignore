@@ -45,13 +45,14 @@ tests/coverage
 # Mr Developer
 .cache
 .devspace/
+.DS_Store
 .env
 .envrc
 .idea
 .mypy_cache
-.ruff_cache
 .project
 .pydevproject
+.ruff_cache
 .scannerwork
 .venv
 *.http

@@ -1,133 +1,119 @@
-version: v1beta11
+version: v2beta1
+name: wallet
 
-# `vars` specifies variables which may be used as ${VAR_NAME} in devspace.yaml
 vars:
-- name: IMAGE
-  value: ghcr.io/clayman-micro/wallet
+  APP_NAME: wallet
+  IMAGE: ghcr.io/clayman-micro/wallet
 
-# `deployments` tells DevSpace how to deploy this project
+images:
+  app:
+    image: ${IMAGE}
+    kaniko:
+      pullSecret: ghcr
+
+# This is a list of `pipelines` that DevSpace can execute (you can define your own)
+pipelines:
+  # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
+  deploy:
+    run: |-
+      run_dependencies --all                            # 1. Deploy any projects this project needs (see "dependencies")
+      ensure_pull_secrets --all                         # 2. Ensure pull secrets
+      build_images --all -t $(git describe --always)    # 3. Build, tag (git commit hash) and push all images (see "images")
+      create_deployments --all                          # 4. Deploy Helm charts and manifests specfied as "deployments"
+  # This is the pipeline for the main command: `devspace dev` (or `devspace run-pipeline dev`)
+  dev:
+    run: |-
+      run_dependencies --all       # 1. Deploy any projects this project needs (see "dependencies")
+      ensure_pull_secrets --all    # 2. Ensure pull secrets
+      create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
+      start_dev app                # 4. Start dev mode "app" (see "dev" section)
+
+      code --folder-uri vscode-remote://ssh-remote+wallet.devspace/app
+
+# This is a list of `deployments` that DevSpace can create for this project
 deployments:
-- name: wallet
-  # This deployment uses `helm` but you can also define `kubectl` deployments or kustomizations
-  helm:
-    # We are deploying this project with the Helm chart you provided
-    chart:
-      name: .devspace/chart-repo/charts/micro
-    # Under `values` we can define the values for this Helm chart used during `helm install/upgrade`
-    # You may also use `valuesFiles` to load values from files, e.g. valuesFiles: ["values.yaml"]
-    values:
-    # image: ${IMAGE} # Use the value of our `${IMAGE}` variable here (see vars above)
-    # ingress:
-    #   enabled: true
-      image:
-        repository: ghcr.io/clayman-micro/wallet
-        tag: "latest"
+  app:
+    # This deployment uses `helm` but you can also define `kubectl` deployments or kustomizations
+    helm:
+      releaseName: ${APP_NAME}
+      # We are deploying this project with the Helm chart you provided
+      chart:
+        git: https://github.com/clayman-micro/helm-chart.git
+        branch: v2.5.0
+        subPath: charts/micro
+      # Under `values` we can define the values for this Helm chart used during `helm install/upgrade`
+      # You may also use `valuesFiles` to load values from files, e.g. valuesFiles: ["values.yaml"]
+      values:
+        image:
+          repository: ${IMAGE}
 
-      replicas: 1
-      serviceAccount:
-        name: micro
+        replicas: 1
 
-      imagePullSecrets:
-        - name: ghcr
+        serviceAccount:
+          name: micro
 
-      migrations:
-        enabled: false
+        imagePullSecrets:
+          - name: ghcr
 
-      ingress:
-        enabled: true
+        migrations:
+          enabled: false
 
-        rules:
-          - "Host(`wallet.dev.clayman.pro`)"
+        ingress:
+          enabled: true
 
-      livenessProbe:
-        enabled: true
+          rules:
+            - "Host(`wallet.dev.clayman.pro`)"
 
-      readinessProbe:
-        enabled: true
+        livenessProbe:
+          enabled: true
 
-# `dev` only applies when you run `devspace dev`
+        readinessProbe:
+          enabled: true
+
+        resources:
+          limits:
+            cpu: 1500m
+            memory: 2048Mi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+
+# This is a list of `dev` containers that are based on the containers created by your deployments
 dev:
-  # `dev.ports` specifies all ports that should be forwarded while `devspace dev` is running
-  # Port-forwarding lets you access your application via localhost on your local machine
-  ports:
-  - imageSelector: ${IMAGE} # Select the Pod that runs our `${IMAGE}`
-    forward:
-    - port: 5000
-
-  # `dev.open` tells DevSpace to open certain URLs as soon as they return HTTP status 200
-  # Since we configured port-forwarding, we can use a localhost address here to access our application
-  open:
-  - url: http://localhost:5000
-
-  # `dev.sync` configures a file sync between our Pods in k8s and your local project files
-  sync:
-  - imageSelector: ${IMAGE} # Select the Pod that runs our `${IMAGE}`
-    localSubPath: ./
-    containerPath: /app
-    excludePaths:
-    - .git/
-    uploadExcludePaths:
-    - .cache
-    - .eggs
-    - .idea
-    - .mypy_cache
-    - .pytest_cache
-    - .scannerwork
-    - .sonarlint
-    - .tox
-    - .vscode
-    - .venv
-    - '*.egg-info'
-    - build
-    - dist
-
-  # `dev.terminal` tells DevSpace to open a terminal as a last step during `devspace dev`
-  terminal:
-    imageSelector: ${IMAGE} # Select the Pod that runs our `${IMAGE}`
-    # With this optional `command` we can tell DevSpace to run a script when opening the terminal
-    # This is often useful to display help info for new users or perform initial tasks (e.g. installing dependencies)
-    # DevSpace has generated an example ./devspace_start.sh file in your local project - Feel free to customize it!
-    workDir: /app
-    command:
-    - ./devspace_start.sh
-
-  # Since our Helm charts and manifests deployments are often optimized for production,
-  # DevSpace let's you swap out Pods dynamically to get a better dev environment
-  replacePods:
-  - imageSelector: ${IMAGE} # Select the Pod that runs our `${IMAGE}`
-    # Since the `${IMAGE}` used to start our main application pod may be distroless or not have any dev tooling, let's replace it with a dev-optimized image
-    # DevSpace provides a sample image here but you can use any image for your specific needs
-    replaceImage: ghcr.io/clayman-micro/micro:v0.7.0
-    # Besides replacing the container image, let's also apply some patches to the `spec` of our Pod
-    # We are overwriting `command` + `args` for the first container in our selected Pod, so it starts with `sleep 9999999`
-    # Using `sleep 9999999` as PID 1 (instead of the regular ENTRYPOINT), allows you to start the application manually
-    patches:
-    - op: replace
-      path: spec.containers[0].command
-      value:
-      - sleep
-    - op: replace
-      path: spec.containers[0].args
-      value:
-      - "9999999"
-    - op: remove
-      path: spec.containers[0].securityContext
-hooks:
-- events:
-  - before:deploy
-  command: if [ -d '.devspace/chart-repo/.git' ]; then cd ".devspace/chart-repo" &&
-    git pull origin master; else mkdir -p .devspace/chart-repo; git clone --single-branch
-    --branch master https://github.com/clayman-micro/helm-chart.git .devspace/chart-repo;
-    fi
-
-# `profiles` lets you modify the config above for different environments (e.g. dev vs production)
-profiles:
-  # This profile is called `production` and you can use it for example using: devspace deploy -p production
-  # We generally recommend to use the base config without any profiles as optimized for development (e.g. image build+push is disabled)
-- name: production
-# This profile adds our image to the config so that DevSpace will build, tag and push our image before the deployment
-  merge:
-    images:
-      app:
-        image: ${IMAGE} # Use the value of our `${IMAGE}` variable here (see vars above)
-        dockerfile: ./Dockerfile
+  app:
+    imageSelector: ${IMAGE}
+    # Replace the container image with this dev-optimized image (allows to skip image building during development)
+    devImage: python:3.11-slim
+    command: ["sh", "-c", "tail -f /dev/null"]
+    workingDir: /app
+    # Sync files between the local filesystem and the development container
+    sync:
+      - path: ./:/app
+        excludePaths:
+          - .eggs
+          - .mypy_cache
+          - .pytest_cache
+          - .ruff_cache
+          - .scannerwork
+          - .sonarlint
+          - .tox
+          - .venv
+          - '*.egg-info'
+          - build
+          - dist
+      - path: "${DEVSPACE_USER_HOME}/.gitconfig:/root/.gitconfig"
+        file: true
+        disableDownload: true
+    # Open a terminal and use the following command to start it
+    terminal:
+      command: /app/devspace_start.sh
+    # Inject a lightweight SSH server into the container (so your IDE can connect to the remote dev env)
+    ssh:
+      enabled: true
+      localHostname: wallet.devspace
+    # Make the following commands from my local machine available inside the dev container
+    proxyCommands:
+      - command: devspace
+      - command: kubectl
+      - command: helm
+      - gitCredentials: true
