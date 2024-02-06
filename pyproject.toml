@@ -39,6 +39,7 @@ pytest-randomly = "^3.12.0"
 pytest-xdist = "^3.0.0"
 ruff = "^0.2"
 types-ujson = "^5.5.0"
+types-jsonschema = "^4.21.0.20240118"
 
 [tool.poetry.group.debug.dependencies]
 debugpy = "^1.6.5"

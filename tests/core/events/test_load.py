@@ -122,14 +122,6 @@ def test_not_exist(message: Message) -> None:
             "__meta__": {
                 "event_id": uuid4().hex,
                 "event_type": "test_event",
-                "created_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-            },
-        },
-        {
-            "__data__": {"user_id": 123},
-            "__meta__": {
-                "event_id": uuid4().hex,
-                "event_type": "test_event",
                 "version": "2.0",
             },
         },

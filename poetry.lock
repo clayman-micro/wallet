@@ -1274,6 +1274,20 @@ docs = ["myst-parser", "pydata-sphinx-theme", "sphinx"]
 test = ["argcomplete (>=3.0.3)", "mypy (>=1.7.0)", "pre-commit", "pytest (>=7.0,<7.5)", "pytest-mock", "pytest-mypy-testing"]
 
 [[package]]
+name = "types-jsonschema"
+version = "4.21.0.20240118"
+description = "Typing stubs for jsonschema"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-jsonschema-4.21.0.20240118.tar.gz", hash = "sha256:31aae1b5adc0176c1155c2d4f58348b22d92ae64315e9cc83bd6902168839232"},
+    {file = "types_jsonschema-4.21.0.20240118-py3-none-any.whl", hash = "sha256:77a4ac36b0be4f24274d5b9bf0b66208ee771c05f80e34c4641de7d63e8a872d"},
+]
+
+[package.dependencies]
+referencing = "*"
+
+[[package]]
 name = "types-ujson"
 version = "5.9.0.0"
 description = "Typing stubs for ujson"
@@ -1530,4 +1544,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d37f0a764b1ebd3530970db3fc6f9b930ef5d7f695b448912953b3a5cd33cb4a"
+content-hash = "3ce1cf93ba7a7dc46c015987686815e7ddd219f3c32402e25137c28377ba501f"
