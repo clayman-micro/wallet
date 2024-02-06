@@ -4,6 +4,7 @@ name: wallet
 vars:
   APP_NAME: wallet
   IMAGE: ghcr.io/clayman-micro/wallet
+  HOSTNAME: wallet.devspace
 
 images:
   app:
@@ -11,9 +12,7 @@ images:
     kaniko:
       pullSecret: ghcr
 
-# This is a list of `pipelines` that DevSpace can execute (you can define your own)
 pipelines:
-  # You can run this pipeline via `devspace deploy` (or `devspace run-pipeline deploy`)
   deploy:
     run: |-
       run_dependencies --all                            # 1. Deploy any projects this project needs (see "dependencies")
@@ -28,21 +27,16 @@ pipelines:
       create_deployments --all     # 3. Deploy Helm charts and manifests specfied as "deployments"
       start_dev app                # 4. Start dev mode "app" (see "dev" section)
 
-      code --folder-uri vscode-remote://ssh-remote+wallet.devspace/app
+      code --folder-uri vscode-remote://ssh-remote+${HOSTNAME}/app
 
-# This is a list of `deployments` that DevSpace can create for this project
 deployments:
   app:
-    # This deployment uses `helm` but you can also define `kubectl` deployments or kustomizations
     helm:
       releaseName: ${APP_NAME}
-      # We are deploying this project with the Helm chart you provided
       chart:
         git: https://github.com/clayman-micro/helm-chart.git
         branch: v2.5.0
         subPath: charts/micro
-      # Under `values` we can define the values for this Helm chart used during `helm install/upgrade`
-      # You may also use `valuesFiles` to load values from files, e.g. valuesFiles: ["values.yaml"]
       values:
         image:
           repository: ${IMAGE}
@@ -78,18 +72,18 @@ deployments:
             cpu: 250m
             memory: 512Mi
 
-# This is a list of `dev` containers that are based on the containers created by your deployments
 dev:
   app:
     imageSelector: ${IMAGE}
-    # Replace the container image with this dev-optimized image (allows to skip image building during development)
-    devImage: python:3.11-slim
+    devImage: ghcr.io/clayman-micro/dev-image:master
     command: ["sh", "-c", "tail -f /dev/null"]
     workingDir: /app
-    # Sync files between the local filesystem and the development container
     sync:
       - path: ./:/app
         excludePaths:
+          - .DS_Store
+          - .coverage
+          - .dockerignore
           - .eggs
           - .mypy_cache
           - .pytest_cache
@@ -101,19 +95,28 @@ dev:
           - '*.egg-info'
           - build
           - dist
-      - path: "${DEVSPACE_USER_HOME}/.gitconfig:/root/.gitconfig"
-        file: true
-        disableDownload: true
-    # Open a terminal and use the following command to start it
-    terminal:
-      command: /app/devspace_start.sh
-    # Inject a lightweight SSH server into the container (so your IDE can connect to the remote dev env)
+          - '**/__pycache__'
+    logs:
+      enabled: true
     ssh:
       enabled: true
-      localHostname: wallet.devspace
-    # Make the following commands from my local machine available inside the dev container
+      localHostname: ${HOSTNAME}
     proxyCommands:
       - command: devspace
-      - command: kubectl
+      - command: git
       - command: helm
+      - command: kubectl
       - gitCredentials: true
+
+hooks:
+  - command: |-
+      /root/.pyenv/bin/pyenv install 3.11.1
+      poetry env use /root/.pyenv/versions/3.11.1/bin/python
+      poetry install
+    container:
+      imageSelector: ${IMAGE}
+    events: ["after:initialSync:app"]
+
+commands:
+  vscode: |-
+    code --folder-uri vscode-remote://ssh-remote+${HOSTNAME}/app
