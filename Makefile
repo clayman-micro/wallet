@@ -39,7 +39,7 @@ check_mypy:
 
 check_ruff:
 	@echo Check project with Ruff linter.
-	poetry run ruff --show-source --no-fix src/wallet tests
+	poetry run ruff --output-format=full --no-fix src/wallet tests
 
 check_format:
 	@echo Check formatting
